@@ -12,6 +12,7 @@ unique_basics = TopicTemplate(
     id="unique_basics",
     name="unique_ptr: Basics",
     group="unique_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/unique_ptr",
     explanation=(
         "std::unique_ptr<T> is a move-only smart pointer that owns its object. "
         "make_unique<T>(args) allocates on the heap and returns a unique_ptr. "
@@ -51,6 +52,7 @@ unique_move = TopicTemplate(
     id="unique_move",
     name="unique_ptr: Move",
     group="unique_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/unique_ptr",
     explanation=(
         "unique_ptr cannot be copied — ownership is transferred with std::move(). "
         "After the move, the source unique_ptr is null. "
@@ -81,6 +83,7 @@ unique_copy_err = TopicTemplate(
     id="unique_copy_err",
     name="unique_ptr: Copy Error",
     group="unique_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/unique_ptr",
     explanation=(
         "unique_ptr's copy constructor is deleted — it cannot be copied. "
         "auto q = p; is a compile error: 'call to deleted function'. "
@@ -109,6 +112,7 @@ shared_basics = TopicTemplate(
     id="shared_basics",
     name="shared_ptr: Basics",
     group="shared_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/shared_ptr",
     explanation=(
         "std::shared_ptr<T> uses reference counting: multiple shared_ptrs can "
         "own the same object. The object is freed when the last owner is destroyed. "
@@ -147,6 +151,7 @@ shared_copy = TopicTemplate(
     id="shared_copy",
     name="shared_ptr: Copy",
     group="shared_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/shared_ptr",
     explanation=(
         "Copying a shared_ptr increments the reference count. "
         "Both sp1 and sp2 own the same heap object. "
@@ -180,6 +185,7 @@ weak_basics = TopicTemplate(
     id="weak_basics",
     name="weak_ptr: Basics",
     group="weak_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/weak_ptr",
     explanation=(
         "std::weak_ptr<T> observes a shared_ptr without contributing to its "
         "reference count. Creating a weak_ptr does not increase use_count(). "
@@ -222,6 +228,7 @@ weak_expired = TopicTemplate(
     id="weak_expired",
     name="weak_ptr: Expired",
     group="weak_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/weak_ptr",
     explanation=(
         "When the last shared_ptr owning an object is destroyed, the weak_ptr "
         "that observed it becomes expired. "

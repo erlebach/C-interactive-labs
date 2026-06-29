@@ -121,3 +121,15 @@ def test_lab2_weak_basics(lab2_topics):
 def test_lab2_weak_expired(lab2_topics):
     result = _run(lab2_topics["weak_expired"])
     assert "expired: true" in result.stdout
+
+
+def test_lab1_all_topics_have_doc_url():
+    from cpp_ptr_lab.pointers_refs.topics import TOPICS
+    for topic in TOPICS:
+        assert topic.doc_url != "", f"Topic {topic.id!r} is missing doc_url"
+
+
+def test_lab2_all_topics_have_doc_url():
+    from cpp_ptr_lab.smart_ptrs.topics import TOPICS
+    for topic in TOPICS:
+        assert topic.doc_url != "", f"Topic {topic.id!r} is missing doc_url"

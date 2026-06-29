@@ -12,6 +12,7 @@ basic_ptr = TopicTemplate(
     id="basic_ptr",
     name="Basic Pointer",
     group="Raw",
+    doc_url="https://en.cppreference.com/w/cpp/language/pointer",
     explanation=(
         "A raw pointer holds the memory address of another variable. "
         "Dereferencing it (*ptr) accesses the value at that address. "
@@ -56,6 +57,7 @@ const_taxonomy = TopicTemplate(
     id="const_taxonomy",
     name="const Taxonomy",
     group="Raw",
+    doc_url="https://en.cppreference.com/w/cpp/language/cv",
     explanation=(
         "const modifies the pointer or the pointee — or both. "
         "Read the declaration right-to-left: "
@@ -123,6 +125,7 @@ ref_must_bind = TopicTemplate(
     id="ref_must_bind",
     name="Ref: Must Bind",
     group="Refs",
+    doc_url="https://en.cppreference.com/w/cpp/language/reference",
     explanation=(
         "Invariant 1: a reference must be bound to an object at the point "
         "of declaration — it cannot be declared uninitialized. "
@@ -149,6 +152,7 @@ ref_no_null = TopicTemplate(
     id="ref_no_null",
     name="Ref: No Null",
     group="Refs",
+    doc_url="https://en.cppreference.com/w/cpp/language/reference",
     explanation=(
         "Invariant 2: a reference cannot be null — there is no null reference. "
         "Contrary to pointers (int* p = nullptr; is valid), attempting to form "
@@ -199,6 +203,7 @@ ref_rebind_illusion = TopicTemplate(
     id="ref_rebind_illusion",
     name="Ref: Rebind Illusion",
     group="Refs",
+    doc_url="https://en.cppreference.com/w/cpp/language/reference",
     explanation=(
         "Invariant 3: a reference cannot be rebound after initialization. "
         "r = b does NOT rebind r to b — it assigns b's value through r to a. "
@@ -233,6 +238,7 @@ ref_const = TopicTemplate(
     id="ref_const",
     name="Ref: const Ref",
     group="Refs",
+    doc_url="https://en.cppreference.com/w/cpp/language/reference",
     explanation=(
         "T& allows reading and writing through the reference. "
         "const T& (where T is the type of the referred-to object, e.g. int, double) "
@@ -287,6 +293,7 @@ null_deref = TopicTemplate(
     id="null_deref",
     name="Gotcha: Null Deref",
     group="Gotchas",
+    doc_url="https://en.cppreference.com/w/cpp/language/ub",
     explanation=(
         "Dereferencing a null pointer is undefined behaviour. "
         "Without AddressSanitizer the program typically crashes with SIGSEGV. "
@@ -317,6 +324,7 @@ dangling_ptr = TopicTemplate(
     id="dangling_ptr",
     name="Gotcha: Dangling Ptr",
     group="Gotchas",
+    doc_url="https://en.cppreference.com/w/cpp/language/ub",
     explanation=(
         "A pointer to a local variable becomes dangling when the variable goes "
         "out of scope. Using it is undefined behaviour. "

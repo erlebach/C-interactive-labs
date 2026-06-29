@@ -52,6 +52,7 @@ class TopicTemplate:
     target_var: str = "x"
     sanitize: bool = False
     has_ptrdata: bool = True
+    doc_url: str = ""
 
 
 # ---------------------------------------------------------------------------

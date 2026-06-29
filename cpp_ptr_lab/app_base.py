@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import queue
 import threading
+import webbrowser
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -118,9 +119,20 @@ class PtrLabApp:
     # UI construction
     # ------------------------------------------------------------------
 
+    def _make_link_theme(self) -> None:
+        with dpg.theme(tag="cpl_link_theme"):
+            with dpg.theme_component(dpg.mvButton):
+                dpg.add_theme_color(dpg.mvThemeCol_Button, (100, 180, 255, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (140, 210, 255, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (70, 150, 220, 255))
+
+    def _on_doc_link_clicked(self, sender, app_data, user_data) -> None:
+        webbrowser.open(user_data)
+
     def build_ui(self) -> None:
         """Create the viewport, primary window, and all topic tabs."""
         dpg.create_context()
+        self._make_link_theme()
 
         with dpg.window(tag="primary", label=self.lab_title):
             self._build_status_banner()
@@ -174,6 +186,14 @@ class PtrLabApp:
                 dpg.add_separator()
                 dpg.add_text("Explanation", color=(180, 180, 180, 255))
                 dpg.add_text(topic.explanation, wrap=340)
+                if topic.doc_url:
+                    link_btn = dpg.add_button(
+                        label="cppreference ↗",
+                        tag=self._tag(topic.id, "doc_link"),
+                        callback=self._on_doc_link_clicked,
+                        user_data=topic.doc_url,
+                    )
+                    dpg.bind_item_theme(link_btn, "cpl_link_theme")
                 dpg.add_spacer(height=8)
                 dpg.add_separator()
                 dpg.add_text("Controls", color=(180, 180, 180, 255))

@@ -80,3 +80,13 @@ def test_generate_source_uses_default_when_not_in_state():
     )
     src = generate_source(t, {})
     assert "77" in src
+
+
+def test_topic_template_doc_url_default():
+    t = _make_topic()
+    assert t.doc_url == ""
+
+
+def test_topic_template_doc_url_set():
+    t = _make_topic(doc_url="https://example.com")
+    assert t.doc_url == "https://example.com"
