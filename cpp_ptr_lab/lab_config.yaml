@@ -1,0 +1,22 @@
+pointers_refs:
+  enabled: true
+  topics:
+    basic_ptr: true
+    const_taxonomy: true
+    ref_must_bind: true
+    ref_no_null: true
+    ref_rebind_illusion: true
+    ref_const: true
+    null_deref: true
+    dangling_ptr: true
+
+smart_ptrs:
+  enabled: true
+  topics:
+    unique_basics: true
+    unique_move: true
+    unique_copy_err: true
+    shared_basics: true
+    shared_copy: true
+    weak_basics: true
+    weak_expired: true
