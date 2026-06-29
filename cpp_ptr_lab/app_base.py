@@ -126,6 +126,20 @@ class PtrLabApp:
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (140, 210, 255, 255))
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (70, 150, 220, 255))
 
+    def _make_output_themes(self) -> None:
+        with dpg.theme(tag="cpl_output_error"):
+            with dpg.theme_component(dpg.mvAll):
+                dpg.add_theme_color(dpg.mvThemeCol_Border, _BORDER_ERROR)
+                dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, (55, 18, 18, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (65, 20, 20, 255))
+                dpg.add_theme_style(dpg.mvStyleVar_FrameBorderSize, 2)
+        with dpg.theme(tag="cpl_output_warn"):
+            with dpg.theme_component(dpg.mvAll):
+                dpg.add_theme_color(dpg.mvThemeCol_Border, _BORDER_WARN)
+                dpg.add_theme_color(dpg.mvThemeCol_FrameBgHovered, (55, 42, 15, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_FrameBgActive, (60, 46, 16, 255))
+                dpg.add_theme_style(dpg.mvStyleVar_FrameBorderSize, 2)
+
     def _on_doc_link_clicked(self, sender, app_data, user_data) -> None:
         webbrowser.open(user_data)
 
@@ -133,6 +147,7 @@ class PtrLabApp:
         """Create the viewport, primary window, and all topic tabs."""
         dpg.create_context()
         self._make_link_theme()
+        self._make_output_themes()
 
         with dpg.window(tag="primary", label=self.lab_title):
             self._build_status_banner()
@@ -204,13 +219,13 @@ class PtrLabApp:
                 dpg.add_spacer(height=10)
 
                 if topic.sanitize and not asan_ok:
-                    run_label = "Run (ASan unavailable)"
+                    run_label = "Compile and Run (ASan unavailable)"
                     compile_label = "Compile (ASan unavailable)"
                 elif not gpp_ok:
-                    run_label = "Run (g++ unavailable)"
+                    run_label = "Compile and Run (g++ unavailable)"
                     compile_label = "Compile (g++ unavailable)"
                 else:
-                    run_label = "Run"
+                    run_label = "Compile and Run"
                     compile_label = "Compile"
 
                 with dpg.group():
@@ -393,6 +408,7 @@ class PtrLabApp:
         if result is None:
             dpg.set_value(self._tag(topic_id, "output"), "")
             dpg.set_value(self._tag(topic_id, "memory"), "n/a")
+            dpg.bind_item_theme(self._tag(topic_id, "output"), 0)
             self._populate_command_box(topic_id)
         else:
             self._display_result(topic_id, result)
@@ -414,7 +430,7 @@ class PtrLabApp:
         if action == "compile":
             dpg.set_item_label(self._tag(topic_id, "compile_btn"), "Compiling...")
         else:
-            dpg.set_item_label(self._tag(topic_id, "run_btn"), "Running...")
+            dpg.set_item_label(self._tag(topic_id, "run_btn"), "Compiling and Running...")
         dpg.configure_item(self._tag(topic_id, "compile_btn"), enabled=False)
         dpg.configure_item(self._tag(topic_id, "run_btn"), enabled=False)
         dpg.configure_item(self._tag(topic_id, "stop_btn"), enabled=True)
@@ -504,7 +520,7 @@ class PtrLabApp:
         asan_ok = self.gpp_status.asan_available
         action_enabled = gpp_ok and (not topic.sanitize or asan_ok)
         dpg.set_item_label(self._tag(topic_id, "compile_btn"), "Compile")
-        dpg.set_item_label(self._tag(topic_id, "run_btn"), "Run")
+        dpg.set_item_label(self._tag(topic_id, "run_btn"), "Compile and Run")
         dpg.configure_item(self._tag(topic_id, "compile_btn"), enabled=action_enabled)
         dpg.configure_item(self._tag(topic_id, "run_btn"), enabled=action_enabled)
         dpg.configure_item(self._tag(topic_id, "stop_btn"), enabled=False)
@@ -533,6 +549,13 @@ class PtrLabApp:
 
         topic = self.topic_by_id[topic_id]
         has_warn = self._has_warnings(result.compiler_stderr, result.status)
+        output_tag = self._tag(topic_id, "output")
+        if result.status in ("compile-failed", "execution-error"):
+            dpg.bind_item_theme(output_tag, "cpl_output_error")
+        elif has_warn:
+            dpg.bind_item_theme(output_tag, "cpl_output_warn")
+        else:
+            dpg.bind_item_theme(output_tag, 0)
         self._render_diagram(topic_id, result.ptrdata, result.status, has_warn)
 
     # ------------------------------------------------------------------
@@ -562,7 +585,7 @@ class PtrLabApp:
         diagram_tag = self._tag(topic_id, "diagram")
         dpg.delete_item(diagram_tag, children_only=True)
 
-        if status == "compile-failed":
+        if status in ("compile-failed", "execution-error"):
             border_color = _BORDER_ERROR
         elif has_warnings:
             border_color = _BORDER_WARN

@@ -106,6 +106,10 @@ def test_lab2_unique_copy_err(lab2_topics):
 def test_lab2_shared_basics(lab2_topics):
     result = _run(lab2_topics["shared_basics"])
     assert "PTRDATA:" in result.stdout
+    assert "(1 owner)" in result.stdout
+    assert "(2 owners)" in result.stdout
+    assert "0 owners" in result.stdout
+    assert "expired:   true" in result.stdout
 
 
 def test_lab2_shared_copy(lab2_topics):
@@ -121,6 +125,21 @@ def test_lab2_weak_basics(lab2_topics):
 def test_lab2_weak_expired(lab2_topics):
     result = _run(lab2_topics["weak_expired"])
     assert "expired: true" in result.stdout
+
+
+def test_lab2_weak_cycle_leaks(lab2_topics):
+    result = _run(lab2_topics["weak_cycle"])  # default: shared_ptr cycle
+    assert "a.use_count: 2" in result.stdout
+    assert "A destroyed" not in result.stdout
+    assert "B destroyed" not in result.stdout
+
+
+def test_lab2_weak_cycle_fix(lab2_topics):
+    topic = lab2_topics["weak_cycle"]
+    result = compile_and_run(generate_source(topic, {"variant": "Fix (weak_ptr)"}))
+    assert "a.use_count: 1" in result.stdout
+    assert "A destroyed" in result.stdout
+    assert "B destroyed" in result.stdout
 
 
 def test_lab1_all_topics_have_doc_url():

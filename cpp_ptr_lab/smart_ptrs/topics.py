@@ -114,21 +114,33 @@ shared_basics = TopicTemplate(
     group="shared_ptr",
     doc_url="https://en.cppreference.com/w/cpp/memory/shared_ptr",
     explanation=(
-        "std::shared_ptr<T> uses reference counting: multiple shared_ptrs can "
-        "own the same object. The object is freed when the last owner is destroyed. "
-        "use_count() returns the current reference count. "
-        "make_shared<T>(args) is preferred — it allocates object and control block together."
+        "std::shared_ptr<T> is reference-counted: copying it increments the count; "
+        "destroying a copy decrements it. The heap object is freed only when the "
+        "count reaches 0. This demo traces the full lifecycle: 1 owner -> 2 owners "
+        "-> 1 owner -> 0 owners (freed). A weak_ptr observer lets us read "
+        "use_count() safely after the last shared_ptr is gone."
     ),
     template="""\
 #include <iostream>
 #include <cstdio>
 #include <memory>
 int main() {
-    auto sp = std::make_shared<int>(<<value>>);
-    printf("PTRDATA: type=shared ptr_addr=%p target_addr=%p val=%d use_count=%ld\\n",
-           (void*)&sp, (void*)sp.get(), *sp, (long)sp.use_count());
-    std::cout << "use_count=" << sp.use_count() << std::endl;
-    <<HARNESS>>
+    std::weak_ptr<int> wp;
+    {
+        auto sp1 = std::make_shared<int>(<<value>>);
+        wp = sp1;
+        std::cout << "use_count: " << sp1.use_count() << "  (1 owner)" << std::endl;
+        {
+            auto sp2 = sp1;  // copy: use_count -> 2
+            std::cout << "use_count: " << sp1.use_count() << "  (2 owners)" << std::endl;
+            printf("PTRDATA: type=shared ptr_addr=%p ptr2_addr=%p target_addr=%p val=%d use_count=%ld\\n",
+                   (void*)&sp1, (void*)&sp2, (void*)sp1.get(), *sp1, (long)sp1.use_count());
+        }  // sp2 destroyed: use_count -> 1
+        std::cout << "use_count: " << sp1.use_count() << "  (1 owner, sp2 gone)" << std::endl;
+        <<HARNESS>>
+    }  // sp1 destroyed: use_count -> 0, heap object freed
+    std::cout << "use_count: " << wp.use_count() << "  (0 owners, object freed)" << std::endl;
+    std::cout << "expired:   " << (wp.expired() ? "true" : "false") << std::endl;
 }
 """,
     controls=[
@@ -140,7 +152,7 @@ int main() {
             placeholder="<<value>>",
         ),
     ],
-    target_var="sp",
+    target_var="sp1",
 )
 
 # ---------------------------------------------------------------------------
@@ -233,7 +245,8 @@ weak_expired = TopicTemplate(
         "When the last shared_ptr owning an object is destroyed, the weak_ptr "
         "that observed it becomes expired. "
         "wp.expired() returns true; wp.lock() returns an empty shared_ptr. "
-        "This is how weak_ptr breaks shared_ptr cycles safely."
+        "See the next tab (Cycle Break) for why this matters: weak_ptr is the "
+        "standard fix for shared_ptr reference cycles."
     ),
     template="""\
 #include <iostream>
@@ -258,6 +271,67 @@ int main() {
 )
 
 # ---------------------------------------------------------------------------
+# Topic 8: weak_cycle — demonstrating cycle-breaking
+# ---------------------------------------------------------------------------
+
+weak_cycle = TopicTemplate(
+    id="weak_cycle",
+    name="weak_ptr: Cycle Break",
+    group="weak_ptr",
+    doc_url="https://en.cppreference.com/w/cpp/memory/weak_ptr",
+    explanation=(
+        "Problem: A holds shared_ptr<B> and B holds shared_ptr<A>. "
+        "Neither use_count ever reaches 0, so neither destructor runs — memory leak. "
+        "Fix: make one link a weak_ptr (it does not increment use_count). "
+        "Proof: select 'Cycle (leak)' — no destructor output. "
+        "Select 'Fix (weak_ptr)' — both destructors fire."
+    ),
+    template="""\
+#include <iostream>
+#include <memory>
+
+struct B;
+
+struct A {
+    std::shared_ptr<B> b_ptr;
+    ~A() { std::cout << "A destroyed" << std::endl; }
+};
+struct B {
+    <<b_ptr_decl>>
+    ~B() { std::cout << "B destroyed" << std::endl; }
+};
+
+int main() {
+    auto a = std::make_shared<A>();
+    auto b = std::make_shared<B>();
+    a->b_ptr = b;
+    b->a_ptr = a;
+    std::cout << "a.use_count: " << a.use_count() << std::endl;
+    std::cout << "b.use_count: " << b.use_count() << std::endl;
+    // a and b go out of scope here
+}
+""",
+    controls=[
+        ControlDef(
+            id="variant",
+            label="Variant",
+            kind="dropdown",
+            options=["Cycle (leak)", "Fix (weak_ptr)"],
+            default="Cycle (leak)",
+            placeholder="<<b_ptr_decl>>",
+            value_map={
+                "Cycle (leak)":
+                    "    std::shared_ptr<A> a_ptr;  // keeps A alive — use_count never 0",
+                "Fix (weak_ptr)":
+                    "    std::weak_ptr<A>   a_ptr;  // does not keep A alive — cycle broken",
+            },
+        ),
+    ],
+    has_ptrdata=False,
+    target_var="a",
+)
+
+# ---------------------------------------------------------------------------
 # Exported list
 # ---------------------------------------------------------------------------
 
@@ -269,6 +343,7 @@ TOPICS: list[TopicTemplate] = [
     shared_copy,
     weak_basics,
     weak_expired,
+    weak_cycle,
 ]
 
 TOPIC_BY_ID: dict[str, TopicTemplate] = {t.id: t for t in TOPICS}

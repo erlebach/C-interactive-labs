@@ -59,12 +59,12 @@ const_taxonomy = TopicTemplate(
     group="Raw",
     doc_url="https://en.cppreference.com/w/cpp/language/cv",
     explanation=(
-        "const modifies the pointer or the pointee — or both. "
-        "Read the declaration right-to-left: "
-        "int* = pointer to int (both mutable); "
-        "const int* = pointer to const int (value immutable via this ptr); "
-        "int* const = const pointer to int (address immutable); "
-        "const int* const = both immutable."
+        "- const modifies the pointer or the pointee — or both. "
+        "Read the declaration right-to-left: \n"
+        "- int* = pointer to int (both mutable); \n"
+        "- const int* = pointer to const int (value immutable via this ptr); \n"
+        "- int* const = const pointer to int (address immutable); \n"
+        "- const int* const = both immutable. Const pointer to const int."
     ),
     template="""\
 #include <iostream>
