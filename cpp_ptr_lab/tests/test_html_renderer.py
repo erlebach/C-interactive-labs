@@ -290,6 +290,14 @@ class TestRenderFragmentMultiCase:
         ids = re.findall(r'id="([^"]+)"', frag)
         assert len(ids) == len(set(ids)), f"dup ids: {[i for i in ids if ids.count(i) > 1]}"
 
+    def test_multicase_panel_scrolls(self):
+        # Stacked sub-cases must not be clipped: the .panel that holds them
+        # scrolls vertically (regression: multi-case lost scrolling).
+        page = assemble_page([self._fragment()])
+        m = re.search(r"\.panel\s*\{([^}]*)\}", page)
+        assert m, ".panel CSS rule missing"
+        assert "overflow-y: auto" in m.group(1), f"no vertical scroll on .panel: {m.group(1)!r}"
+
     def test_failed_case_out_box_has_error_border_class(self):
         # _fragment has exactly 2 failing sub-cases (one per variant); only
         # those compiler-output boxes get the error-border modifier.

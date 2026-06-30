@@ -332,7 +332,13 @@ header h1 { margin: 0; font-size: 1.2rem; }
   flex: 1 1 0; min-height: 0; overflow: hidden;
   display: flex; flex-direction: column;
 }
-.panel { display: none; flex: 1 1 0; min-height: 0; }
+.panel { display: none; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+/* multi-case: each stacked sub-case keeps a usable height; .panel scrolls */
+.case { margin-bottom: 1rem; }
+.case:last-child { margin-bottom: 0; }
+.case-label { font-size: 1rem; margin: .2rem 0 .5rem; }
+.case .panel-grid { height: auto; }
+.case .diagram-col figure { flex: 0 0 auto; min-height: 200px; }
 /* panel-grid: left = scrolling code col, right = flex diagram col */
 .panel-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
