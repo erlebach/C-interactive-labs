@@ -2,6 +2,25 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 18:30 — YAML-driven page renderer + curriculum-expansion design
+
+New subpackage `cpp_ptr_lab/basic_ptr_yaml/`: a YAML page spec (`basic_ptr.page.yaml`) drives a thin
+translator (`render_page.py`) that maps a flat `blocks:` list to component calls — each block is
+`{component_or_builder: {args}}`, the translator pops `id` and forwards the rest as kwargs, resolving
+`${a.b.c}` refs from baked data. Two smart builders compose multiple components: `topic` (a
+`variant_tabs` cluster over a baked topic) and `heading`/`html`. The YAML page is component-signature-
+identical to the imperative `dist/topics_v2/basic_ptr.html`, self-contained, no dup ids; "same template
+twice on a page" works via per-block id namespacing (two passing tests). Suite **333 passed** (320 +
+13). Discussed scaling to a full C++ curriculum (initializers, pointers, stack frames, classes, function
+args, templates, STL): decided on a 4-layer architecture — course manifest → YAML page specs →
+per-subject topic modules (10–15 each, NOT a flat 30–50) → components — with the insight that ~10/15
+components are a reusable subject-agnostic spine while the 4 diagram components are pointer-specific, so
+a new subject = new topic module + 1–3 new diagram components + YAML pages. The flat block list = DOM
+order = reading order is the ADA mechanism (WCAG 1.3.2 by construction). Known engine gaps (both in
+`_build_topic`/`_bake_one`): cases-topics (`const_taxonomy`) unhandled, and the `topic` layout is a fixed
+recipe. Handoff: `handoffs/HANDOFF_2026-06-30_18h32mEST.md`; next focus = prototype `function_args` + close
+the two gaps.
+
 ## 2026-06-30 15:05 — Reconstruct basic_ptr topic page from the component library
 
 Worked example of *consuming* the new component library: new `cpp_ptr_lab/topic_page.py`
