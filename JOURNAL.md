@@ -2,6 +2,21 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 14:49 — Fix code_line_link CSS-combinator bug + session handoff
+
+While explaining how `code_line_link` works, found its hover/focus highlight was dead: the
+rule used the `~` general-sibling combinator, but the linked `<code>` line was trapped inside
+a `<pre>`, so it was never a sibling of `.cll-diagram` and the selector never matched. Fix
+(`components.py`): emit the code lines as **direct children** of the namespaced `#{comp_id}`
+container (no `<pre>` wrapper), styled with a shared `var(--code-bg)` background + first/last
+rounding so they still read as one code block; linked lines get a `cll-link` dotted-underline
+affordance. Added `TestCodeLineLink::test_linked_line_and_diagram_share_a_parent`, which
+**parses** the fragment (html.parser) and asserts the line and diagram share the `#{comp_id}`
+parent — a structural check string-matching tests can't make. Suite: **313 passed** (312 +
+this regression test); gallery rebuilt; user confirmed all 15 pages work. Handoff written to
+`handoffs/HANDOFF_2026-06-30_14h49mEST.md`. The `interactive-ptr-components` change is
+feature-complete and user-confirmed — next action is `/opsx:verify` → `/opsx:archive`.
+
 ## 2026-06-30 14:00 — Interactive component library + gallery (OpenSpec: interactive-ptr-components)
 
 Built a catalog of **15 pure, accessible, zero-JS page-element components** in a new
