@@ -2,6 +2,18 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-29 21:35 — Fix multi-case panel scroll regression
+
+The multi-sub-case panels stacked two `.panel-grid`s inside `.panel`, but `.panels` is
+`overflow:hidden` and `.panel` never scrolled — so `const_taxonomy`/`weak_cycle` clipped
+their second sub-case with no scrollbar (single-case fit because code scrolls inside
+`.code-col`). Fix (CSS only): `.panel { overflow-y:auto }`, plus `.case .panel-grid {
+height:auto }` and `.case` diagram `min-height:200px` so each stacked sub-case keeps a
+usable diagram height; single-case unaffected. TDD: `test_multicase_panel_scrolls`.
+Recorded + archived as OpenSpec change `2026-06-30-multicase-panel-scroll` (ADDED
+"Stacked sub-cases remain scrollable" to the `multi-subcase-panels` capability). Suite:
+**126 passed**; `dist/` rebuilt; 0 active changes.
+
 ## 2026-06-29 20:50 — Multi-sub-case panels, const-taxonomy redesign, two bug fixes, OpenSpec reconciliation
 
 Static-HTML C++ ptr lab. Two root-caused bug fixes: blank variant panels (CSS-unsafe
