@@ -2,6 +2,29 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 14:00 — Interactive component library + gallery (OpenSpec: interactive-ptr-components)
+
+Built a catalog of **15 pure, accessible, zero-JS page-element components** in a new
+`cpp_ptr_lab/components.py` (beside `html_renderer.py`, additive — existing 130 tests
+untouched), plus a `cpp_ptr_lab/gallery.py` build target that emits one standalone,
+Canvas-pasteable demo page per component + an index into `dist/gallery/` (16 files,
+zero external/script/network refs). Components: `page_shell`, `color_legend`,
+`callout_note`, `memory_diagram`, `hover_link_diagram`, `before_after_toggle`,
+`predict_reveal_quiz`, `compile_status_badge`, `output_console`, `byte_grid`,
+`code_line_link`, `variant_tabs`, `code_diagram_panel`, `stacked_subcases`,
+`progressive_steps`. Interactivity is baked-state + CSS only (`:checked`, `:hover`,
+`:focus`, `<details>`) — survives Canvas's `<script>`/`fetch` stripping; native controls
+give keyboard/SR a11y; state-driving radios hidden by clip (never `display:none`).
+Added a single-source **semantic color palette** `SEMANTIC_PALETTE` in `html_renderer.py`
+(`--c-addr/val/type/const/err`, all ≥4.5:1 on white — amber tightest at 4.87:1), injected
+into the theme `:root` and reused verbatim by the SVG palette so chrome and diagrams share
+one contrast-vetted language; color is always redundant with text + border/icon.
+TDD throughout (RED before GREEN, per feedback/testing.md): parametrized shared-invariant
+tests (purity, id-namespacing, CSS-id-safety, zero-JS/network, focus-preservation,
+color-not-alone) run across every registered component; the gallery bakes **real
+g++-captured** stdout/stderr and fails early if `g++` is missing. Suite: **312 passed**
+(130 prior + 177 component + 5 gallery). Ready for `/opsx:verify` → archive.
+
 ## 2026-06-29 22:19 — Lessons-learned analysis + session handoff
 
 Produced two reference artifacts (no code change). `LESSONS_LEARNED_2026-06-29_22h11mEST.md`
