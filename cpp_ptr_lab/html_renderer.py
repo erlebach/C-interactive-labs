@@ -11,12 +11,32 @@ from typing import Any
 
 
 # ---------------------------------------------------------------------------
+# Semantic per-role color palette — single source of truth (WCAG AA)
+# ---------------------------------------------------------------------------
+#
+# These five role tokens are the one contrast-vetted color language shared by
+# prose, code, and the inline SVG diagrams.  Each value is >=4.5:1 against the
+# white page background (--bg: #ffffff), so it is safe as a foreground color.
+# The same hex values are emitted as `:root` CSS custom properties (--c-<role>)
+# *and* used directly in the SVG palette, so a "blue address" in the code is a
+# "blue box" in the diagram.  Color is always paired with text/border/icon —
+# never the sole signal (WCAG 1.4.1).
+SEMANTIC_PALETTE: dict[str, str] = {
+    "addr": "#0b5394",   # blue   — addresses / pointer boxes
+    "val": "#0b7d3e",    # green  — stored values
+    "type": "#6b3fa0",   # purple — type names
+    "const": "#9a6700",  # amber  — const / immutable
+    "err": "#b00020",    # red    — errors / compile failures
+}
+
+
+# ---------------------------------------------------------------------------
 # SVG constants — mirror the 500×160 DPG coordinate space
 # ---------------------------------------------------------------------------
 
 _BOX_FILL = "#e8f0ff"
-_BOX_STROKE = "#0b5394"
-_ARROW_COLOR = "#0b5394"
+_BOX_STROKE = SEMANTIC_PALETTE["addr"]
+_ARROW_COLOR = SEMANTIC_PALETTE["addr"]
 _NULL_COLOR = "#8b0000"
 _LABEL_COLOR = "#1a1a1a"
 _DIM_COLOR = "#555555"
@@ -263,6 +283,7 @@ _CSS = """
   --code-bg:   #1d2433;
   --code-fg:   #e8edf6;
   --ok:        #0a6b2e;
+  /*SEMANTIC_TOKENS*/
 }
 * { box-sizing: border-box; }
 body {
@@ -366,6 +387,16 @@ summary { cursor: pointer; font-weight: 600; min-height: 44px; padding: .3rem 0;
 figure { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 figcaption { color: var(--fg-dim); font-size: .85rem; margin-top: .3rem; flex-shrink: 0; }
 """
+
+
+def _semantic_token_lines() -> str:
+    """Render the semantic palette as `:root` custom-property declarations."""
+    return "\n  ".join(f"--c-{role}: {hexv};" for role, hexv in SEMANTIC_PALETTE.items())
+
+
+# Inject the single-source palette into the theme `:root` so the CSS tokens and
+# the SVG palette can never drift (both read from SEMANTIC_PALETTE).
+_CSS = _CSS.replace("/*SEMANTIC_TOKENS*/", _semantic_token_lines())
 
 
 def _css_checked_rules(tid: str, variant_ids: list[str]) -> str:
