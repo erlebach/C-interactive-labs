@@ -25,19 +25,25 @@ def test_lab1_basic_ptr(lab1_topics):
     assert "PTRDATA:" in result.stdout
 
 
-def test_lab1_const_taxonomy_no_mutation(lab1_topics):
-    result = _run(lab1_topics["const_taxonomy"])
-    assert "PTRDATA:" in result.stdout
+def test_lab1_const_taxonomy_truth_table(lab1_topics):
+    """const taxonomy is a 2x2: const-pointee blocks *ptr=…; const-pointer
+    blocks ptr=…. Each of the 4 types compiles two sub-cases (write, rebind);
+    the forbidden combinations must genuinely fail to compile."""
+    from cpp_ptr_lab.build_html import capture_variant, expand_variants
 
-
-def test_lab1_const_taxonomy_mutation_const_int_ptr(lab1_topics):
     topic = lab1_topics["const_taxonomy"]
-    state = {
-        "variant": "const int* (value immutable, pointer mutable)",
-        "mutate": True,
-    }
-    result = compile_and_run(generate_source(topic, state))
-    assert result.status == "compile-failed"
+    variants = [capture_variant(topic, cs) for cs in expand_variants(topic)]
+    assert len(variants) == 4
+    for v in variants:
+        assert len(v["cases"]) == 2  # write, rebind
+
+    # case[0] = write *ptr, case[1] = rebind ptr  (CaseDef order)
+    table = {v["label"]: (v["cases"][0]["failed"], v["cases"][1]["failed"])
+             for v in variants}
+    assert table["int* (pointer and value both mutable)"] == (False, False)
+    assert table["const int* (value immutable, pointer mutable)"] == (True, False)
+    assert table["int* const (pointer immutable, value mutable)"] == (False, True)
+    assert table["const int* const (both immutable)"] == (True, True)
 
 
 def test_lab1_ref_must_bind(lab1_topics):

@@ -1,6 +1,11 @@
 """Tests for cpp_ptr_lab.code_generator."""
 import pytest
-from cpp_ptr_lab.code_generator import ControlDef, TopicTemplate, generate_source
+from cpp_ptr_lab.code_generator import (
+    CaseDef,
+    ControlDef,
+    TopicTemplate,
+    generate_source,
+)
 
 
 def _make_topic(**kwargs) -> TopicTemplate:
@@ -52,6 +57,27 @@ def test_generate_source_substitutes_placeholder():
     src = generate_source(t, {"val": "99"})
     assert "99" in src
     assert "<<val>>" not in src
+
+
+def test_topic_template_cases_default_none():
+    t = _make_topic()
+    assert t.cases is None
+
+
+def test_case_def_holds_label_and_subs():
+    c = CaseDef(label="Write", subs={"<<op>>": "*ptr = 99;"})
+    assert c.label == "Write"
+    assert c.subs == {"<<op>>": "*ptr = 99;"}
+
+
+def test_generate_source_applies_extra_subs():
+    t = _make_topic(
+        template="int main() { <<op>> <<HARNESS>> }",
+        target_var="x",
+    )
+    src = generate_source(t, {}, extra_subs={"<<op>>": "*ptr = 99;"})
+    assert "*ptr = 99;" in src
+    assert "<<op>>" not in src
 
 
 def test_generate_source_injects_harness():

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from cpp_ptr_lab.code_generator import ControlDef, TopicTemplate
+from cpp_ptr_lab.code_generator import CaseDef, ControlDef, TopicTemplate
 
 # ---------------------------------------------------------------------------
 # Topic 1: Basic raw pointer
@@ -59,20 +59,22 @@ const_taxonomy = TopicTemplate(
     group="Raw",
     doc_url="https://en.cppreference.com/w/cpp/language/cv",
     explanation=(
-        "- const modifies the pointer or the pointee — or both. "
-        "Read the declaration right-to-left: \n"
-        "- int* = pointer to int (both mutable); \n"
-        "- const int* = pointer to const int (value immutable via this ptr); \n"
-        "- int* const = const pointer to int (address immutable); \n"
-        "- const int* const = both immutable. Const pointer to const int."
+        "- const has two independent axes — read the declaration right-to-left:\n"
+        "- const int* = pointer to const int → can't write *ptr (the pointee is const);\n"
+        "- int* const = const pointer to int → can't rebind ptr (the pointer is const);\n"
+        "- const int* const = both are const → neither operation is allowed.\n"
+        "- Each type below attempts BOTH operations as separate compilations: "
+        "write through the pointer (*ptr = 99) and rebind it (ptr = &other). "
+        "The forbidden one genuinely fails to compile — read the error."
     ),
     template="""\
 #include <iostream>
 #include <cstdio>
 int main() {
     int val = 42;
+    int other = 7;
     <<decl>>
-    <<mutate>>
+    <<op>>
     printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%d\\n",
            (void*)&ptr, (void*)ptr, *ptr);
     <<HARNESS>>
@@ -102,16 +104,17 @@ int main() {
                     "const int* const ptr = &val;",
             },
         ),
-        ControlDef(
-            id="mutate",
-            label="Attempt mutation through pointer",
-            kind="checkbox",
-            default=False,
-            placeholder="<<mutate>>",
-            value_map={
-                "false": "// no mutation attempted",
-                "true": "*ptr = 99;  // attempt mutation through pointer",
-            },
+    ],
+    # Two operations compiled independently per type → the 2x2 truth table.
+    # Order matters: case[0] = write, case[1] = rebind (see integration test).
+    cases=[
+        CaseDef(
+            label="Write through pointer:  *ptr = 99;",
+            subs={"<<op>>": "*ptr = 99;  // write through the pointer"},
+        ),
+        CaseDef(
+            label="Rebind pointer:  ptr = &other;",
+            subs={"<<op>>": "ptr = &other;  // repoint to another int"},
         ),
     ],
     target_var="val",

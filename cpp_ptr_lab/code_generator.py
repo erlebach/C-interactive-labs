@@ -40,6 +40,19 @@ class ControlDef:
 
 
 @dataclass
+class CaseDef:
+    """A build-time sub-case shown within one variant panel.
+
+    Each case is compiled independently; ``subs`` fills extra template
+    placeholders (e.g. ``<<op>>``) to vary one operation while the
+    variant's control state (e.g. the declaration) stays fixed.
+    """
+
+    label: str
+    subs: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
 class TopicTemplate:
     """A single lab topic: its template, controls, and metadata."""
 
@@ -53,6 +66,7 @@ class TopicTemplate:
     sanitize: bool = False
     has_ptrdata: bool = True
     doc_url: str = ""
+    cases: list[CaseDef] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -97,12 +111,24 @@ def _resolve_control_value(ctrl: ControlDef, raw: str | bool) -> str:
 # ---------------------------------------------------------------------------
 
 
-def generate_source(topic: TopicTemplate, control_state: dict) -> str:
-    """Generate the full C++ source for *topic* given *control_state*."""
+def generate_source(
+    topic: TopicTemplate,
+    control_state: dict,
+    extra_subs: dict[str, str] | None = None,
+) -> str:
+    """Generate the full C++ source for *topic* given *control_state*.
+
+    *extra_subs* (used for per-case sub-case rendering) are applied on top
+    of the control-resolved substitutions, filling placeholders such as
+    ``<<op>>`` that no control owns.
+    """
     subs: dict[str, str] = {}
     for ctrl in topic.controls:
         raw = control_state.get(ctrl.id, ctrl.default)
         subs[ctrl.placeholder] = _resolve_control_value(ctrl, raw)
+
+    if extra_subs:
+        subs.update(extra_subs)
 
     subs["<<HARNESS>>"] = _build_harness(topic.target_var)
 

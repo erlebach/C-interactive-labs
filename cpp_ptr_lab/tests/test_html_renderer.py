@@ -1,0 +1,488 @@
+"""Tests for cpp_ptr_lab.html_renderer (RED phase — all will fail until implemented)."""
+
+from __future__ import annotations
+
+import re
+
+import pytest
+
+from cpp_ptr_lab.html_renderer import assemble_page, render_fragment, svg_renderer
+from cpp_ptr_lab.code_generator import ControlDef, TopicTemplate
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_topic(tid: str = "basic_ptr", controls=None) -> TopicTemplate:
+    return TopicTemplate(
+        id=tid,
+        name="Test Topic",
+        template="",
+        controls=controls or [],
+        explanation="",
+        group="Core",
+    )
+
+
+def _raw_pd(**kwargs) -> dict:
+    base = {
+        "type": "raw",
+        "ptr_addr": "0x16b949ac0",
+        "target_addr": "0x16b949ac8",
+        "target_val": "42",
+    }
+    base.update(kwargs)
+    return base
+
+
+def _variant(label: str = "int", failed: bool = False, **kwargs) -> dict:
+    return {
+        "label": label,
+        "svg": svg_renderer(None if failed else _raw_pd()),
+        "source": "int main(){}",
+        "stdout": "",
+        "membytes": "n/a",
+        "failed": failed,
+        "stderr": "error: blah" if failed else "",
+        **kwargs,
+    }
+
+
+# ---------------------------------------------------------------------------
+# svg_renderer — raw pointer
+# ---------------------------------------------------------------------------
+
+
+class TestSvgRendererRaw:
+    def test_returns_string(self):
+        out = svg_renderer(_raw_pd())
+        assert isinstance(out, str)
+
+    def test_contains_two_rects(self):
+        out = svg_renderer(_raw_pd())
+        assert out.count("<rect") == 2
+
+    def test_contains_arrow_line(self):
+        out = svg_renderer(_raw_pd())
+        assert "<line" in out or "<polygon" in out
+
+    def test_contains_ptr_address(self):
+        out = svg_renderer(_raw_pd())
+        assert "0x16b949ac0" in out
+
+    def test_contains_target_address(self):
+        out = svg_renderer(_raw_pd())
+        assert "0x16b949ac8" in out
+
+    def test_contains_value(self):
+        out = svg_renderer(_raw_pd())
+        assert "42" in out
+
+    def test_has_title_and_desc(self):
+        out = svg_renderer(_raw_pd())
+        assert "<title" in out
+        assert "<desc" in out
+
+    def test_has_role_img(self):
+        out = svg_renderer(_raw_pd())
+        assert 'role="img"' in out
+
+    def test_has_viewbox(self):
+        out = svg_renderer(_raw_pd())
+        assert 'viewBox="0 0 500 160"' in out
+
+    def test_aria_labelledby_references_title_and_desc(self):
+        out = svg_renderer(_raw_pd())
+        assert "aria-labelledby" in out
+
+
+# ---------------------------------------------------------------------------
+# svg_renderer — null pointer
+# ---------------------------------------------------------------------------
+
+
+class TestSvgRendererNull:
+    def test_null_type_shows_null_label(self):
+        pd = {"type": "null", "ptr_addr": "0x0"}
+        out = svg_renderer(pd)
+        assert "NULL" in out
+
+    def test_null_has_role_img(self):
+        pd = {"type": "null", "ptr_addr": "0x0"}
+        out = svg_renderer(pd)
+        assert 'role="img"' in out
+
+
+# ---------------------------------------------------------------------------
+# svg_renderer — missing keys degrade safely
+# ---------------------------------------------------------------------------
+
+
+class TestSvgRendererMissingKeys:
+    def test_missing_keys_returns_svg(self):
+        out = svg_renderer({"type": "raw"})
+        assert "<svg" in out
+
+    def test_missing_keys_uses_placeholder(self):
+        out = svg_renderer({"type": "raw"})
+        assert "?" in out
+
+    def test_does_not_raise(self):
+        svg_renderer({"type": "raw"})  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# svg_renderer — smart-pointer dispatch
+# ---------------------------------------------------------------------------
+
+
+class TestSvgRendererSmartPtrs:
+    def test_unique_dispatched(self):
+        pd = {
+            "type": "unique",
+            "ptr_addr": "0xabc",
+            "target_addr": "0xdef",
+            "val": "7",
+            "is_null": "0",
+        }
+        out = svg_renderer(pd)
+        assert "<svg" in out
+        assert "unique" in out.lower()
+
+    def test_shared_dispatched(self):
+        pd = {
+            "type": "shared",
+            "ptr_addr": "0xabc",
+            "target_addr": "0xdef",
+            "val": "7",
+            "use_count": "1",
+        }
+        out = svg_renderer(pd)
+        assert "<svg" in out
+        assert "shared" in out.lower()
+
+    def test_weak_dispatched(self):
+        pd = {
+            "type": "weak",
+            "ptr_addr": "0xabc",
+            "expired": "0",
+            "use_count": "1",
+        }
+        out = svg_renderer(pd)
+        assert "<svg" in out
+        assert "weak" in out.lower()
+
+
+# ---------------------------------------------------------------------------
+# render_fragment — multiple variants
+# ---------------------------------------------------------------------------
+
+
+def _dropdown(cid: str, options: list[str]) -> ControlDef:
+    return ControlDef(
+        id=cid,
+        label=cid.title(),
+        kind="dropdown",
+        options=options,
+        default=options[0],
+        placeholder=f"<<{cid}>>",
+    )
+
+
+class TestRenderFragmentMultiVariant:
+    def _fragment(self, tid="basic_ptr", options=None):
+        options = options or ["int", "double", "float"]
+        topic = _make_topic(tid, controls=[_dropdown("type", options)])
+        variants = [{"label": o, "svg": "", "source": "", "stdout": "", "membytes": "n/a", "failed": False, "stderr": ""} for o in options]
+        return render_fragment(topic, variants)
+
+    def test_one_radio_per_variant(self):
+        frag = self._fragment()
+        assert frag.count('type="radio"') == 3
+
+    def test_one_panel_per_variant(self):
+        frag = self._fragment()
+        assert frag.count('class="panel"') == 3 or frag.count('id="basic_ptr-panel-') == 3
+
+    def test_first_variant_checked(self):
+        frag = self._fragment()
+        # The first radio must carry 'checked'
+        first_radio_match = re.search(r'<input[^>]*type="radio"[^>]*/?>|<input[^>]*type="radio"[^>]*>', frag)
+        assert first_radio_match is not None
+        assert "checked" in first_radio_match.group(0)
+
+    def test_ids_namespaced_by_topic_id(self):
+        frag = self._fragment(tid="basic_ptr")
+        assert "basic_ptr-" in frag
+
+    def test_no_cross_contamination_between_topics(self):
+        topic_a = _make_topic("alpha", controls=[_dropdown("type", ["x", "y"])])
+        topic_b = _make_topic("beta", controls=[_dropdown("type", ["x", "y"])])
+        vs = [{"label": o, "svg": "", "source": "", "stdout": "", "membytes": "n/a", "failed": False, "stderr": ""} for o in ["x", "y"]]
+        frag_a = render_fragment(topic_a, vs)
+        frag_b = render_fragment(topic_b, vs)
+        # Extract all id= values from each fragment
+        ids_a = set(re.findall(r'id="([^"]+)"', frag_a))
+        ids_b = set(re.findall(r'id="([^"]+)"', frag_b))
+        assert ids_a.isdisjoint(ids_b), f"Shared ids: {ids_a & ids_b}"
+
+    def test_output_is_section(self):
+        frag = self._fragment()
+        assert "<section" in frag
+
+    def test_ids_are_css_safe_with_punctuated_labels(self):
+        # Variant labels with parens/commas (e.g. const taxonomy) must still
+        # yield ids usable in an unescaped CSS `#id` selector. Raw '(', ')',
+        # ',' silently break the `:checked ~` rule, leaving the panel empty.
+        labels = [
+            "int* (pointer and value both mutable)",
+            "const int* (value immutable, pointer mutable)",
+        ]
+        frag = self._fragment(tid="const_taxonomy", options=labels)
+        ids = re.findall(r'id="([^"]+)"', frag)
+        bad = [i for i in ids if not re.fullmatch(r"[A-Za-z0-9_-]+", i)]
+        assert not bad, f"CSS-unsafe ids: {bad}"
+
+
+class TestRenderFragmentMultiCase:
+    def _case(self, label, failed=False):
+        return {
+            "label": label,
+            "source": f"int main(){{ /* {label} */ }}",
+            "stdout": f"ran: {label}",
+            "membytes": "n/a",
+            "failed": failed,
+            "stderr": "error: read-only" if failed else "",
+            "ptrdata": None if failed else _raw_pd(),
+        }
+
+    def _fragment(self):
+        topic = _make_topic("const_taxonomy", controls=[_dropdown("type", ["a", "b"])])
+        variants = [
+            {"label": "a", "cases": [self._case("Write *ptr"), self._case("Rebind ptr", failed=True)]},
+            {"label": "b", "cases": [self._case("Write *ptr", failed=True), self._case("Rebind ptr")]},
+        ]
+        return render_fragment(topic, variants)
+
+    def test_case_labels_present(self):
+        frag = self._fragment()
+        assert "Write *ptr" in frag
+        assert "Rebind ptr" in frag
+
+    def test_one_code_block_per_case(self):
+        frag = self._fragment()
+        # 2 variants x 2 cases = 4 code blocks
+        assert frag.count("<pre><code>") == 4
+
+    def test_failing_case_shows_compile_failed_and_stderr(self):
+        frag = self._fragment()
+        assert "Compile failed" in frag
+        assert "read-only" in frag
+
+    def test_passing_case_shows_stdout(self):
+        frag = self._fragment()
+        assert "ran: Write *ptr" in frag
+
+    def test_no_duplicate_ids(self):
+        frag = self._fragment()
+        ids = re.findall(r'id="([^"]+)"', frag)
+        assert len(ids) == len(set(ids)), f"dup ids: {[i for i in ids if ids.count(i) > 1]}"
+
+    def test_failed_case_out_box_has_error_border_class(self):
+        # _fragment has exactly 2 failing sub-cases (one per variant); only
+        # those compiler-output boxes get the error-border modifier.
+        frag = self._fragment()
+        assert frag.count("out--err") == 2
+
+    def test_error_border_css_defines_red_border(self):
+        # The .out--err rule lives in the page-level inlined CSS (assemble_page),
+        # while the marker class is applied on the box inside the fragment.
+        page = assemble_page([self._fragment()])
+        m = re.search(r"\.out--err\s*\{([^}]*)\}", page)
+        assert m, ".out--err CSS rule missing"
+        rule = m.group(1)
+        assert "border" in rule
+        assert re.search(r"#(c2|b0|8b|a0|d0|cc)0{0,2}0", rule) or "var(--err" in rule, \
+            f"no red border colour in: {rule!r}"
+
+
+# ---------------------------------------------------------------------------
+# render_fragment — single variant
+# ---------------------------------------------------------------------------
+
+
+class TestRenderFragmentSingleVariant:
+    def _fragment(self, tid="ref_must_bind"):
+        topic = _make_topic(tid, controls=[])
+        variants = [{"label": "", "svg": "", "source": "int main(){}", "stdout": "", "membytes": "n/a", "failed": False, "stderr": ""}]
+        return render_fragment(topic, variants)
+
+    def test_no_radio_controls_emitted(self):
+        frag = self._fragment()
+        assert 'type="radio"' not in frag
+
+    def test_panel_content_present(self):
+        frag = self._fragment()
+        assert "int main(){}" in frag or "<section" in frag
+
+
+# ---------------------------------------------------------------------------
+# assemble_page
+# ---------------------------------------------------------------------------
+
+
+class TestAssemblePage:
+    def _two_fragments(self):
+        t1 = _make_topic("alpha")
+        t2 = _make_topic("beta")
+        vs = [{"label": "", "svg": "", "source": "", "stdout": "", "membytes": "n/a", "failed": False, "stderr": ""}]
+        return [render_fragment(t1, vs), render_fragment(t2, vs)]
+
+    def test_has_lang_attribute(self):
+        page = assemble_page(self._two_fragments())
+        assert 'lang="en"' in page or "lang=" in page
+
+    def test_has_skip_link(self):
+        page = assemble_page(self._two_fragments())
+        assert 'href="#main"' in page or "skip" in page.lower()
+
+    def test_contains_all_fragments(self):
+        vs = [{"label": "", "svg": "", "source": "", "stdout": "", "membytes": "n/a", "failed": False, "stderr": ""}]
+        t1 = _make_topic("alpha")
+        t2 = _make_topic("beta")
+        f1 = render_fragment(t1, vs)
+        f2 = render_fragment(t2, vs)
+        page = assemble_page([f1, f2])
+        assert "alpha" in page
+        assert "beta" in page
+
+    def test_no_duplicate_ids(self):
+        page = assemble_page(self._two_fragments())
+        ids = re.findall(r'id="([^"]+)"', page)
+        assert len(ids) == len(set(ids)), f"Duplicate ids: {[i for i in ids if ids.count(i) > 1]}"
+
+    def test_css_inlined(self):
+        page = assemble_page(self._two_fragments())
+        assert "<style" in page
+
+    def test_no_external_resources(self):
+        page = assemble_page(self._two_fragments())
+        assert "<script src=" not in page
+        assert '<link rel="stylesheet"' not in page
+
+
+# ---------------------------------------------------------------------------
+# Task 1.1 — TestAssemblePageTopicNav (RED)
+# ---------------------------------------------------------------------------
+
+
+class TestAssemblePageTopicNav:
+    def _two_frags_with_topics(self):
+        t1 = _make_topic("basic_ptr")
+        t2 = _make_topic("const_taxonomy")
+        vs = [_variant()]
+        f1 = render_fragment(t1, vs)
+        f2 = render_fragment(t2, vs)
+        topics = [("basic_ptr", "Basic Pointer"), ("const_taxonomy", "const Taxonomy")]
+        return [f1, f2], topics
+
+    def test_topic_radio_inputs_present(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        assert 'class="vtopic"' in page
+
+    def test_first_topic_checked(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        first_radio = re.search(r'<input[^>]*class="vtopic"[^>]*/?>|<input[^>]*class="vtopic"[^>]*>', page)
+        assert first_radio is not None
+        assert "checked" in first_radio.group(0)
+
+    def test_topic_panel_divs_present(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        assert 'id="tp-basic_ptr"' in page
+        assert 'id="tp-const_taxonomy"' in page
+
+    def test_topic_nav_labels_present(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        assert 'class="topic-nav"' in page
+        assert 'for="t-basic_ptr"' in page
+        assert 'for="t-const_taxonomy"' in page
+
+    def test_body_css_height_100vh(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        assert "height:100vh" in page.replace(" ", "") or "height: 100vh" in page
+
+    def test_body_css_overflow_hidden(self):
+        frags, topics = self._two_frags_with_topics()
+        page = assemble_page(frags, topics=topics)
+        # Check the body rule in the CSS block contains overflow:hidden
+        style_match = re.search(r'<style>(.*?)</style>', page, re.DOTALL)
+        assert style_match is not None
+        css = style_match.group(1)
+        assert "overflow:hidden" in css.replace(" ", "") or "overflow: hidden" in css
+
+    def test_no_topic_nav_when_topics_none(self):
+        t1 = _make_topic("basic_ptr")
+        vs = [_variant()]
+        f1 = render_fragment(t1, vs)
+        page = assemble_page([f1])
+        assert 'class="topic-nav"' not in page
+        assert 'class="vtopic"' not in page
+
+
+# ---------------------------------------------------------------------------
+# Task 1.2 — TestAssemblePageBackwardCompat (RED)
+# ---------------------------------------------------------------------------
+
+
+class TestAssemblePageBackwardCompat:
+    def test_no_topic_nav_without_kwarg(self):
+        t1 = _make_topic("alpha")
+        vs = [_variant()]
+        frag = render_fragment(t1, vs)
+        page = assemble_page([frag])
+        assert 'class="topic-nav"' not in page
+
+    def test_lang_en_present(self):
+        t1 = _make_topic("alpha")
+        vs = [_variant()]
+        frag = render_fragment(t1, vs)
+        page = assemble_page([frag])
+        assert 'lang="en"' in page
+
+    def test_skip_link_present(self):
+        t1 = _make_topic("alpha")
+        vs = [_variant()]
+        frag = render_fragment(t1, vs)
+        page = assemble_page([frag])
+        assert 'href="#main"' in page or 'class="skip"' in page
+
+
+# ---------------------------------------------------------------------------
+# Task 1.3 — TestRenderFragmentLayout (RED)
+# ---------------------------------------------------------------------------
+
+
+class TestRenderFragmentLayout:
+    def _multi_variant_frag(self, tid="basic_ptr"):
+        topic = _make_topic(tid, controls=[_dropdown("type", ["int", "double", "float"])])
+        variants = [_variant(label=o) for o in ["int", "double", "float"]]
+        return render_fragment(topic, variants)
+
+    def test_tabs_before_panels(self):
+        frag = self._multi_variant_frag()
+        tabs_pos = frag.find('class="tabs"')
+        panels_pos = frag.find('class="panels"')
+        assert tabs_pos != -1 and panels_pos != -1
+        assert tabs_pos < panels_pos
+
+    def test_diagram_column_has_flex(self):
+        frag = self._multi_variant_frag()
+        # The diagram column div must carry display:flex
+        assert "display:flex" in frag.replace(" ", "") or "display: flex" in frag
