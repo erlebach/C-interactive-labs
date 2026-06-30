@@ -202,6 +202,73 @@ or classes), where the new cost is the diagram component(s), not the plumbing.
 
 ---
 
+## 8a. Authoring workflow: how to start a new subject
+
+Two naive paths exist — **page-first** (mock the HTML, derive topics from it) and
+**topic-first** (decide the topics, then compose pages). They are not competitors:
+page-first is the *spec*, topic-first is the *build*. Each pure path has a failure
+mode — page-first tempts you to hand-author the final HTML (defeats generation;
+not baked, not reproducible), and topic-first risks *topics in search of a lesson*
+(content no page composes).
+
+**Resolve it with the engine's pure render path.** Because `render_page(spec, data)`
+is pure (the tests feed it a hand-written `FAKE` data dict, no g++), the prototype
+*is a YAML page spec with fake data* — page-first discovery, in the real
+deliverable format, with **zero throwaway**:
+
+1. Write `<subject>.page.yaml` + a fake data dict → open the rendered page. This
+   forces you to name, in the target format, the topics, the interactions, and —
+   crucially — **whether you need a new component** (you feel the gap when no block
+   expresses what you want).
+2. Then go topic-first: author the `TopicTemplate`s it named (TDD, real g++ bake),
+   add any new diagram component, and swap fake data for a real `bake:`. The
+   prototype becomes the production page by filling in, not rewriting.
+
+**Which to lead with depends on novelty** — specifically, whether the subject needs
+new *diagram/interaction* components (the expensive, hard-to-guess part):
+
+| Subject | New components? | Lead with |
+|---|---|---|
+| `function_args` (value/ptr/ref) | none — reuses `memory_diagram` + `before_after_toggle` | topic-first (skip the prototype) |
+| `templates` (single/multiple/specialized) | probably few — `variant_tabs` over types + `code_diagram_panel` + failing-compile `output_console` | fake-data prototype first (confirm the gap) |
+| `stack_frames`, `classes` | yes — frame-stack diagram, special-member call-trace | fake-data prototype first (discover the diagram) |
+
+Rule: **known territory → topic-first; novel/diagram-heavy → fake-data prototype
+first, then topic-first.** The prototype earns its keep exactly when you cannot yet
+picture the diagram.
+
+## 8b. Prior-art research as the idea source
+
+A third input sits **upstream of both paths**: survey what others have built, keep
+what fits, and derive topics beyond the base. The pipeline is **research →
+prototype (fake-data YAML) → topics**.
+
+**The filter that makes this productive — steal the pedagogy and the diagram
+vocabulary, not the runtime.** Almost every great C++ teaching tool is dynamic (JS,
+a backend, live stepping); our constraint is static / zero-JS / baked / Canvas. So
+every borrowed idea passes two gates: (1) **pedagogical fit** for grad students weak
+in C, and (2) **static-expressibility** — can it render as *baked snapshots switched
+by CSS* (`progressive_steps`, `before_after_toggle`, `predict_reveal_quiz`,
+`variant_tabs`)? A *live* execution stepper (Python Tutor) becomes, for us, a *baked
+execution trace*: a fixed sequence of snapshots revealed by `<details>`/radio. The
+pedagogy survives; the runtime does not transfer. Without this filter, prior art is
+a buffet and you build everything.
+
+Anchor tools (to verify with a real scan), mapped to subjects:
+
+| Prior art | What it does | What we derive (filtered) |
+|---|---|---|
+| **C++ Insights** (cppinsights.io) | shows compiler-*generated* code: implicit ctor/cctor/move/assign, template instantiation | **classes**, **templates** — "reveal what the compiler generates"; static text → directly bakeable; ~no new components. **Highest leverage.** |
+| **Python Tutor** (Guo) | live stack+heap with arrows, stepped | **stack frames**, **pointers/refs** — baked frame diagram + stepped trace; the one genuinely new component (frame diagram) |
+| **Compiler Explorer** (godbolt) | source → asm + multi-compiler diagnostics | **templates** — instantiated source + real error for bad types; mostly existing components |
+| **Effective C++ / Modern C++** (Meyers), cppreference notes | catalog of gotchas/items | **gotcha topics across all subjects** — direct fuel for `predict_reveal_quiz` + failing-compile topics |
+| **learncpp.com / C++ Primer** (Lippman) | structured tutorial taxonomy | the **course manifest** order + per-subject topic lists |
+
+Hard rule: *an idea earns a topic only if it has a learning objective AND a baked,
+color-redundant, AA-compliant rendering.* A real research pass (scoring current
+tools against the two gates, producing a "tool → interaction → component → topic"
+mapping) is queued as a next step — see the session handoff.
+
 ## 9. Summary of decisions
 
 1. **Decouple content from curriculum.** Curriculum = YAML order/text (free);
