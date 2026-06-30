@@ -2,6 +2,17 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-29 22:19 — Lessons-learned analysis + session handoff
+
+Produced two reference artifacts (no code change). `LESSONS_LEARNED_2026-06-29_22h11mEST.md`
+(repo root): synthesized from a parallel deep read of the DPG interface (`app_base.py`) and the
+HTML/build pipeline — HTML-page idioms, a WCAG AA technique→success-criterion table, the
+build-time bake architecture, the DPG accessibility limitations (architectural, why migration was
+necessary), pitfalls (CSS-unsafe ids, stringified bools, duplicate SVG ids, panel scroll), and a
+quick-start checklist. `handoffs/HANDOFF_2026-06-29_22h19mEST.md`: focus = apply the multi-sub-case
+`cases` pattern to remaining gotcha topics + the deferred vetted-C++ diff; references, locked
+decisions, constraints, suggested skills. No tests affected (130 still green).
+
 ## 2026-06-29 22:03 — Leave diagram column empty when there is no diagram
 
 No-data cases (compile-failed sub-cases, `has_ptrdata=False` topics) drew a placeholder SVG
