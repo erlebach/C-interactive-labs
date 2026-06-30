@@ -494,12 +494,27 @@ def _case_block(v: dict, svg_id_prefix: str = "d") -> str:
 
     # Re-render SVG with a unique per-variant prefix to avoid duplicate ids
     # when multiple variants appear in one document.  Fall back to the
-    # pre-rendered svg field if ptrdata is not stored.
+    # pre-rendered svg field if ptrdata is not stored.  When there is no
+    # pointer data (compile failure, or a topic with no diagram), leave the
+    # diagram column empty rather than drawing a "no diagram" placeholder.
     ptrdata = v.get("ptrdata")
-    if "ptrdata" in v:
-        svg = svg_renderer(ptrdata, svg_id_prefix)
+    no_diagram = "ptrdata" in v and not ptrdata
+    if no_diagram:
+        diagram_col = '<div class="diagram-col diagram-col--empty"></div>\n'
     else:
-        svg = v.get("svg") or svg_renderer(None, svg_id_prefix)
+        if "ptrdata" in v:
+            svg = svg_renderer(ptrdata, svg_id_prefix)
+        else:
+            svg = v.get("svg") or svg_renderer(None, svg_id_prefix)
+        diagram_col = (
+            f'<div class="diagram-col">\n'
+            f'<h3>Memory diagram</h3>\n'
+            f'<figure>\n'
+            f'{svg}\n'
+            f'<figcaption>Addresses are real output from a 64-bit build; frozen here for stable study.</figcaption>\n'
+            f'</figure>\n'
+            f'</div>\n'
+        )
 
     if failed:
         out_html = (
@@ -530,13 +545,7 @@ def _case_block(v: dict, svg_id_prefix: str = "d") -> str:
         f'<h3 style="margin-top:.8rem">Program output</h3>\n'
         f'{out_html}\n'
         f'</div>\n'
-        f'<div class="diagram-col">\n'
-        f'<h3>Memory diagram</h3>\n'
-        f'<figure>\n'
-        f'{svg}\n'
-        f'<figcaption>Addresses are real output from a 64-bit build; frozen here for stable study.</figcaption>\n'
-        f'</figure>\n'
-        f'</div>\n'
+        f'{diagram_col}'
         f'</div>\n'
     )
 

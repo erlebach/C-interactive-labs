@@ -316,6 +316,36 @@ class TestRenderFragmentMultiCase:
             f"no red border colour in: {rule!r}"
 
 
+class TestNoDiagramLeavesEmptySpace:
+    def _variants(self):
+        return [
+            {"label": "ok", "source": "x", "stdout": "ran", "membytes": "n/a",
+             "failed": False, "stderr": "", "ptrdata": _raw_pd()},
+            {"label": "bad", "source": "x", "stdout": "", "membytes": "n/a",
+             "failed": True, "stderr": "err: boom", "ptrdata": None},
+        ]
+
+    def _fragment(self):
+        topic = _make_topic("t", controls=[_dropdown("type", ["ok", "bad"])])
+        return render_fragment(topic, self._variants())
+
+    def test_only_diagram_variant_has_svg(self):
+        frag = self._fragment()
+        assert frag.count("<svg") == 1  # only the variant with ptrdata
+
+    def test_no_placeholder_text_when_no_diagram(self):
+        frag = self._fragment()
+        assert "no diagram" not in frag
+
+    def test_no_diagram_heading_for_empty_case(self):
+        frag = self._fragment()
+        assert frag.count("Memory diagram") == 1  # only the diagram variant
+
+    def test_empty_diagram_column_marker_present(self):
+        frag = self._fragment()
+        assert "diagram-col--empty" in frag
+
+
 # ---------------------------------------------------------------------------
 # render_fragment — single variant
 # ---------------------------------------------------------------------------
