@@ -2,6 +2,18 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-29 22:03 — Leave diagram column empty when there is no diagram
+
+No-data cases (compile-failed sub-cases, `has_ptrdata=False` topics) drew a placeholder SVG
+box "type=? — no diagram" under a "Memory diagram" heading — visual noise that appeared next
+to every forbidden `const_taxonomy` cell. Now `_case_block` emits an empty
+`<div class="diagram-col diagram-col--empty">` (no heading/figure/caption) when
+`ptrdata` is present-but-empty; cases with real pointer data are unchanged, as are legacy
+pre-rendered-svg variants. TDD: `TestNoDiagramLeavesEmptySpace`. Recorded + archived as
+OpenSpec `2026-06-30-empty-diagram-when-absent` (ADDED requirement on `static-html-renderer`).
+Suite: **130 passed**; `dist/` rebuilt → 0 placeholders; `const_taxonomy` = 4 empty + 4 real
+diagram columns; 0 active changes.
+
 ## 2026-06-29 21:35 — Fix multi-case panel scroll regression
 
 The multi-sub-case panels stacked two `.panel-grid`s inside `.panel`, but `.panels` is
