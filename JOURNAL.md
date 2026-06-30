@@ -2,6 +2,22 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 15:05 — Reconstruct basic_ptr topic page from the component library
+
+Worked example of *consuming* the new component library: new `cpp_ptr_lab/topic_page.py`
+assembles the `basic_ptr` topic page entirely from components (no bespoke HTML/CSS beyond
+`<h2>` headings), baking real g++ output for all three type variants. Composition: `page_shell`
+wraps `callout_note` (concept) + `color_legend` + `variant_tabs` (int/double/float) — each tab a
+`code_diagram_panel` (`memory_diagram` + source) plus `compile_status_badge`, `output_console`,
+and `byte_grid` — then `progressive_steps` and a `predict_reveal_quiz`. 9 of 15 components in one
+page; each variant is an independent compile. Output → `dist/topics_v2/basic_ptr.html` (342 lines,
+self-contained: 0 script/network/src refs, no duplicate ids). The point: assembling a topic page
+is now ~40 lines of glue (`build_basic_ptr_page`) that bakes data and arranges vetted components,
+vs extending the monolithic `render_fragment` template — the inversion the change was designed for,
+and it adds the reveal-steps + quiz interactions for free. TDD: `tests/test_topic_page.py` (7
+tests: self-containment, one tab per type, component signatures, real baked output, no dup ids,
+missing-g++ guard). Suite: **320 passed** (313 + 7).
+
 ## 2026-06-30 14:49 — Fix code_line_link CSS-combinator bug + session handoff
 
 While explaining how `code_line_link` works, found its hover/focus highlight was dead: the
