@@ -354,7 +354,8 @@ class TestLeftRailLayout:
     def test_left_rail_one_panel_per_item_first_checked(self):
         from cpp_ptr_lab import components as C
         html = C.left_rail_layout("lab", [("Basic", "<p>a</p>"), ("const", "<p>b</p>")])
-        assert html.count("lr-panel") == 2
+        assert html.count('class="lr-panel') == 2      # two panel divs
+        assert "lr-panel-lab" in html                  # classes are id-namespaced
         assert html.count("<input") == 2
         assert "checked" in html                       # first item checked
         assert "@media" in html                        # single-column reflow rule
@@ -382,37 +383,39 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
     """Vertical radio rail (left) + panel area (right); one item visible at a time.
 
     Zero-JS (radio + ``:checked ~``). Reflows to a single column at narrow widths.
+    Structural class names are id-namespaced (e.g. ``lr-panel-{p}``) so no class is
+    ever shared across instances — nesting can never bleed styles or switching.
     """
     p = _safe(comp_id)
     style_lines = [
         f"#{p} {{ display:grid; grid-template-columns:14rem 1fr; gap:1rem; align-items:start; }}",
-        f"#{p} .lr-rail {{ display:flex; flex-direction:column; gap:.3rem; }}",
-        f"#{p} .lr-panel {{ display:none; }}",
+        f"#{p} .lr-rail-{p} {{ display:flex; flex-direction:column; gap:.3rem; }}",
+        f"#{p} .lr-panel-{p} {{ display:none; }}",
         f"@media (max-width:760px) {{ #{p} {{ grid-template-columns:1fr; }} }}",
     ]
     inputs, rail, panels = "", "", ""
     for i, (label, body) in enumerate(items):
         rid = f"{p}-r{i}"
         checked = " checked" if i == 0 else ""
-        style_lines.append(f"#{rid}:checked ~ .lr-body .lr-p{i} {{ display:block; }}")
+        style_lines.append(f"#{rid}:checked ~ .lr-body-{p} .lr-p{i}-{p} {{ display:block; }}")
         style_lines.append(
-            f'#{rid}:checked ~ .lr-rail label[for="{rid}"]'
+            f'#{rid}:checked ~ .lr-rail-{p} label[for="{rid}"]'
             " { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }")
         style_lines.append(
-            f'#{rid}:focus-visible ~ .lr-rail label[for="{rid}"]'
+            f'#{rid}:focus-visible ~ .lr-rail-{p} label[for="{rid}"]'
             " { outline:3px solid var(--accent); outline-offset:2px; }")
         inputs += f'<input type="radio" name="{p}-lr" id="{rid}" style="{_VH}"{checked}>\n'
         rail += (
             f'<label for="{rid}" style="border:2px solid var(--border);border-radius:8px;'
             f'padding:.5rem .8rem;min-height:44px;display:flex;align-items:center;'
             f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
-        panels += f'<div class="lr-panel lr-p{i}">{body}</div>\n'
+        panels += f'<div class="lr-panel-{p} lr-p{i}-{p}">{body}</div>\n'
     style = "\n".join(style_lines)
     return (
         f'<div id="{p}" class="lr">\n<style>\n{style}\n</style>\n'
         f"{inputs}"
-        f'<div class="lr-rail" role="group" aria-label="Choose demo">\n{rail}</div>\n'
-        f'<div class="lr-body">\n{panels}</div>\n'
+        f'<div class="lr-rail-{p}" role="group" aria-label="Choose demo">\n{rail}</div>\n'
+        f'<div class="lr-body-{p}">\n{panels}</div>\n'
         f"</div>\n"
     )
 ```
@@ -841,10 +844,19 @@ git commit -m "feat(pointers_refs): left-rail lab page from data-only demos + gl
 
 `top_tabs` reuses `variant_tabs` as the *outer* nav, so it nests a `variant_tabs`
 (a demo's own type tabs) inside another `variant_tabs`. Today `variant_tabs` hides
-panels with a **descendant** selector (`#id .vt-panel`), so the outer rule would
-also match the inner demo's panels and corrupt switching. Scope the selectors to
-**direct children** so any nesting depth is isolated. (Phase-a left-rail does not
-hit this — it uses distinct `.lr-*` classes — but do this before Task 10.)
+and shows panels with **descendant** selectors over bare shared classes
+(`#id .vt-panel`, `#tid:checked ~ .vt-panels .vt-p{i}`), so the outer rule also
+matches the inner demo's panels and corrupts switching.
+
+**Decision (2026-07-01): fully id-namespace the structural class names** — e.g.
+`.vt-panel-{p}`, `.vt-panels-{p}`, `.vt-tabs-{p}`, `.vt-p{i}-{p}` — so no class is
+ever shared across instances. This eliminates the entire cross-nesting bleed
+bug-class permanently (no `>` child-combinator discipline required at any future
+nesting site), matching the class-namespacing approach also used for
+`left_rail_layout` (Task 5). Existing tests assert `"vt-tabs"` as a *substring*,
+which the namespaced class `vt-tabs-{p}` still satisfies, so single-level usage is
+unaffected. (Phase-a left-rail does not hit nesting — it uses distinct `.lr-*-{p}`
+classes — but do this before Task 10.)
 
 **Files:**
 - Modify: `cpp_ptr_lab/components.py` (`variant_tabs`, lines ~430-463)
@@ -854,15 +866,22 @@ hit this — it uses distinct `.lr-*` classes — but do this before Task 10.)
 
 ```python
 class TestVariantTabsNesting:
-    def test_scoped_with_child_combinator(self):
+    def test_classes_are_id_namespaced(self):
         from cpp_ptr_lab import components as C
         html = C.variant_tabs("outer", [("A", "x"), ("B", "y")])
-        assert "> .vt-panels >" in html  # panels scoped to direct children
+        # every structural class carries the component id — nothing shared across instances
+        assert "vt-panels-outer" in html
+        assert "vt-tabs-outer" in html
+        assert "vt-panel-outer" in html and "vt-p0-outer" in html
 
-    def test_nested_variant_tabs_no_dup_ids(self):
+    def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
         from cpp_ptr_lab import components as C
         inner = C.variant_tabs("inner", [("i0", "a"), ("i1", "b")])
         outer = C.variant_tabs("outer", [("o0", inner), ("o1", "z")])
+        # inner and outer use disjoint namespaced classes → no selector collision
+        assert "vt-p0-inner" in outer and "vt-p0-outer" in outer
+        # outer's show selector targets only outer-namespaced panels
+        assert "~ .vt-panels-outer .vt-p0-outer" in outer
         ids = _ids(outer)
         assert len(ids) == len(set(ids)), "dup ids across nested variant_tabs"
 ```
@@ -870,44 +889,55 @@ class TestVariantTabsNesting:
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest cpp_ptr_lab/yaml_engine/test_render_page.py::TestVariantTabsNesting -v`
-Expected: FAIL on `test_scoped_with_child_combinator` — `"> .vt-panels >"` absent
-(current selectors are descendant-scoped).
+Expected: FAIL on `test_classes_are_id_namespaced` — the current code emits bare
+`vt-panels`/`vt-tabs`/`vt-panel`, not the id-namespaced `vt-panels-outer` etc.
 
 - [ ] **Step 3: Implement**
 
-In `components.py`, change the three style rules inside `variant_tabs` to use the
-child combinator `>` (structure is `#p > .vt-panels > .vt-panel`, tabs are
-`#p ~ .vt-tabs > label`):
+In `components.py`, rewrite the style rules and the panel/tab/wrapper classes inside
+`variant_tabs` so every structural class carries the component id `{p}` (the
+`#{p}` id prefix on the hide rule stays as belt-and-suspenders):
 
 ```python
-    style_lines = [f"#{p} > .vt-panels > .vt-panel {{ display: none; }}"]
+    p = _safe(comp_id)
+    style_lines = [f"#{p} .vt-panel-{p} {{ display: none; }}"]
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
         tid = f"{p}-t{i}"
         checked = " checked" if i == 0 else ""
-        style_lines.append(f"#{tid}:checked ~ .vt-panels > .vt-p{i} {{ display: block; }}")
+        style_lines.append(f"#{tid}:checked ~ .vt-panels-{p} .vt-p{i}-{p} {{ display: block; }}")
         style_lines.append(
-            f'#{tid}:checked ~ .vt-tabs > label[for="{tid}"]'
+            f'#{tid}:checked ~ .vt-tabs-{p} label[for="{tid}"]'
             " { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }")
         style_lines.append(
-            f'#{tid}:focus-visible ~ .vt-tabs > label[for="{tid}"]'
+            f'#{tid}:focus-visible ~ .vt-tabs-{p} label[for="{tid}"]'
             " { outline: 3px solid var(--accent); outline-offset: 2px; }")
         inputs += f'<input type="radio" name="{p}-vt" id="{tid}" style="{_VH}"{checked}>\n'
         tabs += (
             f'<label for="{tid}" style="border:2px solid var(--border);border-radius:8px 8px 0 0;'
             f'padding:.4rem .9rem;min-height:44px;display:inline-flex;align-items:center;'
             f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
-        panel_html += f'<div class="vt-panel vt-p{i}">{body}</div>\n'
+        panel_html += f'<div class="vt-panel-{p} vt-p{i}-{p}">{body}</div>\n'
+    style = "\n".join(style_lines)
+    return (
+        f'<div id="{p}">\n<style>\n{style}\n</style>\n'
+        f"{inputs}"
+        f'<div class="vt-tabs-{p}" role="group" aria-label="Choose variant" '
+        f'style="display:flex;gap:.3rem;flex-wrap:wrap">\n{tabs}</div>\n'
+        f'<div class="vt-panels-{p}" style="border:2px solid var(--border);border-radius:0 8px 8px 8px;'
+        f'padding:.7rem">\n{panel_html}</div>\n'
+        f"</div>\n"
+    )
 ```
 
-(Only the three `style_lines.append`/first-line selectors change; the rest of
-`variant_tabs` is unchanged.)
+(The tab `<label>` styling and the overall structure are unchanged; only the class
+names and the selectors that reference them gain the `-{p}` suffix.)
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest cpp_ptr_lab/yaml_engine/test_render_page.py::TestVariantTabsNesting -v`
-Expected: PASS. Then the full suite (single-level usage is unaffected — panels are
-already direct children of `.vt-panels`):
+Expected: PASS. Then the full suite (single-level usage is unaffected — existing
+tests match `"vt-tabs"` as a substring, which `vt-tabs-{p}` still contains):
 Run: `python -m pytest cpp_ptr_lab/ -q`
 Expected: all PASS.
 
@@ -915,7 +945,7 @@ Expected: all PASS.
 
 ```bash
 git add cpp_ptr_lab/components.py cpp_ptr_lab/yaml_engine/test_render_page.py
-git commit -m "fix(components): scope variant_tabs with child combinators (nesting-safe)"
+git commit -m "fix(components): id-namespace variant_tabs classes (nesting-safe)"
 ```
 
 ---
