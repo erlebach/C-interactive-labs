@@ -13,8 +13,13 @@ TDD: RED before GREEN (feedback/testing.md).
 from __future__ import annotations
 
 import re
+import shutil
+
+import pytest
 
 from cpp_ptr_lab.yaml_engine import render_page as R
+
+HAS_GPP = shutil.which("g++") is not None
 
 
 # Pre-baked data so the pure renderer can be tested without invoking g++.
@@ -105,3 +110,122 @@ class TestPureRender:
         assert "<script" not in html
         assert "http://" not in html and "https://" not in html
         assert "src=" not in html
+
+
+# ---------------------------------------------------------------------------
+# Gap 1: cases-topics (a `cases` topic → per-variant stacked sub-cases).
+# `const_taxonomy` is the canonical example: each declaration type compiles two
+# operations (write / rebind) independently, one of which genuinely fails.
+# ---------------------------------------------------------------------------
+
+# Pre-baked data for a two-variant cases-topic. Each variant carries a `cases`
+# list of independently-compiled sub-programs (no g++ needed to render this).
+FAKE_CASES = {
+    "ct": {
+        "explanation": "const has two independent axes.",
+        "variants": ["int*", "const int*"],
+        "int*": {"cases": [
+            {"label": "write", "code_html": "<pre>*ptr=99</pre>",
+             "ptrdata": {"type": "raw", "ptr_addr": "0x1", "target_addr": "0x2", "target_val": "99"},
+             "stdout": "PTRDATA ...", "stderr": "", "ok": True, "failed": False,
+             "bytes": ["01"], "target_val": "99"},
+            {"label": "rebind", "code_html": "<pre>ptr=&amp;other</pre>",
+             "ptrdata": {"type": "raw", "ptr_addr": "0x1", "target_addr": "0x3", "target_val": "7"},
+             "stdout": "PTRDATA ...", "stderr": "", "ok": True, "failed": False,
+             "bytes": ["02"], "target_val": "7"},
+        ]},
+        "const int*": {"cases": [
+            {"label": "write", "code_html": "<pre>*ptr=99</pre>",
+             "ptrdata": None, "stdout": "",
+             "stderr": "error: assignment of read-only location", "ok": False, "failed": True,
+             "bytes": [], "target_val": "?"},
+            {"label": "rebind", "code_html": "<pre>ptr=&amp;other</pre>",
+             "ptrdata": {"type": "raw", "ptr_addr": "0x1", "target_addr": "0x3", "target_val": "7"},
+             "stdout": "PTRDATA ...", "stderr": "", "ok": True, "failed": False,
+             "bytes": ["02"], "target_val": "7"},
+        ]},
+    }
+}
+
+
+class TestCasesBake:
+    """`_bake_one` must preserve a variant's `cases` (not flatten them away)."""
+
+    def test_bake_one_preserves_cases(self, monkeypatch):
+        class _T:
+            explanation = "expl"
+
+        fake_variant = {"label": "int*", "cases": [
+            {"label": "write", "source": "w", "ptrdata": {"target_val": "99"},
+             "stdout": "o1", "stderr": "", "failed": False, "membytes": "01 02"},
+            {"label": "rebind", "source": "r", "ptrdata": None,
+             "stdout": "", "stderr": "error: read-only", "failed": True, "membytes": "n/a"},
+        ]}
+        monkeypatch.setattr(R, "expand_variants", lambda topic: [{}])
+        monkeypatch.setattr(R, "capture_variant", lambda topic, cs: fake_variant)
+
+        entry = R._bake_one(_T())
+
+        assert entry["variants"] == ["int*"]
+        v = entry["int*"]
+        assert "cases" in v and len(v["cases"]) == 2
+        write, rebind = v["cases"]
+        assert write["label"] == "write"
+        assert write["ok"] is True and write["failed"] is False
+        assert write["bytes"] == ["01", "02"]
+        assert "code_html" in write  # per-program fields present on each sub-case
+        assert rebind["failed"] is True and rebind["ok"] is False
+        assert rebind["stderr"] == "error: read-only"
+
+
+class TestCasesRender:
+    """`_build_topic` must render a cases-variant as stacked sub-cases."""
+
+    def test_topic_with_cases_renders_stacked_subcases(self):
+        spec = {"title": "T", "blocks": [{"topic": {"id": "ct", "source": "ct"}}]}
+        html = R.render_page(spec, FAKE_CASES)
+
+        assert "vt-tabs" in html                       # two variant tabs
+        assert html.count('class="ssc"') == 2          # one stacked_subcases per tab
+        assert html.count("ssc-case") == 4             # two sub-cases per tab
+        assert "write" in html and "rebind" in html    # sub-case labels
+        # the failing sub-case shows its real compiler error via the error console
+        assert "console--err" in html
+        assert "assignment of read-only location" in html
+
+    def test_cases_topic_no_duplicate_ids(self):
+        spec = {"title": "T", "blocks": [{"topic": {"id": "ct", "source": "ct"}}]}
+        html = R.render_page(spec, FAKE_CASES)
+        ids = _ids(html)
+        dups = sorted({i for i in ids if ids.count(i) > 1})
+        assert not dups, f"duplicate ids: {dups}"
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+class TestCasesEndToEnd:
+    """Prove the whole path on the real `const_taxonomy` topic (bakes g++)."""
+
+    def _html(self):
+        spec = {"title": "const Taxonomy",
+                "blocks": [{"topic": {"id": "ct", "source": "ct"}}]}
+        data = R.bake_all({"ct": "const_taxonomy"})
+        return R.render_page(spec, data)
+
+    def test_four_tabs_each_with_two_subcases(self):
+        html = self._html()
+        # 4 declaration types → 4 variant tabs → 4 stacked_subcases blocks.
+        assert html.count('class="ssc"') == 4
+        assert html.count("ssc-case") == 8            # 4 types × 2 ops
+
+    def test_real_compiler_error_baked(self):
+        html = self._html()
+        assert "PTRDATA" in html                       # the passing sub-cases ran
+        assert "console--err" in html                  # a forbidden op failed
+        assert "read-only" in html                     # authentic g++ diagnostic
+
+    def test_no_dup_ids_self_contained(self):
+        html = self._html()
+        assert "<script" not in html and "https://" not in html
+        ids = _ids(html)
+        dups = sorted({i for i in ids if ids.count(i) > 1})
+        assert not dups, f"duplicate ids: {dups}"

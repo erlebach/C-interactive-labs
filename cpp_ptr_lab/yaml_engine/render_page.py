@@ -73,6 +73,22 @@ def _pre(text: str) -> str:
     return f"<pre><code>{_html.escape(text)}</code></pre>"
 
 
+def _bake_program(v: dict[str, Any]) -> dict[str, Any]:
+    """Render-data for one compiled program (a variant or a sub-case)."""
+    mem = v.get("membytes", "")
+    return {
+        "source": v.get("source", ""),
+        "code_html": _pre(v.get("source", "")),
+        "ptrdata": v.get("ptrdata"),
+        "stdout": v.get("stdout", ""),
+        "stderr": v.get("stderr", ""),
+        "ok": not v.get("failed", False),
+        "failed": v.get("failed", False),
+        "bytes": mem.split() if mem and mem != "n/a" else [],
+        "target_val": (v.get("ptrdata") or {}).get("target_val", "?"),
+    }
+
+
 def _bake_one(topic: Any) -> dict[str, Any]:
     variants = [capture_variant(topic, cs) for cs in expand_variants(topic)]
     entry: dict[str, Any] = {
@@ -81,18 +97,16 @@ def _bake_one(topic: Any) -> dict[str, Any]:
     }
     for v in variants:
         label = v.get("label") or "default"
-        mem = v.get("membytes", "")
-        entry[label] = {
-            "source": v.get("source", ""),
-            "code_html": _pre(v.get("source", "")),
-            "ptrdata": v.get("ptrdata"),
-            "stdout": v.get("stdout", ""),
-            "stderr": v.get("stderr", ""),
-            "ok": not v.get("failed", False),
-            "failed": v.get("failed", False),
-            "bytes": mem.split() if mem and mem != "n/a" else [],
-            "target_val": (v.get("ptrdata") or {}).get("target_val", "?"),
-        }
+        if v.get("cases"):
+            # A cases-topic: each variant bundles independently-compiled
+            # sub-cases. Preserve them (each keeps its own compile verdict)
+            # so the renderer can stack them; don't flatten to one program.
+            entry[label] = {
+                "cases": [{**_bake_program(c), "label": c.get("label", "")}
+                          for c in v["cases"]],
+            }
+        else:
+            entry[label] = _bake_program(v)
     return entry
 
 
@@ -188,25 +202,42 @@ def _build_html(args: dict, data: dict) -> str:
     return str(args.get("content", ""))
 
 
+def _panel_program(pid: str, v: dict, caption: str) -> str:
+    """Render one compiled program: code+diagram split, badge, output, bytes."""
+    return (
+        C.code_diagram_panel(f"{pid}-cdp", v["code_html"],
+                             C.memory_diagram(f"{pid}-md", v["ptrdata"]))
+        + '<div style="margin-top:.8rem">'
+        + C.compile_status_badge(f"{pid}-badge", v["ok"])
+        + "</div>"
+        + C.output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
+                           error=v["failed"])
+        + C.byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
+    )
+
+
 def _build_topic(args: dict, data: dict) -> str:
-    """A variant_tabs cluster over a baked topic: per variant, code+diagram+I/O."""
+    """A variant_tabs cluster over a baked topic: per variant, code+diagram+I/O.
+
+    A cases-topic variant carries a ``cases`` list instead of a single program;
+    its sub-cases are stacked (each with its own compile verdict) inside the tab.
+    """
     cid = args["id"]
     entry = data[args["source"]]
     panels = []
     for label in entry["variants"]:
         v = entry[label]
         pid = f"{cid}-{C._safe(label)}"
-        body = (
-            C.code_diagram_panel(f"{pid}-cdp", v["code_html"],
-                                 C.memory_diagram(f"{pid}-md", v["ptrdata"]))
-            + '<div style="margin-top:.8rem">'
-            + C.compile_status_badge(f"{pid}-badge", v["ok"])
-            + "</div>"
-            + C.output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
-                               error=v["failed"])
-            + C.byte_grid(f"{pid}-bytes", v["bytes"],
-                          caption=f"Raw bytes of ptr for {label} (little-endian)")
-        )
+        if "cases" in v:
+            subcases = []
+            for j, case in enumerate(v["cases"]):
+                spid = f"{pid}-c{j}"
+                sub_body = _panel_program(spid, case, "Raw bytes of ptr (little-endian)")
+                subcases.append((case["label"], sub_body))
+            body = C.stacked_subcases(f"{pid}-ssc", subcases)
+        else:
+            body = _panel_program(
+                pid, v, f"Raw bytes of ptr for {label} (little-endian)")
         panels.append((label, body))
     return C.variant_tabs(cid, panels)
 
