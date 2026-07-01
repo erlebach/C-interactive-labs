@@ -286,3 +286,22 @@ class TestGlossary:
         html = R.render_page(spec, FAKE)
         assert "pointee" in html and "the object pointed to" in html
         assert "<dl" in html
+
+
+class TestLeftRailLayout:
+    def test_left_rail_one_panel_per_item_first_checked(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("Basic", "<p>a</p>"), ("const", "<p>b</p>")])
+        assert html.count('class="lr-panel') == 2      # two panel divs
+        assert "lr-panel-lab" in html                  # classes are id-namespaced
+        assert html.count("<input") == 2
+        assert "checked" in html                       # first item checked
+        assert "@media" in html                        # single-column reflow rule
+        assert 'aria-label' in html                    # nav group has a name
+        ids = _ids(html)
+        assert len(ids) == len(set(ids)), "dup ids in left_rail_layout"
+
+    def test_left_rail_zero_js(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        assert "<script" not in html

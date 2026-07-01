@@ -482,6 +482,47 @@ def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
     )
 
 
+def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
+    """Vertical radio rail (left) + panel area (right); one item visible at a time.
+
+    Zero-JS (radio + ``:checked ~``). Reflows to a single column at narrow widths.
+    Structural class names are id-namespaced (e.g. ``lr-panel-{p}``) so no class is
+    ever shared across instances — nesting can never bleed styles or switching.
+    """
+    p = _safe(comp_id)
+    style_lines = [
+        f"#{p} {{ display:grid; grid-template-columns:14rem 1fr; gap:1rem; align-items:start; }}",
+        f"#{p} .lr-rail-{p} {{ display:flex; flex-direction:column; gap:.3rem; }}",
+        f"#{p} .lr-panel-{p} {{ display:none; }}",
+        f"@media (max-width:760px) {{ #{p} {{ grid-template-columns:1fr; }} }}",
+    ]
+    inputs, rail, panels = "", "", ""
+    for i, (label, body) in enumerate(items):
+        rid = f"{p}-r{i}"
+        checked = " checked" if i == 0 else ""
+        style_lines.append(f"#{rid}:checked ~ .lr-body-{p} .lr-p{i}-{p} {{ display:block; }}")
+        style_lines.append(
+            f'#{rid}:checked ~ .lr-rail-{p} label[for="{rid}"]'
+            " { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }")
+        style_lines.append(
+            f'#{rid}:focus-visible ~ .lr-rail-{p} label[for="{rid}"]'
+            " { outline:3px solid var(--accent); outline-offset:2px; }")
+        inputs += f'<input type="radio" name="{p}-lr" id="{rid}" style="{_VH}"{checked}>\n'
+        rail += (
+            f'<label for="{rid}" style="border:2px solid var(--border);border-radius:8px;'
+            f'padding:.5rem .8rem;min-height:44px;display:flex;align-items:center;'
+            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
+        panels += f'<div class="lr-panel-{p} lr-p{i}-{p}">{body}</div>\n'
+    style = "\n".join(style_lines)
+    return (
+        f'<div id="{p}" class="lr">\n<style>\n{style}\n</style>\n'
+        f"{inputs}"
+        f'<div class="lr-rail-{p}" role="group" aria-label="Choose demo">\n{rail}</div>\n'
+        f'<div class="lr-body-{p}">\n{panels}</div>\n'
+        f"</div>\n"
+    )
+
+
 def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
