@@ -231,6 +231,20 @@ class TestCasesEndToEnd:
         assert not dups, f"duplicate ids: {dups}"
 
 
+class TestFragment:
+    def test_render_fragment_has_no_html_shell(self):
+        spec = {"title": "T", "blocks": [{"color_legend": {"id": "lg"}}]}
+        frag = R.render_fragment(spec, FAKE)
+        assert "<html" not in frag and "<head" not in frag and "<!DOCTYPE" not in frag
+        assert 'class="legend"' in frag  # the block itself is present
+
+    def test_render_page_still_wraps_shell(self):
+        spec = {"title": "T", "blocks": [{"color_legend": {"id": "lg"}}]}
+        html = R.render_page(spec, FAKE)
+        assert "<!DOCTYPE html>" in html and 'lang="en"' in html
+        assert 'class="legend"' in html
+
+
 class TestRegistry:
     def test_dangling_ptr_is_registered(self):
         reg = R._topic_registry()

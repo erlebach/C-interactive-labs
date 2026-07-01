@@ -269,12 +269,17 @@ def _render_block(block: dict, data: dict) -> str:
     return _DISPATCH[name](cid, **args)
 
 
+def render_fragment(spec: dict, data: dict) -> str:
+    """Translate *spec*'s blocks to HTML — no page shell. Pure (no g++)."""
+    return "\n".join(_render_block(b, data) for b in spec.get("blocks", []))
+
+
 def render_page(spec: dict, data: dict) -> str:
     """Translate *spec* (with pre-baked *data*) into a self-contained page.
 
     Pure — no I/O, no g++.  Use :func:`build_page` to bake and write.
     """
-    body = "\n".join(_render_block(b, data) for b in spec.get("blocks", []))
+    body = render_fragment(spec, data)
     return C.page_shell("page", body, title=spec.get("title", "Topic"))
 
 
