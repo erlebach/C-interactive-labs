@@ -189,12 +189,23 @@ A layout writes `dist/<layout-stem>/<layout-stem>.html`.
 
 ## Accessibility
 
+- **Text alternatives for all non-text content (WCAG 1.1.1).** Every graphic
+  carries a programmatic text alternative:
+  - Inline `<svg>` diagrams use `role="img"` + `<title>`/`<desc>` referenced by
+    `aria-labelledby` (the SVG equivalent of `alt`), narrated from the baked data.
+  - Any real `<img>` (none planned, but if added) MUST carry a meaningful `alt`;
+    purely decorative graphics get `alt=""` / `aria-hidden="true"` so they are not
+    announced.
+  - Icon-only cues (✓/✗ badges, arrows) always pair with visible text, so meaning
+    survives even if the glyph is unread.
+- Every interactive grouping has an accessible name: the demo nav (rail/tabs) uses
+  `role="group"` + `aria-label`; each demo panel is labelled by its title; tab
+  labels use `<label for>`.
 - Zero-JS radio switching; hidden radios stay in the focus order (clip, not
   `display:none`).
 - WCAG 1.4.10 Reflow: single-column fallback at narrow width (desktop-first, not
   desktop-locked).
 - Color never the sole cue (badges/consoles keep text + icon + border).
-- Inline SVG diagrams keep `role="img"` + `<title>`/`<desc>`.
 
 ## Testing (TDD, RED first)
 
@@ -211,10 +222,18 @@ Pure (no g++):
   and each demo as a fragment, composes one shell with no duplicate ids across all
   demos and glossaries.
 
+Accessibility (asserted, not assumed):
+- Every `<svg>` in the output has an accessible name (`role="img"` + non-empty
+  `<title>` via `aria-labelledby`); any `<img>` has a non-empty `alt` (or is
+  explicitly decorative). A build test scans the rendered page and fails on any
+  graphic lacking a text alternative.
+- Nav groups expose `aria-label`; icon cues (✓/✗) co-occur with visible text.
+
 g++-gated (integration):
 - Build `pointers_refs.rail.yaml`: all 8 demos present, basic_ptr type tabs,
   const 2×2 stacked sub-cases with the real `read-only` error, PTRDATA baked,
-  no duplicate ids, self-contained. Phase b: same for `top_tabs`.
+  no duplicate ids, self-contained, and the accessibility scan above passes.
+  Phase b: same for `top_tabs`.
 
 ## Delivery phases
 
