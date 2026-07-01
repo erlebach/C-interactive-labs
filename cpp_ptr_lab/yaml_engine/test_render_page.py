@@ -229,3 +229,10 @@ class TestCasesEndToEnd:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+
+class TestRegistry:
+    def test_dangling_ptr_is_registered(self):
+        reg = R._topic_registry()
+        assert "dangling_ptr" in reg
+        assert reg["dangling_ptr"].id == "dangling_ptr"

@@ -54,13 +54,14 @@ _REF_RE = re.compile(r"\$\{([^}]+)\}")
 
 def _topic_registry() -> dict[str, Any]:
     from ..pointers_refs.topics import (
-        basic_ptr, const_taxonomy, null_deref, ref_const,
+        basic_ptr, const_taxonomy, dangling_ptr, null_deref, ref_const,
         ref_must_bind, ref_no_null, ref_rebind_illusion,
     )
     from ..smart_ptrs.topics import TOPICS as SMART
     from ..function_args.topics import TOPICS as FUNC_ARGS
     topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
-              ref_rebind_illusion, ref_const, null_deref, *SMART, *FUNC_ARGS]
+              ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
+              *SMART, *FUNC_ARGS]
     return {t.id: t for t in topics}
 
 
