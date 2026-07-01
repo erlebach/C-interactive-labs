@@ -2,6 +2,20 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 21:40 — Split YAML engine from subject packages (uniform structure)
+
+Refactor for consistent structure: the subject-agnostic engine no longer lives inside a subject-named
+package. `cpp_ptr_lab/basic_ptr_yaml/` is gone, replaced by two packages: `yaml_engine/` (the engine —
+`render_page.py` + `test_render_page.py`, pure-render tests only) and `basic_ptr/` (a subject page package
+— `basic_ptr.page.yaml` + `topics.py` + `test_basic_ptr.py`). Now every subject folder has the **identical
+shape** `{__init__.py, topics.py, <subject>.page.yaml, test_<subject>.py}` (basic_ptr + function_args).
+`basic_ptr/topics.py` re-exports the `basic_ptr` TopicTemplate from `pointers_refs` (single source of
+truth, no duplication) — answering "why did only function_args have topics.py". Engine changes: dropped
+the basic_ptr-specific `SPEC_PATH`/`main()`; `main()` is now general (`python -m
+cpp_ptr_lab.yaml_engine.render_page <page.yaml> [dist]`), and `build_page` writes `dist/<stem>/<stem>.html`.
+Updated the 2 import sites + `COURSE_VIA_TOPICS.md` path refs. Behavior-preserving: **344 passed**
+(unchanged); both pages rebuild via the new CLI. No `basic_ptr_yaml` refs remain in code.
+
 ## 2026-06-30 21:15 — `function_args` subject: end-to-end new-subject proof
 
 First new subject built through the YAML engine — validates "new subject = new topic module + page spec,
