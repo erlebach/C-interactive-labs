@@ -165,6 +165,17 @@ terms:
   - { term: "pointee",         def: "the object a pointer refers to" }
 ```
 
+**Why glossaries live in YAML (not Python), and kept minimal:**
+1. The schema is intentionally flat (`title` + a `terms` list of `{term, def}`)
+   so a **future skill can generate a glossary automatically** — the format must
+   be trivial to emit and validate by a generator.
+2. YAML is easier for the author (and students-as-authors) to edit than Python.
+3. As data/skill output it is more portable than embedded Python.
+4. Keeping prose out of Python keeps `topics.py` focused on compiled artifacts,
+   so the Python stays readable and maintainable.
+Corollary: **do not** add computed/baked fields to a glossary — it is prose only.
+(The auto-generation skill itself is out of scope for this change.)
+
 ### Layout spec schema
 
 ```yaml
