@@ -2,6 +2,22 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-01 10:15 — Engine gap 1: wire cases-topics through the YAML engine
+
+Closed the first known engine gap: a `cases`-topic (independently-compiled sub-cases per variant) now
+renders through the subject-agnostic engine instead of being flattened to an empty program. Two surgical
+changes in `cpp_ptr_lab/yaml_engine/render_page.py`: (1) `_bake_one` now branches on `v.get("cases")` and
+preserves each sub-case as its own baked program (`entry[label] = {"cases": [...]}`), via a new
+`_bake_program(v)` helper shared by the variant and sub-case paths; (2) `_build_topic` branches on
+`"cases" in v` and wraps the sub-programs in the existing `stacked_subcases` component (each with its own
+`code_diagram_panel` + `compile_status_badge` + `output_console` + `byte_grid`), via a new
+`_panel_program(pid, v, caption)` helper factored out of the old inline body. Non-cases topics are
+unchanged (backward compatible). Proven on the real `const_taxonomy` topic: **4 declaration-type tabs, each
+2 stacked sub-cases (write / rebind), one genuinely failing per tab with an authentic g++ `read-only`
+diagnostic**, no duplicate ids, self-contained. TDD: 6 RED tests first (`_bake_one` shape via monkeypatch,
+pure cases-render, dup-ids, + a g++-gated end-to-end class), then GREEN. Suite **350 passed** (344 + 6).
+Gap 2 (configurable `topic` layout) and a `const_taxonomy` subject page.yaml remain open.
+
 ## 2026-06-30 21:55 — Session handoff
 
 Wrote `handoffs/HANDOFF_2026-06-30_21h55mEST.md` closing out this session (function_args subject +
