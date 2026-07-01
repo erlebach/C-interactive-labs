@@ -41,13 +41,23 @@ mixes *content* (which demos) with *layout* (how they're arranged) in one file.
 ## Vocabulary (locked)
 
 ```
-topic   one C++ concept, defined by a Python TopicTemplate (the C++ + variants)
-demo    one topic's full presentation = ONE nav entry; CONTAINS its inner tabs
+topic     one C++ concept, defined by a Python TopicTemplate (the C++ + variants)
+demo      one topic's full presentation = ONE nav entry; CONTAINS its inner tabs
   └─ inner tabs   the variant selector inside a demo (int/double/float; write/rebind)
        └─ tab content   one compiled variant: code + diagram + output + bytes
-layout  arranges N demos into one standalone page + picks the nav style
+glossary  a reusable set of term→definition pairs, authored to cover an
+          author-chosen SUBSET of demos; not tied to any built-in category
+layout    one standalone page = an author-chosen subset of demos + an author-chosen
+          header (glossaries, legend, …) + a nav style
 ```
 A layout never reaches inside a demo; a demo never knows how it's navigated.
+
+**No built-in "family."** Both *which demos* and *which glossaries* appear on a
+page are explicit author choices in the layout — nothing is auto-derived from the
+domain. A glossary's subset and a layout's subset are the same abstraction (*a
+subset of topics*), so the design is domain-agnostic: pointers, classes, stack
+frames, templates all compose the same way. Different layouts over the same
+topics may show different glossaries.
 
 ## Architecture
 
@@ -63,10 +73,18 @@ PRIMITIVES        code_diagram_panel · memory_diagram · compile_status_badge �
 DEMO  (new unit)  demo_panel(id, topic_data)   one demo's inner content; layout-agnostic
                   demo spec (YAML)             {title, bake, blocks} rendered as a FRAGMENT
 
+GLOSSARY (new)    glossary(id, title, terms)   term→definition list (<dl>); shared, reusable
+                  glossary spec (YAML)         {title, terms:[{term, def}]}   referenced by a layout
+
 LAYOUT (new)      left_rail_layout(id, items)  vertical radio rail + panel area   [build now]
                   top_tabs_layout(id, items)   two-row outer tabs                 [build next]
-                  layout spec (YAML)           {title, style, chrome, demos:[…]}
+                  layout spec (YAML)           {title, style, header:[…], demos:[…]}
 ```
+
+The layout's `header:` is a list of blocks rendered **once** at the top of the
+page (in order): a color legend, any number of `glossary` blocks (inline or
+loaded from a shared `*.glossary.yaml` via `source:`), an intro note, etc. It is
+the fixed top area that stays put while the student switches demos.
 
 ### Key new engine capability: fragment rendering
 
@@ -112,12 +130,17 @@ cpp_ptr_lab/pointers_refs/
     const_taxonomy.demo.yaml       null_deref AND dangling_ptr)
     ref_must_bind.demo.yaml
     … (8 total) …
+  glossaries/
+    pointers.glossary.yaml         shared term→def sets, authored per subset;
+    references.glossary.yaml        referenced by any layout that wants them
   layouts/
     pointers_refs.rail.yaml        style: left_rail  → dist/pointers_refs.rail/…html   [a]
     pointers_refs.tabs.yaml        style: top_tabs   → dist/pointers_refs.tabs/…html   [b]
 ```
 
-Demo files are referenced by the layout relative to the layout file's directory.
+Demo and glossary files are referenced by the layout relative to the layout
+file's directory. The glossary directory layout above is illustrative — an author
+may keep one glossary or several, covering whatever subsets they choose.
 
 ### Demo spec schema (same shape as today's page specs)
 
@@ -132,13 +155,25 @@ blocks:
 Rendered standalone → full page; referenced by a layout → fragment. (Page-level
 chrome like the color legend lives in the layout, not repeated per demo.)
 
+### Glossary spec schema
+
+```yaml
+title: "Pointers — vocabulary"
+terms:
+  - { term: "address-of (&)", def: "yields the memory address of an object" }
+  - { term: "dereference (*)", def: "accesses the object a pointer points to" }
+  - { term: "pointee",         def: "the object a pointer refers to" }
+```
+
 ### Layout spec schema
 
 ```yaml
 title: "Pointers & References — Lab 1"
 style: left_rail                 # left_rail | top_tabs | stacked
-chrome:                          # page-level, rendered once above the nav
+header:                          # rendered ONCE at the top, in order; 0..N glossaries
   - color_legend: { id: legend }
+  - glossary: { id: g-ptr, source: glossaries/pointers.glossary.yaml }
+  - glossary: { id: g-ref, source: glossaries/references.glossary.yaml }
 demos:
   - demos/basic_ptr.demo.yaml
   - demos/const_taxonomy.demo.yaml
@@ -168,10 +203,13 @@ Pure (no g++):
   still emits the full shell (regression).
 - `demo_panel(fake_data)` — variant tabs + code/diagram + badge + output + a
   `<details>`-wrapped byte grid; cases-topic → stacked sub-cases; ids namespaced.
+- `glossary(title, terms)` — a `<dl>` with one term/def pair each; ids namespaced;
+  loadable from a `*.glossary.yaml` file.
 - `left_rail_layout(items)` — one rail radio + panel per item, first checked, no
   dup ids, zero-JS, single-column `@media` rule present.
-- layout loader — resolves demo file refs, renders each as a fragment, composes
-  one shell with no duplicate ids across all demos.
+- layout loader — resolves demo + glossary file refs, renders the `header:` once
+  and each demo as a fragment, composes one shell with no duplicate ids across all
+  demos and glossaries.
 
 g++-gated (integration):
 - Build `pointers_refs.rail.yaml`: all 8 demos present, basic_ptr type tabs,
@@ -180,8 +218,9 @@ g++-gated (integration):
 
 ## Delivery phases
 
-- **(a) now:** fragment split, `demo_panel`, `left_rail_layout`, layout loader +
-  demo/layout schemas, 8 demo files, `pointers_refs.rail.yaml` → one standalone
+- **(a) now:** fragment split, `demo_panel`, `glossary`, `left_rail_layout`,
+  layout loader + demo/glossary/layout schemas, 8 demo files, ≥1 shared glossary,
+  `pointers_refs.rail.yaml` (header with legend + glossary) → one standalone
   left-rail page. Full suite green.
 - **(b) next:** `top_tabs_layout` + `pointers_refs.tabs.yaml` → a second
   standalone page from the *same* demo files, for live side-by-side comparison.
