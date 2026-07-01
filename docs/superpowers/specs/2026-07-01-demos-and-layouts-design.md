@@ -27,11 +27,27 @@ mixes *content* (which demos) with *layout* (how they're arranged) in one file.
    Canvas-pasteable, WCAG AA**, real g++ output baked at build time.
 5. **TDD throughout** (RED before GREEN).
 
+## Guiding principle — data over code (North Star)
+
+**A small, fixed set of Python files must address an unbounded number of demos.**
+Python is the *engine + component library* only; **demos, glossaries, and layouts
+are data (YAML)**. Authoring new content — a new demo, a new glossary, a new page
+layout — must add **YAML files, never Python files**. This keeps the Python small
+and maintainable, makes content author-editable and portable, and lets a future
+skill generate content mechanically.
+
+This change honors it: all new *content* is YAML; the new *Python* is a one-time
+engine addition (`render_fragment`, `demo_panel`, `glossary`, layout components,
+loader), not per-demo. The one remaining place Python still grows per-topic is the
+C++ source inside `TopicTemplate` — see non-goals for the deferred final step.
+
 ## Non-goals (YAGNI)
 
 - Not migrating a *single type variant* (e.g. just `double`) into an independently
   placeable unit. **demo = whole topic**; type/case tabs stay internal.
-- Not moving C++ source out of Python `TopicTemplate`s into YAML.
+- Not moving C++ source out of Python `TopicTemplate`s into YAML. This is the
+  **final step toward the data-over-code North Star** (a new topic would then be
+  pure YAML too), deferred here only to bound scope — not rejected.
 - Not migrating the existing standalone subject pages (`basic_ptr`,
   `function_args`) to the new demo/layout files in this change — additive only.
   (Unifying them is a noted follow-up.)
