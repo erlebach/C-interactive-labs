@@ -1,0 +1,14 @@
+title: "Pointers & References — Lab 1"
+style: left_rail
+header:
+  - color_legend: { id: legend }
+  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml }
+demos:
+  - ../demos/basic_ptr.demo.yaml
+  - ../demos/const_taxonomy.demo.yaml
+  - ../demos/ref_must_bind.demo.yaml
+  - ../demos/ref_no_null.demo.yaml
+  - ../demos/ref_rebind_illusion.demo.yaml
+  - ../demos/ref_const.demo.yaml
+  - ../demos/null_deref.demo.yaml
+  - ../demos/dangling_ptr.demo.yaml

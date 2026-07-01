@@ -1,0 +1,5 @@
+title: "Ref: Rebind Illusion"
+bake: { rri: ref_rebind_illusion }
+blocks:
+  - callout_note: { id: rri-note, label: Concept, text: "${rri.explanation}" }
+  - topic: { id: rri, source: rri }

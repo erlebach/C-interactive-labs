@@ -46,3 +46,49 @@ class TestBuildLayoutMinimal:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+
+LAYOUT = Path(__file__).parent / "layouts" / "pointers_refs.rail.yaml"
+
+TOPIC_NAMES = [
+    "Basic Pointer", "const Taxonomy", "Ref: Must Bind", "Ref: No Null",
+    "Ref: Rebind Illusion", "Ref: const Ref", "Gotcha: Null Deref",
+    "Gotcha: Dangling Ptr",
+]
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+class TestPointersRefsRailPage:
+    def _html(self, tmp_path):
+        out = R.build_layout(LAYOUT, tmp_path)
+        return out, out.read_text(encoding="utf-8")
+
+    def test_all_eight_demos_present(self, tmp_path):
+        _, html = self._html(tmp_path)
+        for name in TOPIC_NAMES:
+            assert name in html, f"missing demo: {name}"
+
+    def test_basic_ptr_type_tabs_and_const_2x2(self, tmp_path):
+        _, html = self._html(tmp_path)
+        for t in ("int", "double", "float"):
+            assert f">{t}<" in html
+        assert 'class="ssc"' in html and "read-only" in html   # const 2x2 + real error
+
+    def test_glossary_in_header(self, tmp_path):
+        _, html = self._html(tmp_path)
+        assert "<dl" in html and "dereference" in html
+
+    def test_no_dup_ids_self_contained(self, tmp_path):
+        _, html = self._html(tmp_path)
+        assert "<script" not in html and "https://" not in html and "src=" not in html
+        ids = _ids(html)
+        dups = sorted({i for i in ids if ids.count(i) > 1})
+        assert not dups, f"duplicate ids: {dups}"
+
+    def test_every_svg_has_accessible_name(self, tmp_path):
+        _, html = self._html(tmp_path)
+        # WCAG 1.1.1: every inline svg must be role="img" with a non-empty <title>.
+        assert html.count("<svg") == html.count('role="img"'), "an svg lacks role=img"
+        assert "<title></title>" not in html and "<title/>" not in html
+        # no <img> without alt (there should be no <img> at all)
+        assert not re.search(r"<img(?![^>]*\balt=)", html), "an <img> lacks alt"

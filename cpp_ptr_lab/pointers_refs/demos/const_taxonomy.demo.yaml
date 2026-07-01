@@ -1,0 +1,5 @@
+title: "const Taxonomy"
+bake: { ct: const_taxonomy }
+blocks:
+  - callout_note: { id: ct-note, label: Concept, text: "${ct.explanation}" }
+  - topic: { id: ct, source: ct }

@@ -1,0 +1,5 @@
+title: "Ref: No Null"
+bake: { rnn: ref_no_null }
+blocks:
+  - callout_note: { id: rnn-note, label: Concept, text: "${rnn.explanation}" }
+  - topic: { id: rnn, source: rnn }

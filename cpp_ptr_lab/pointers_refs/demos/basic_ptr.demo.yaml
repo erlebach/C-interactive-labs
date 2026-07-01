@@ -1,0 +1,5 @@
+title: "Basic Pointer"
+bake: { bp: basic_ptr }
+blocks:
+  - callout_note: { id: bp-note, label: Concept, text: "${bp.explanation}" }
+  - topic: { id: bp, source: bp }

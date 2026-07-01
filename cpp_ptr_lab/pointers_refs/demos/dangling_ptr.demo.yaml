@@ -1,0 +1,5 @@
+title: "Gotcha: Dangling Ptr"
+bake: { dp: dangling_ptr }
+blocks:
+  - callout_note: { id: dp-note, label: Concept, text: "${dp.explanation}" }
+  - topic: { id: dp, source: dp }
