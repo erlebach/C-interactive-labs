@@ -58,8 +58,8 @@ flowchart TD
 
 Already built (pointer subject): the component library
 (`cpp_ptr_lab/components.py`), the YAML page engine
-(`cpp_ptr_lab/basic_ptr_yaml/render_page.py`), and a worked page spec
-(`cpp_ptr_lab/basic_ptr_yaml/basic_ptr.page.yaml`). The manifest layer and the
+(`cpp_ptr_lab/yaml_engine/render_page.py`), and a worked page spec
+(`cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml`). The manifest layer and the
 non-pointer subjects are future work.
 
 ---
@@ -285,8 +285,8 @@ mapping) is queued as a next step — see the session handoff.
 
 ### Related artifacts
 - `cpp_ptr_lab/components.py` — the component library (the spine + pointer diagrams).
-- `cpp_ptr_lab/basic_ptr_yaml/render_page.py` — the YAML lesson engine.
-- `cpp_ptr_lab/basic_ptr_yaml/basic_ptr.page.yaml` — a worked lesson spec.
+- `cpp_ptr_lab/yaml_engine/render_page.py` — the YAML lesson engine.
+- `cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml` — a worked lesson spec.
 - `cpp_ptr_lab/topic_page.py` — the imperative equivalent (parity reference).
 - `cpp_ptr_lab/lab_config.yaml` — per-lab/topic visibility (the "hide topics" knob).
 - `handoffs/HANDOFF_2026-06-30_18h32mEST.md` — session handoff with next steps.

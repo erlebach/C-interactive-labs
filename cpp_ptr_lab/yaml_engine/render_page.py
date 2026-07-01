@@ -20,7 +20,11 @@ cluster over a baked topic) and ``heading``/``html`` (chrome).
 
 `render_page(spec, data)` is pure (no g++); `build_page` bakes real output first.
 
-Entry point: ``python -m cpp_ptr_lab.basic_ptr_yaml.render_page``
+This module is the subject-agnostic engine: it dispatches any page spec to the
+component library and bakes any topic in the registry.  Per-subject page specs
+live in their own packages (e.g. ``cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml``).
+
+Entry point: ``python -m cpp_ptr_lab.yaml_engine.render_page <page.yaml> [dist]``
 """
 
 from __future__ import annotations
@@ -40,8 +44,6 @@ except ImportError:  # pragma: no cover
 from .. import components as C
 from ..build_html import capture_variant, expand_variants
 
-SPEC_PATH = Path(__file__).parent / "basic_ptr.page.yaml"
-
 _REF_RE = re.compile(r"\$\{([^}]+)\}")
 
 
@@ -56,8 +58,9 @@ def _topic_registry() -> dict[str, Any]:
         ref_must_bind, ref_no_null, ref_rebind_illusion,
     )
     from ..smart_ptrs.topics import TOPICS as SMART
+    from ..function_args.topics import TOPICS as FUNC_ARGS
     topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
-              ref_rebind_illusion, ref_const, null_deref, *SMART]
+              ref_rebind_illusion, ref_const, null_deref, *SMART, *FUNC_ARGS]
     return {t.id: t for t in topics}
 
 
@@ -254,7 +257,7 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     """Load *spec_path*, bake its topics with g++, render, and write the page.
 
     Raises ``RuntimeError`` (before baking) if g++ is unavailable.  Returns the
-    written file path (``<dist>/basic_ptr_yaml/<stem>.html``).
+    written file path (``<dist>/<stem>/<stem>.html``, one subdir per page).
     """
     if shutil.which("g++") is None:
         raise RuntimeError(
@@ -265,7 +268,7 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     data = bake_all(spec.get("bake", {}))
     page = render_page(spec, data)
     stem = Path(spec_path).stem.replace(".page", "")
-    out = Path(dist_dir) / "basic_ptr_yaml" / f"{stem}.html"
+    out = Path(dist_dir) / stem / f"{stem}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     return out
@@ -273,10 +276,16 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
 
 def main() -> None:
     if shutil.which("g++") is None:
-        print("ERROR: g++ not found on PATH; this page bakes real compiler output.",
+        print("ERROR: g++ not found on PATH; these pages bake real compiler output.",
               file=sys.stderr)
         sys.exit(1)
-    out = build_page(SPEC_PATH, Path(__file__).parents[2] / "dist")
+    if len(sys.argv) < 2:
+        print("usage: python -m cpp_ptr_lab.yaml_engine.render_page "
+              "<page.yaml> [dist_dir]", file=sys.stderr)
+        sys.exit(2)
+    spec_path = Path(sys.argv[1])
+    dist = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[2] / "dist"
+    out = build_page(spec_path, dist)
     print(f"Wrote {out}")
 
 

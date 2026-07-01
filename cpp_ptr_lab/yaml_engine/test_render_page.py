@@ -1,10 +1,11 @@
-"""Tests for the YAML-driven page renderer (cpp_ptr_lab.basic_ptr_yaml).
+"""Tests for the subject-agnostic YAML page engine (cpp_ptr_lab.yaml_engine).
 
 A page is a flat YAML `blocks:` list; each block names a component (or a smart
 builder like `topic`) plus its inputs and an id. `render_page` translates the
-list to HTML by dispatching each block to the matching component. The pure path
-(`render_page` with pre-baked data) needs no g++; `build_page` bakes real g++
-output and is gated on a compiler.
+list to HTML by dispatching each block to the matching component. These tests
+cover the pure engine (`render_page` with pre-baked data — no g++). Per-subject
+`build_page` integration tests live with each subject (e.g. basic_ptr,
+function_args).
 
 TDD: RED before GREEN (feedback/testing.md).
 """
@@ -12,13 +13,8 @@ TDD: RED before GREEN (feedback/testing.md).
 from __future__ import annotations
 
 import re
-import shutil
 
-import pytest
-
-from cpp_ptr_lab.basic_ptr_yaml import render_page as R
-
-HAS_GPP = shutil.which("g++") is not None
+from cpp_ptr_lab.yaml_engine import render_page as R
 
 
 # Pre-baked data so the pure renderer can be tested without invoking g++.
@@ -109,45 +105,3 @@ class TestPureRender:
         assert "<script" not in html
         assert "http://" not in html and "https://" not in html
         assert "src=" not in html
-
-
-@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
-class TestBuildFromYamlFile:
-    def _html(self, tmp_path):
-        out = R.build_page(R.SPEC_PATH, tmp_path)
-        return out, out.read_text(encoding="utf-8")
-
-    def test_file_written(self, tmp_path):
-        out, _ = self._html(tmp_path)
-        assert out.exists()
-
-    def test_reproduces_component_set(self, tmp_path):
-        _, html = self._html(tmp_path)
-        for sig in ('class="legend"', 'class="badge"', 'class="byte-grid"',
-                    "vt-tabs", "qfb", "<details", 'class="callout"', 'role="img"'):
-            assert sig in html, f"missing {sig}"
-
-    def test_one_tab_per_type(self, tmp_path):
-        _, html = self._html(tmp_path)
-        for t in ("int", "double", "float"):
-            assert f">{t}<" in html
-
-    def test_real_output_baked(self, tmp_path):
-        _, html = self._html(tmp_path)
-        assert "PTRDATA" in html
-
-    def test_no_duplicate_ids(self, tmp_path):
-        _, html = self._html(tmp_path)
-        ids = _ids(html)
-        dups = sorted({i for i in ids if ids.count(i) > 1})
-        assert not dups, f"duplicate ids: {dups}"
-
-    def test_self_contained(self, tmp_path):
-        _, html = self._html(tmp_path)
-        assert "<script" not in html and "http://" not in html
-        assert "https://" not in html and "src=" not in html
-
-    def test_missing_gpp_fails_clearly(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(R.shutil, "which", lambda name: None)
-        with pytest.raises(RuntimeError, match="g\\+\\+"):
-            R.build_page(R.SPEC_PATH, tmp_path)
