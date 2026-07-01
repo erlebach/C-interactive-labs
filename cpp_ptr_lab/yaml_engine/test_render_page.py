@@ -250,3 +250,22 @@ class TestRegistry:
         reg = R._topic_registry()
         assert "dangling_ptr" in reg
         assert reg["dangling_ptr"].id == "dangling_ptr"
+
+
+class TestGlossary:
+    def test_glossary_renders_dl_with_terms(self):
+        from cpp_ptr_lab import components as C
+        html = C.glossary("g1", "Pointers", [("dereference (*)", "reads the pointee")])
+        assert "<dl" in html and "</dl>" in html
+        assert "<dt" in html and "dereference (*)" in html
+        assert "<dd" in html and "reads the pointee" in html
+        assert 'id="g1"' in html
+
+    def test_glossary_block_via_engine_pairs_adapter(self):
+        spec = {"title": "T", "blocks": [
+            {"glossary": {"id": "g", "title": "Vocab",
+                          "terms": [{"term": "pointee", "def": "the object pointed to"}]}},
+        ]}
+        html = R.render_page(spec, FAKE)
+        assert "pointee" in html and "the object pointed to" in html
+        assert "<dl" in html

@@ -169,6 +169,7 @@ _DISPATCH = {
     "code_diagram_panel": C.code_diagram_panel,
     "stacked_subcases": C.stacked_subcases,
     "progressive_steps": C.progressive_steps,
+    "glossary": C.glossary,
 }
 
 # Components whose one arg is a list of pair-dicts → list of tuples.
@@ -176,6 +177,7 @@ _PAIR_ARGS = {
     "progressive_steps": ("steps", ("summary", "content")),
     "variant_tabs": ("panels", ("label", "html")),
     "stacked_subcases": ("subcases", ("label", "html")),
+    "glossary": ("terms", ("term", "def")),
 }
 
 
