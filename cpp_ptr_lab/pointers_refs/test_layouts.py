@@ -92,3 +92,27 @@ class TestPointersRefsRailPage:
         assert "<title></title>" not in html and "<title/>" not in html
         # no <img> without alt (there should be no <img> at all)
         assert not re.search(r"<img(?![^>]*\balt=)", html), "an <img> lacks alt"
+
+
+TABS = Path(__file__).parent / "layouts" / "pointers_refs.tabs.yaml"
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+class TestPointersRefsTabsPage:
+    def _html(self, tmp_path):
+        out = R.build_layout(TABS, tmp_path)
+        return out, out.read_text(encoding="utf-8")
+
+    def test_top_tabs_all_demos_and_real_output(self, tmp_path):
+        _, html = self._html(tmp_path)
+        assert "vt-tabs" in html                       # outer top tabs present
+        for name in TOPIC_NAMES:
+            assert name in html
+        assert "PTRDATA" in html and "read-only" in html
+
+    def test_no_dup_ids_self_contained(self, tmp_path):
+        _, html = self._html(tmp_path)
+        assert "<script" not in html and "https://" not in html
+        ids = _ids(html)
+        dups = sorted({i for i in ids if ids.count(i) > 1})
+        assert not dups, f"duplicate ids: {dups}"
