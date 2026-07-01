@@ -2,6 +2,39 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 21:15 — `function_args` subject: end-to-end new-subject proof
+
+First new subject built through the YAML engine — validates "new subject = new topic module + page spec,
+no new diagram components" (handoff step 3). New package `cpp_ptr_lab/function_args/`: one `function_args`
+`TopicTemplate` with a `mode` dropdown (by value / pointer / reference) → three tabs via the existing
+`topic` builder + a `function_args.page.yaml`. `memory_diagram` reused unchanged: pointer → `type=raw`
+(arrow to `val`), reference → `type=ref` (baked g++ confirms `ref_addr == target_addr`, the alias *is*
+val's address), value → no `PTRDATA` (honest "no link"; output console shows `val` stays 42 vs 99). Two
+tiny engine touches in `basic_ptr_yaml/render_page.py`: register the topic; generalize `build_page`'s
+output subdir to the spec stem (→ `dist/function_args/function_args.html`). TDD: 11 RED-first tests.
+Suite **344 passed** (333 + 11); page self-contained, no dup ids. Handoff:
+`handoffs/HANDOFF_2026-06-30_18h32mEST.md`.
+
+### Details
+
+Modelling move that made one dropdown drive four co-varying spots (signature, assignment, probe, call
+arg) without a Cartesian variant blow-up and with **zero change to `generate_source`**: each `mode`
+option maps to a **complete program body** in a single `<<mode>>` placeholder. The three bodies are built
+in Python from one `_SKELETON` via `.replace()` of four `<<...>>` fragments; the literal `<<HARNESS>>`
+stays for the code generator's multi-pass replace loop to fill. Baked addresses confirm the pedagogy:
+pointer `ptr_addr=0x…9c8 ≠ target_addr=0x…a18` (param is a distinct pointer holding val's address);
+reference `ref_addr == target_addr` (same address = alias).
+
+Tests (`test_function_args.py`): 3-mode topic shape + per-mode generated source (value has no `PTRDATA`,
+pointer `*x=99`/`type=raw`, reference `type=ref`); pure page render with FAKE baked data (three tabs,
+raw+ref diagrams present, self-contained, no dup ids); g++-gated integration (real output baked,
+`after: val = 42` for value vs `= 99` for the other two, no dup ids).
+
+Known rough edge: the value tab's diagram is `_svg_unknown` ("No diagram available") — truthful (no
+pointer link) but reads as a gap; a future `separate-copy` diagram or a friendlier no-link render would
+sharpen it. Engine gaps 1–2 (cases-topics, configurable `topic` layout) remain untouched — deferred as
+separate steps.
+
 ## 2026-06-30 18:30 — YAML-driven page renderer + curriculum-expansion design
 
 New subpackage `cpp_ptr_lab/basic_ptr_yaml/`: a YAML page spec (`basic_ptr.page.yaml`) drives a thin
