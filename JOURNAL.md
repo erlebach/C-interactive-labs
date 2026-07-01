@@ -2,6 +2,15 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-06-30 21:55 — Session handoff
+
+Wrote `handoffs/HANDOFF_2026-06-30_21h55mEST.md` closing out this session (function_args subject +
+engine/subject split). Next focus: engine gaps 1–2 (cases-topics → `stacked_subcases`, configurable
+`topic` layout) and the now-unblocked course manifest. Also captured a small correction for the reader —
+run the engine CLI from the project root; the moved basic_ptr spec is now at
+`cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml` (old `basic_ptr_yaml/` path is gone). Suite still **344
+passed**. Committing the working-tree refinements (doc path refs, general CLI, split tests) via `/git`.
+
 ## 2026-06-30 21:40 — Split YAML engine from subject packages (uniform structure)
 
 Refactor for consistent structure: the subject-agnostic engine no longer lives inside a subject-named
