@@ -2,6 +2,19 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-01 10:39 — Combined Pointers & References lab page (new-engine equivalent of the old lab file)
+
+Rebuilt the old `dist/lab_pointers_refs.html` (the whole basic-pointers lab on one page) using the YAML
+engine — no new engine code, pure composition. Added `cpp_ptr_lab/pointers_refs/pointers_refs.page.yaml`:
+one page that bakes 7 topics (`basic_ptr`, `const_taxonomy`, `ref_must_bind`, `ref_no_null`,
+`ref_rebind_illusion`, `ref_const`, `null_deref`) and stacks a heading + concept callout + `topic` block
+per demo. Each `topic` block is a variant_tabs cluster over that topic's baked variants — so basic_ptr
+shows int/double/float tabs and const_taxonomy shows its 4 declaration types, each with the 2×2 stacked
+sub-cases (real g++ `read-only` error) now that gap 1 is wired. `pointers_refs/` becomes a uniform subject
+package (adds the page spec + `test_pointers_refs.py`). Builds to `dist/pointers_refs/pointers_refs.html`
+(81 KB, self-contained, no duplicate ids across all 7 topics). TDD: 7 RED-first build tests. Suite **357
+passed** (350 + 7). Build: `python -m cpp_ptr_lab.yaml_engine.render_page cpp_ptr_lab/pointers_refs/pointers_refs.page.yaml`.
+
 ## 2026-07-01 10:15 — Engine gap 1: wire cases-topics through the YAML engine
 
 Closed the first known engine gap: a `cases`-topic (independently-compiled sub-cases per variant) now
