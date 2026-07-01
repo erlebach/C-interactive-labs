@@ -305,3 +305,23 @@ class TestLeftRailLayout:
         from cpp_ptr_lab import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         assert "<script" not in html
+
+
+class TestHeader:
+    def test_render_header_inline_and_legend(self, tmp_path):
+        blocks = [
+            {"color_legend": {"id": "lg"}},
+            {"glossary": {"id": "g", "title": "V",
+                          "terms": [{"term": "t1", "def": "d1"}]}},
+        ]
+        html = R._render_header(blocks, tmp_path)
+        assert 'class="legend"' in html
+        assert "t1" in html and "d1" in html and "<dl" in html
+
+    def test_render_header_glossary_from_file(self, tmp_path):
+        (tmp_path / "g.glossary.yaml").write_text(
+            "title: Pointers\nterms:\n  - {term: pointee, def: the object pointed to}\n",
+            encoding="utf-8")
+        blocks = [{"glossary": {"id": "g", "source": "g.glossary.yaml"}}]
+        html = R._render_header(blocks, tmp_path)
+        assert "Pointers" in html and "pointee" in html and "the object pointed to" in html

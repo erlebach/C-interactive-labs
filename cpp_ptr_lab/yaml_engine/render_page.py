@@ -236,6 +236,28 @@ def _render_block(block: dict, data: dict) -> str:
     return _DISPATCH[name](cid, **args)
 
 
+def _render_header(blocks: list, base_dir: Path) -> str:
+    """Render a layout's ``header:`` blocks once.
+
+    A ``glossary`` block with a ``source:`` key loads a shared
+    ``*.glossary.yaml`` file (relative to *base_dir*) and renders it; all
+    other blocks (color_legend, heading, html, or an inline glossary without
+    ``source:``) are dispatched through ``_render_block`` as normal.
+    """
+    out = []
+    for block in blocks or []:
+        (name, raw), = block.items()
+        args = dict(raw or {})
+        if name == "glossary" and "source" in args:
+            g = load_spec(Path(base_dir) / args["source"])
+            terms = [(t["term"], t["def"]) for t in g.get("terms", [])]
+            out.append(C.glossary(args.get("id", "glossary"),
+                                  g.get("title", "Glossary"), terms))
+        else:
+            out.append(_render_block(block, {}))
+    return "\n".join(out)
+
+
 def render_fragment(spec: dict, data: dict) -> str:
     """Translate *spec*'s blocks to HTML — no page shell. Pure (no g++)."""
     return "\n".join(_render_block(b, data) for b in spec.get("blocks", []))
