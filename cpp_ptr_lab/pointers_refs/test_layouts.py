@@ -1,0 +1,48 @@
+"""Build integration for demo/layout composition. Compiler-gated."""
+from __future__ import annotations
+
+import re
+import shutil
+from pathlib import Path
+
+import pytest
+
+from cpp_ptr_lab.yaml_engine import render_page as R
+
+HAS_GPP = shutil.which("g++") is not None
+
+
+def _ids(html):
+    return re.findall(r'\bid="([^"]+)"', html)
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+class TestBuildLayoutMinimal:
+    def _mini(self, tmp_path):
+        demo = tmp_path / "basic.demo.yaml"
+        demo.write_text(
+            "title: Basic Pointer\nbake: {bp: basic_ptr}\n"
+            "blocks:\n  - topic: {id: bp, source: bp}\n", encoding="utf-8")
+        layout = tmp_path / "mini.rail.yaml"
+        layout.write_text(
+            "title: Mini Lab\nstyle: left_rail\n"
+            "header:\n  - color_legend: {id: lg}\n"
+            "demos:\n  - basic.demo.yaml\n", encoding="utf-8")
+        out = R.build_layout(layout, tmp_path / "dist")
+        return out, out.read_text(encoding="utf-8")
+
+    def test_writes_standalone_page_under_stem(self, tmp_path):
+        out, html = self._mini(tmp_path)
+        assert out.exists() and out.parent.name == "mini.rail"
+        assert "<!DOCTYPE html>" in html and 'lang="en"' in html
+
+    def test_left_rail_and_header_present(self, tmp_path):
+        _, html = self._mini(tmp_path)
+        assert "lr-rail" in html and 'class="legend"' in html
+        assert "Basic Pointer" in html and "PTRDATA" in html
+
+    def test_no_duplicate_ids(self, tmp_path):
+        _, html = self._mini(tmp_path)
+        ids = _ids(html)
+        dups = sorted({i for i in ids if ids.count(i) > 1})
+        assert not dups, f"duplicate ids: {dups}"

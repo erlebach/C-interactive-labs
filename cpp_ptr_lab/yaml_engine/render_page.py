@@ -300,6 +300,51 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     return out
 
 
+def _stacked_layout(comp_id: str, items) -> str:
+    """Fallback nav: stack every demo (no selector)."""
+    return "\n".join(body for _label, body in items)
+
+
+_LAYOUTS = {
+    "left_rail": C.left_rail_layout,
+    "top_tabs": C.variant_tabs,      # top tabs == variant_tabs (two-row via flex-wrap)
+    "stacked": _stacked_layout,
+}
+
+
+def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
+    """Bake+compose a layout spec into one standalone page.
+
+    Writes ``<dist>/<layout-stem>/<layout-stem>.html``. Raises before baking if
+    g++ is unavailable.
+    """
+    if shutil.which("g++") is None:
+        raise RuntimeError(
+            "g++ not found on PATH. This page bakes real compiler output at "
+            "build time; install a C++ compiler first.")
+    layout_path = Path(layout_path)
+    base = layout_path.parent
+    spec = load_spec(layout_path)
+
+    header_html = _render_header(spec.get("header", []), base)
+    items = []
+    for demo_ref in spec.get("demos", []):
+        demo_spec = load_spec(base / demo_ref)
+        data = bake_all(demo_spec.get("bake", {}))
+        fragment = render_fragment(demo_spec, data)
+        items.append((demo_spec.get("title", "Demo"), fragment))
+
+    nav = _LAYOUTS[spec.get("style", "left_rail")]("lab", items)
+    body = f"{header_html}\n{nav}" if header_html else nav
+    page = C.page_shell("page", body, title=spec.get("title", "Lab"))
+
+    stem = layout_path.stem
+    out = Path(dist_dir) / stem / f"{stem}.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    return out
+
+
 def main() -> None:
     if shutil.which("g++") is None:
         print("ERROR: g++ not found on PATH; these pages bake real compiler output.",
@@ -311,7 +356,8 @@ def main() -> None:
         sys.exit(2)
     spec_path = Path(sys.argv[1])
     dist = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[2] / "dist"
-    out = build_page(spec_path, dist)
+    spec_probe = load_spec(spec_path)
+    out = build_layout(spec_path, dist) if "demos" in spec_probe else build_page(spec_path, dist)
     print(f"Wrote {out}")
 
 
