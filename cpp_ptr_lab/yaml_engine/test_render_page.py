@@ -307,6 +307,27 @@ class TestLeftRailLayout:
         assert "<script" not in html
 
 
+class TestVariantTabsNesting:
+    def test_classes_are_id_namespaced(self):
+        from cpp_ptr_lab import components as C
+        html = C.variant_tabs("outer", [("A", "x"), ("B", "y")])
+        # every structural class carries the component id — nothing shared across instances
+        assert "vt-panels-outer" in html
+        assert "vt-tabs-outer" in html
+        assert "vt-panel-outer" in html and "vt-p0-outer" in html
+
+    def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
+        from cpp_ptr_lab import components as C
+        inner = C.variant_tabs("inner", [("i0", "a"), ("i1", "b")])
+        outer = C.variant_tabs("outer", [("o0", inner), ("o1", "z")])
+        # inner and outer use disjoint namespaced classes → no selector collision
+        assert "vt-p0-inner" in outer and "vt-p0-outer" in outer
+        # outer's show selector targets only outer-namespaced panels
+        assert "~ .vt-panels-outer .vt-p0-outer" in outer
+        ids = _ids(outer)
+        assert len(ids) == len(set(ids)), "dup ids across nested variant_tabs"
+
+
 class TestHeader:
     def test_render_header_inline_and_legend(self, tmp_path):
         blocks = [

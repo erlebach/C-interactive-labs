@@ -449,34 +449,31 @@ def code_line_link(
 def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
     """Switch between N labelled panels with native radios + ``:checked ~``."""
     p = _safe(comp_id)
-    style_lines = [f"#{p} .vt-panel {{ display: none; }}"]
+    style_lines = [f"#{p} .vt-panel-{p} {{ display: none; }}"]
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
         tid = f"{p}-t{i}"
         checked = " checked" if i == 0 else ""
-        style_lines.append(f"#{tid}:checked ~ .vt-panels .vt-p{i} {{ display: block; }}")
+        style_lines.append(f"#{tid}:checked ~ .vt-panels-{p} .vt-p{i}-{p} {{ display: block; }}")
         style_lines.append(
-            f'#{tid}:checked ~ .vt-tabs label[for="{tid}"]'
-            " { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }"
-        )
+            f'#{tid}:checked ~ .vt-tabs-{p} label[for="{tid}"]'
+            " { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }")
         style_lines.append(
-            f'#{tid}:focus-visible ~ .vt-tabs label[for="{tid}"]'
-            " { outline: 3px solid var(--accent); outline-offset: 2px; }"
-        )
+            f'#{tid}:focus-visible ~ .vt-tabs-{p} label[for="{tid}"]'
+            " { outline: 3px solid var(--accent); outline-offset: 2px; }")
         inputs += f'<input type="radio" name="{p}-vt" id="{tid}" style="{_VH}"{checked}>\n'
         tabs += (
             f'<label for="{tid}" style="border:2px solid var(--border);border-radius:8px 8px 0 0;'
             f'padding:.4rem .9rem;min-height:44px;display:inline-flex;align-items:center;'
-            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n'
-        )
-        panel_html += f'<div class="vt-panel vt-p{i}">{body}</div>\n'
+            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
+        panel_html += f'<div class="vt-panel-{p} vt-p{i}-{p}">{body}</div>\n'
     style = "\n".join(style_lines)
     return (
         f'<div id="{p}">\n<style>\n{style}\n</style>\n'
         f"{inputs}"
-        f'<div class="vt-tabs" role="group" aria-label="Choose variant" '
+        f'<div class="vt-tabs-{p}" role="group" aria-label="Choose variant" '
         f'style="display:flex;gap:.3rem;flex-wrap:wrap">\n{tabs}</div>\n'
-        f'<div class="vt-panels" style="border:2px solid var(--border);border-radius:0 8px 8px 8px;'
+        f'<div class="vt-panels-{p}" style="border:2px solid var(--border);border-radius:0 8px 8px 8px;'
         f'padding:.7rem">\n{panel_html}</div>\n'
         f"</div>\n"
     )
