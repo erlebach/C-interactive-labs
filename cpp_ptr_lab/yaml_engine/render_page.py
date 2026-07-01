@@ -205,44 +205,9 @@ def _build_html(args: dict, data: dict) -> str:
     return str(args.get("content", ""))
 
 
-def _panel_program(pid: str, v: dict, caption: str) -> str:
-    """Render one compiled program: code+diagram split, badge, output, bytes."""
-    return (
-        C.code_diagram_panel(f"{pid}-cdp", v["code_html"],
-                             C.memory_diagram(f"{pid}-md", v["ptrdata"]))
-        + '<div style="margin-top:.8rem">'
-        + C.compile_status_badge(f"{pid}-badge", v["ok"])
-        + "</div>"
-        + C.output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
-                           error=v["failed"])
-        + C.byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
-    )
-
-
 def _build_topic(args: dict, data: dict) -> str:
-    """A variant_tabs cluster over a baked topic: per variant, code+diagram+I/O.
-
-    A cases-topic variant carries a ``cases`` list instead of a single program;
-    its sub-cases are stacked (each with its own compile verdict) inside the tab.
-    """
-    cid = args["id"]
-    entry = data[args["source"]]
-    panels = []
-    for label in entry["variants"]:
-        v = entry[label]
-        pid = f"{cid}-{C._safe(label)}"
-        if "cases" in v:
-            subcases = []
-            for j, case in enumerate(v["cases"]):
-                spid = f"{pid}-c{j}"
-                sub_body = _panel_program(spid, case, "Raw bytes of ptr (little-endian)")
-                subcases.append((case["label"], sub_body))
-            body = C.stacked_subcases(f"{pid}-ssc", subcases)
-        else:
-            body = _panel_program(
-                pid, v, f"Raw bytes of ptr for {label} (little-endian)")
-        panels.append((label, body))
-    return C.variant_tabs(cid, panels)
+    """A demo_panel over a baked topic (thin adapter; content lives in components)."""
+    return C.demo_panel(args["id"], data[args["source"]])
 
 
 _BUILDERS = {

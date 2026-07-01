@@ -252,6 +252,23 @@ class TestRegistry:
         assert reg["dangling_ptr"].id == "dangling_ptr"
 
 
+class TestDemoPanel:
+    def test_demo_panel_variant_tabs_and_details_bytes(self):
+        from cpp_ptr_lab import components as C
+        html = C.demo_panel("dp", FAKE["bp"])
+        assert "vt-tabs" in html                 # int/double variant tabs
+        assert "<details" in html                # byte grid collapsed
+        assert 'class="badge"' in html and 'class="byte-grid"' in html
+        ids = _ids(html)
+        assert len(ids) == len(set(ids)), "dup ids in demo_panel"
+
+    def test_demo_panel_cases_topic_stacks_subcases(self):
+        from cpp_ptr_lab import components as C
+        html = C.demo_panel("dp", FAKE_CASES["ct"])
+        assert html.count('class="ssc"') == 2    # one per decl-type tab
+        assert "console--err" in html            # the failing sub-case
+
+
 class TestGlossary:
     def test_glossary_renders_dl_with_terms(self):
         from cpp_ptr_lab import components as C
