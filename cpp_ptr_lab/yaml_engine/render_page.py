@@ -326,6 +326,11 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     base = layout_path.parent
     spec = load_spec(layout_path)
 
+    style = spec.get("style", "left_rail")
+    if style not in _LAYOUTS:
+        raise ValueError(
+            f"unknown layout style {style!r}; valid choices: {sorted(_LAYOUTS)}")
+
     header_html = _render_header(spec.get("header", []), base)
     items = []
     for demo_ref in spec.get("demos", []):
@@ -334,7 +339,7 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
         fragment = render_fragment(demo_spec, data)
         items.append((demo_spec.get("title", "Demo"), fragment))
 
-    nav = _LAYOUTS[spec.get("style", "left_rail")]("lab", items)
+    nav = _LAYOUTS[style]("lab", items)
     body = f"{header_html}\n{nav}" if header_html else nav
     page = C.page_shell("page", body, title=spec.get("title", "Lab"))
 

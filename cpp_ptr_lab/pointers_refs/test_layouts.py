@@ -116,3 +116,14 @@ class TestPointersRefsTabsPage:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required by build_layout's compiler guard")
+def test_unknown_style_raises_valueerror(tmp_path):
+    """A typo in a layout's `style:` must fail fast with an author-friendly error
+    listing the valid choices — not a raw KeyError (data-over-code: YAML authors)."""
+    layout = tmp_path / "bad.rail.yaml"
+    layout.write_text("title: Bad\nstyle: leftrail\nheader: []\ndemos: []\n",
+                      encoding="utf-8")
+    with pytest.raises(ValueError, match="unknown layout style"):
+        R.build_layout(layout, tmp_path / "dist")
