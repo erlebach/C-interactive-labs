@@ -2,6 +2,22 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-01 14:57 — Design spec + implementation plan: demos & layouts (no code yet)
+
+Brainstormed and specced a **data-over-code** restructuring: separate reusable **demos** (demo = one
+whole topic) from **layouts** (author-chosen subset of demos + a `header:` rendered once + a nav
+`style:`), with **glossaries** as reusable minimal YAML the author attaches per subset (no built-in
+"family"). North Star: authoring content adds **YAML, never Python**. Two artifacts written + committed,
+**no implementation code yet**: `docs/superpowers/specs/2026-07-01-demos-and-layouts-design.md` (design,
+WCAG 1.1.1 text-alts made a tested requirement) and `docs/superpowers/plans/2026-07-01-demos-and-layouts.md`
+(10 TDD tasks: fragment split, `glossary`/`demo_panel`/`left_rail_layout` components, layout loader + CLI
+routing, 8 YAML demos + glossary + left-rail page [phase a], nesting-safe `variant_tabs` + top-tabs page
+[phase b]). Plan self-review caught a real nested-`variant_tabs` CSS-bleed bug (Task 9 fixes it via child
+combinators; open decision: adopt full class-namespacing instead). Also: `README.md` added (`fb4aa12`);
+two global feedback memories (plain-language, reporting-python-commands). Handoff:
+`handoffs/HANDOFF_2026-07-01_14h57mEST.md`. Suite unchanged at **357 passed** (no code touched). Next:
+user picks execution mode (subagent-driven vs inline) after `/clear`, then execute the plan RED→GREEN.
+
 ## 2026-07-01 10:39 — Combined Pointers & References lab page (new-engine equivalent of the old lab file)
 
 Rebuilt the old `dist/lab_pointers_refs.html` (the whole basic-pointers lab on one page) using the YAML
