@@ -2,6 +2,36 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-01 18:47 — Demos & layouts system built (data-over-code); left-rail + top-tabs pages
+
+Executed the 10-task demos/layouts plan end-to-end via **subagent-driven development** (fresh implementer
+per task; spec+quality review on the substantive ones). The **data-over-code North Star holds**: the whole
+Pointers & References lab now renders as *one standalone page where one demo shows at a time*, and authoring
+it added **only YAML — zero per-demo Python**. Engine stays a thin fixed core — `render_fragment` split from
+`render_page`; `_build_topic` reduced to a one-line adapter over a new reusable `demo_panel`; new `glossary`
++ `left_rail_layout` components; `build_layout` composes N demo fragments under a chosen nav `style:` + a
+once-rendered `header:` (legend + shared glossary from `*.glossary.yaml`), CLI-routed on the `demos:` key.
+Content is data: 8 `*.demo.yaml`, one `pointers.glossary.yaml`, two layouts (`.rail`=left_rail phase a,
+`.tabs`=top_tabs phase b) — the second is a **one-file, zero-Python** style swap over the *same* demos.
+**Open decision resolved: full class-namespacing** (not child combinators) — every structural class carries
+its component id (`.vt-panel-{p}`, `.lr-panel-{p}`), so nested `variant_tabs` can't bleed. Suite **357 →
+381** (24 new tests, TDD RED→GREEN throughout). Branch `feat/demos-and-layouts` (12 commits, not yet merged).
+
+### Details
+
+- **Build:** `python -m cpp_ptr_lab.yaml_engine.render_page cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml`
+  (and `…/pointers_refs.tabs.yaml`) → `dist/<stem>/<stem>.html`.
+- **Nesting-safety proof (tabs page):** outer top-tabs nav uses comp-id `lab` → `vt-*-lab`; inner demos use
+  `vt-*-bp/ct/…` — disjoint class sets, **0 duplicate ids** across 162 ids.
+- **WCAG 1.1.1 (asserted test) verified on both built pages:** 19 `<svg>` = 19 `role="img"`, non-empty
+  `<title>`, no `<img>` without `alt`. Both self-contained: 0 `<script>`, 0 `https://`, real baked g++
+  output (30× `PTRDATA`, const `read-only` error ×2).
+- **Final polish (2-reviewer consensus):** `build_layout` now raises a friendly `ValueError` listing valid
+  styles on an unknown `style:` (fail-fast before g++), instead of a raw `KeyError`.
+- **Deferred (non-goals):** move C++ source Python→YAML; unify the old standalone basic_ptr/function_args
+  pages; add `references.glossary.yaml`; clean the base-CSS `100vh/overflow:hidden` holdover in
+  `html_renderer.py` (currently overridden by `page_shell`, harmless).
+
 ## 2026-07-01 14:57 — Design spec + implementation plan: demos & layouts (no code yet)
 
 Brainstormed and specced a **data-over-code** restructuring: separate reusable **demos** (demo = one
