@@ -2,6 +2,17 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 15:30 — Byte-grid readability: cell text 13px → 15px (user report)
+
+User screenshot showed the "Raw bytes of ptr" table cramped — its `byte`/`value` cells rendered at
+**13px**, the smallest text on the page (body 16px, console 14px), so the hex bytes looked tiny. Grounded
+the fix with Playwright (served over `http://localhost`): measured cell `font-size:13px`, `cellW:33px`.
+**Fix (one CSS rule):** `.byte-grid td,th` font `13px → 15px` and padding `.3rem .5rem → .35rem .6rem` for
+breathing room. Re-measured after reload: 15px, cellW 38px; screenshot confirms the table now matches the
+surrounding content's readability. TDD RED→GREEN: `test_byte_cells_are_readable_size` (guards the byte-grid
+rule is not 13px and is ≥15px — a regression guard tied to the report). Suite **398 → 399**. Rail page
+rebuilt. No behavioral/layout change beyond the larger cells.
+
 ## 2026-07-02 15:18 — Legacy sweep: compiler stderr `<pre>` → `<pre><samp>` (SIA-R79)
 
 Finished carrying the `<samp>` accessibility rule into the **legacy** `html_renderer.py` so *every*
