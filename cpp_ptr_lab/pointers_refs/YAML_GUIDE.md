@@ -16,7 +16,9 @@ There are two worlds in this project:
 
 You run one command. The engine reads your YAML, compiles the real C++ it points at,
 and writes **one self-contained `.html` file** you can open in a browser or paste into
-Canvas. No JavaScript, no server, no internet needed at view time.
+Canvas. No server and no internet are needed at view time, and the page works with
+JavaScript disabled — a small inline script only *enhances* the mobile navigation (it
+collapses the left rail into a tap-to-open menu on narrow screens).
 
 ```
    YOU WRITE                 THE ENGINE DOES                    YOU GET
