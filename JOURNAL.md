@@ -2,6 +2,17 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 18:25 — WCAG AA fix: highlight.js comment colour #5c6370 → #9199a8
+
+Closed the contrast caveat from the previous entry. atom-one-dark's comment/quote colour `#5c6370` is
+only **2.32:1** on its `#282c34` background — below WCAG AA 1.4.3 (4.5:1). Fixed to **`#9199a8`** (**4.88:1**),
+which stays muted (dimmer than the `#abb2bf` code text) so comments still read as de-emphasized. Applied as
+an override in **our** layer (`_HLJS_OVERRIDE_CSS`, inlined AFTER the theme so it wins) — **not** by editing
+the vendored theme, so a future re-fetch keeps the fix. TDD RED→GREEN: `test_comment_color_meets_wcag_aa`
+parses the effective (last-wins) `.hljs-comment` colour and asserts ≥4.5:1 vs `#282c34` via a WCAG-relative-
+luminance helper (was 2.32 → now 4.88). Verified computed colour `rgb(145,153,168)` in Playwright. Suite
+**404 → 405**. Rail rebuilt.
+
 ## 2026-07-02 18:14 — Syntax highlighting on the rail page via inlined highlight.js (self-contained)
 
 Added real syntax highlighting to the rail/layout pages using **highlight.js**, vendored + inlined so the
