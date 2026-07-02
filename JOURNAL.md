@@ -2,6 +2,21 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 15:05 — Scope the DPG-era viewport lock off document pages (base-CSS holdover)
+
+Cleaned the `body { height:100vh; overflow:hidden; display:flex; flex-direction:column }` holdover in the
+shared `_CSS`. It was DPG-era app-shell layout — right for the legacy `assemble_page` (header + internally
+scrolling panels), **wrong for a document**. The current `page_shell` pages already neutralized it with an
+inline `<body style="height:auto;overflow:auto">` **workaround**, so the base rule was dead weight there and
+a patch here. **Fix:** moved the four viewport-lock properties out of the base `body{}` into a scoped
+`body.lab-shell {…}`; legacy `assemble_page` opts in via `<body class="lab-shell">`; `page_shell` now emits a
+plain `<body>` (base body is document-flow by default — inline workaround deleted). Behavior-preserving both
+ways: document pages were already document-flow via the inline patch; legacy pages get identical properties
+via the class. One inert `.lab-shell` rule still ships in the shared stylesheet (removed fully when legacy is
+unified). TDD RED→GREEN: rewrote the two `assemble_page` body-CSS tests to assert the **scoped** rule +
+`lab-shell` class; added `test_document_flow_no_viewport_lock` (page_shell body tag == `<body>`). Suite
+**396 → 397**. Rail page rebuilt: plain `<body>`, single inert `100vh`.
+
 ## 2026-07-02 14:40 — Source blocks: `language:` field → `<code class="language-XXX">` (data-over-code)
 
 Closed the item deferred from the `<samp>` session: source code now carries a syntax-highlight hook.
