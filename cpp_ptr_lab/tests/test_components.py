@@ -231,6 +231,20 @@ class TestPageShell:
     def test_body_content_present(self):
         assert "hi" in self._frag()
 
+    def test_no_highlight_by_default(self):
+        # Highlighting is opt-in; a default page carries no highlight.js.
+        assert "hljs" not in self._frag()
+
+    def test_highlight_flag_inlines_hljs_no_external(self):
+        # highlight=True inlines the library + theme and runs it on load, with
+        # NO external reference (self-contained; degrades to plain code JS-off).
+        page = C.page_shell("s", '<pre><code class="language-cpp">int x;</code></pre>',
+                            title="T", highlight=True)
+        assert "hljs.highlightAll" in page          # runtime init present
+        assert ".hljs" in page                       # theme CSS inlined
+        assert "<script src" not in page             # inline only, no external script
+        assert not re.search(r'src=|<link\b', page)  # no external resource load
+
     def test_document_flow_no_viewport_lock(self):
         # Document pages must NOT opt into the legacy DPG viewport lock: the body
         # is plain document flow (no `lab-shell` class, no inline height/overflow

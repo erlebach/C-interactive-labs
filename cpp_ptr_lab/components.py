@@ -27,9 +27,16 @@ hex, so chrome and SVG share one contrast-vetted palette.
 from __future__ import annotations
 
 import html as _html
+from pathlib import Path
 from typing import Any, Sequence
 
 from .html_renderer import _CSS, SEMANTIC_PALETTE, svg_renderer
+
+# Vendored highlight.js (common bundle incl. C++) + theme, inlined for
+# self-contained syntax highlighting. Loaded once at import; opt-in per page.
+_VENDOR = Path(__file__).parent / "vendor" / "highlightjs"
+_HLJS_JS = (_VENDOR / "highlight.min.js").read_text(encoding="utf-8")
+_HLJS_CSS = (_VENDOR / "atom-one-dark.min.css").read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -91,14 +98,23 @@ COMPONENT_CSS = """
 """
 
 
-def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
+def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
+               highlight: bool = False) -> str:
     """Wrap *body_html* in a complete, self-contained WCAG AA document.
 
     Declares ``lang``, exposes a skip link targeting the ``#main`` landmark,
-    and inlines all CSS (theme + component styles).  No external/script/network
+    and inlines all CSS (theme + component styles).  No external/network
     reference is emitted, so the page pastes directly into Canvas.
+
+    When *highlight* is true, the vendored highlight.js library and theme are
+    inlined and run on load (``<pre><code class="language-XXX">`` blocks get
+    coloured).  Still fully self-contained — nothing external is fetched — and
+    it degrades gracefully: with JS off the code shows as plain text.
     """
     t = _e(title)
+    hl_style = f"<style>\n{_HLJS_CSS}\n</style>\n" if highlight else ""
+    hl_script = (f"<script>\n{_HLJS_JS}\nhljs.highlightAll();\n</script>\n"
+                 if highlight else "")
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'
@@ -107,6 +123,7 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{t}</title>\n"
         f"<style>\n{_CSS}\n{COMPONENT_CSS}\n</style>\n"
+        f"{hl_style}"
         "</head>\n"
         "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
@@ -114,6 +131,7 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
         '<main id="main">\n'
         f'<div class="demo-wrap">\n{body_html}\n</div>\n'
         "</main>\n"
+        f"{hl_script}"
         "</body>\n"
         "</html>\n"
     )

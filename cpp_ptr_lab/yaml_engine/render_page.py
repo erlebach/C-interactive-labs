@@ -361,7 +361,7 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     else:
         nav = _LAYOUTS[style]("lab", items)
     body = f"{header_html}\n{nav}" if header_html else nav
-    page = C.page_shell("page", body, title=spec.get("title", "Lab"))
+    page = C.page_shell("page", body, title=spec.get("title", "Lab"), highlight=True)
 
     stem = layout_path.stem
     out = Path(dist_dir) / stem / f"{stem}.html"

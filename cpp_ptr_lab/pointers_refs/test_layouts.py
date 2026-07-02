@@ -94,12 +94,21 @@ class TestPointersRefsRailPage:
 
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
-        # Self-contained: no network, no external resources. Inline JS (the mobile-menu
-        # progressive enhancement) is allowed; only external `src=` is forbidden.
-        assert "https://" not in html and "src=" not in html
+        # Self-contained: the page LOADS nothing external. Inlined JS (mobile-menu +
+        # highlight.js) is allowed, and may carry URL *text* in comments — so assert no
+        # external *load* (no <script src>, <link>, src=, href="http"), not bare "https://".
+        assert "<script src" not in html and "<link" not in html and "src=" not in html
+        assert 'href="http' not in html
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+    def test_source_highlighted_with_hljs(self, tmp_path):
+        # Rail page uses highlight.js (inlined, self-contained): the library runs on
+        # load over the language-cpp source blocks; degrades to plain code with JS off.
+        _, html = self._html(tmp_path)
+        assert "hljs.highlightAll" in html and ".hljs" in html
+        assert 'class="language-cpp"' in html
 
     def test_no_bare_pre_semantic_child(self, tmp_path):
         # SIA-R79: every <pre> carries a semantic child (<code> for source, <samp> for output).
@@ -133,8 +142,9 @@ class TestPointersRefsTabsPage:
 
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
-        # Inline JS allowed (mobile-menu enhancement); no external script / network.
-        assert "<script src" not in html and "https://" not in html
+        # No external load — inlined JS (mobile-menu + highlight.js) may carry URL text.
+        assert "<script src" not in html and "<link" not in html and "src=" not in html
+        assert 'href="http' not in html
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
