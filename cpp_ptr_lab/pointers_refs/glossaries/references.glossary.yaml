@@ -1,0 +1,9 @@
+title: "Vocabulary — Reference Semantics"
+terms:
+  - { term: "lvalue", def: "an expression that names an object with a stable address (can appear on the left of =)" }
+  - { term: "rvalue", def: "a temporary value with no persistent address, such as the result of a + b" }
+  - { term: "bind", def: "to attach a reference to its referent at the point of declaration; a reference binds once and never rebinds" }
+  - { term: "alias", def: "a second name for an existing object; a reference is an alias, not a separate object" }
+  - { term: "lvalue reference (T&)", def: "a reference that binds to a named object (an lvalue); the usual C++ reference" }
+  - { term: "const reference (const T&)", def: "a read-only alias that may also bind to a temporary, extending that temporary's lifetime" }
+  - { term: "pass-by-reference", def: "passing an argument as an alias so the function operates on the caller's object without copying" }

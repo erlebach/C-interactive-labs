@@ -83,6 +83,15 @@ class TestPointersRefsRailPage:
         assert re.search(r'<label[^>]*font-style:italic[^>]*>\s*Vocabulary', html)
         assert "<dl" in html and "dereference" in html      # its terms still present (in a panel)
 
+    def test_second_reference_glossary_present(self, tmp_path):
+        # 0..N glossaries per page: a second, reference-semantics glossary joins the
+        # general "Vocabulary" as another leading italic rail entry (a demo still shows on load).
+        _, html = self._html(tmp_path)
+        assert re.search(r'<label[^>]*font-style:italic[^>]*>\s*Reference Terms', html)
+        assert "lvalue" in html and "rvalue" in html    # its distinctive terms
+        # both glossary labels are italic; demos (e.g. Basic Pointer) are not
+        assert re.search(r'<label[^>]*font-style:italic[^>]*>\s*Vocabulary', html)
+
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
         # Self-contained: no network, no external resources. Inline JS (the mobile-menu

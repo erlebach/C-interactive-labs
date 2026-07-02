@@ -4,6 +4,7 @@ header:
   - color_legend: { id: legend }
 glossaries:
   - { id: g-ptr, source: ../glossaries/pointers.glossary.yaml, label: "Vocabulary" }
+  - { id: g-ref, source: ../glossaries/references.glossary.yaml, label: "Reference Terms" }
 demos:
   - ../demos/basic_ptr.demo.yaml
   - ../demos/const_taxonomy.demo.yaml
