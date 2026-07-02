@@ -552,7 +552,7 @@ def _case_block(v: dict, svg_id_prefix: str = "d") -> str:
         out_html = (
             f'<div class="out out--err">'
             f'<span class="err">Compile failed.</span><br>'
-            f'<pre style="margin-top:.5rem">{_html.escape(stderr)}</pre>'
+            f'<pre style="margin-top:.5rem"><samp>{_html.escape(stderr)}</samp></pre>'
             f'</div>'
         )
     else:

@@ -281,6 +281,16 @@ class TestRenderFragmentMultiCase:
         assert "Compile failed" in frag
         assert "read-only" in frag
 
+    def test_no_bare_pre_stderr_wrapped_in_samp(self):
+        # Compiler stderr is program output -> belongs in <samp> (SIA-R79), not a
+        # bare <pre>. Every <pre> must carry a semantic child (<code> or <samp>).
+        frag = self._fragment()
+        for m in re.finditer(r"<pre\b[^>]*>", frag):
+            after = frag[m.end():m.end() + 6]
+            assert after.startswith("<code") or after.startswith("<samp"), \
+                f"bare <pre>: {m.group(0)!r} -> {after!r}"
+        assert "<samp>error: read-only</samp>" in frag
+
     def test_passing_case_shows_stdout(self):
         frag = self._fragment()
         assert "ran: Write *ptr" in frag
