@@ -37,6 +37,10 @@ from .html_renderer import _CSS, SEMANTIC_PALETTE, svg_renderer
 _VENDOR = Path(__file__).parent / "vendor" / "highlightjs"
 _HLJS_JS = (_VENDOR / "highlight.min.js").read_text(encoding="utf-8")
 _HLJS_CSS = (_VENDOR / "atom-one-dark.min.css").read_text(encoding="utf-8")
+# WCAG AA fix (applied in our layer, not the vendored theme, so a re-fetch keeps it):
+# atom-one-dark's comment #5c6370 is only 2.32:1 on its #282c34 bg. #9199a8 is 4.88:1
+# and stays muted (dimmer than the #abb2bf code text). Inlined AFTER the theme so it wins.
+_HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +116,7 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
     it degrades gracefully: with JS off the code shows as plain text.
     """
     t = _e(title)
-    hl_style = f"<style>\n{_HLJS_CSS}\n</style>\n" if highlight else ""
+    hl_style = f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n</style>\n" if highlight else ""
     hl_script = (f"<script>\n{_HLJS_JS}\nhljs.highlightAll();\n</script>\n"
                  if highlight else "")
     return (

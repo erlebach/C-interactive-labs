@@ -235,6 +235,27 @@ class TestPageShell:
         # Highlighting is opt-in; a default page carries no highlight.js.
         assert "hljs" not in self._frag()
 
+    def test_comment_color_meets_wcag_aa(self):
+        # WCAG 1.4.3: the effective highlight.js comment colour must be >= 4.5:1
+        # against the atom-one-dark background (#282c34). Overridden in our layer.
+        page = C.page_shell("s", "<pre><code class='language-cpp'>//c</code></pre>",
+                            title="T", highlight=True)
+        colors = re.findall(r"\.hljs-comment[^{}]*\{[^}]*?color:(#[0-9a-fA-F]{6})", page)
+        assert colors, "no .hljs-comment color rule found"
+        eff = colors[-1]                     # last rule wins at equal specificity
+
+        def _lin(c):
+            c /= 255
+            return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+        def _lum(h):
+            r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
+            return 0.2126 * _lin(r) + 0.7152 * _lin(g) + 0.0722 * _lin(b)
+
+        lo, hi = sorted([_lum(eff), _lum("#282c34")])
+        ratio = (hi + 0.05) / (lo + 0.05)
+        assert ratio >= 4.5, f"comment {eff} only {ratio:.2f}:1 on #282c34"
+
     def test_highlight_flag_inlines_hljs_no_external(self):
         # highlight=True inlines the library + theme and runs it on load, with
         # NO external reference (self-contained; degrades to plain code JS-off).
