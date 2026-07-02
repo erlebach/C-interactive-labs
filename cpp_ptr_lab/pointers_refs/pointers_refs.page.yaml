@@ -8,6 +8,7 @@
 # (cpp_ptr_lab/yaml_engine/render_page.py); builds to dist/pointers_refs/pointers_refs.html.
 title: "Pointers & References — Lab 1"
 
+language: cpp
 bake:
   bp: basic_ptr
   ct: const_taxonomy

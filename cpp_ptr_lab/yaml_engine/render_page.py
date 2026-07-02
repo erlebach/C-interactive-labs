@@ -70,16 +70,17 @@ def _topic_registry() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _pre(text: str) -> str:
-    return f"<pre><code>{_html.escape(text)}</code></pre>"
+def _pre(text: str, language: str | None = None) -> str:
+    cls = f' class="language-{language}"' if language else ""
+    return f"<pre><code{cls}>{_html.escape(text)}</code></pre>"
 
 
-def _bake_program(v: dict[str, Any]) -> dict[str, Any]:
+def _bake_program(v: dict[str, Any], language: str | None = None) -> dict[str, Any]:
     """Render-data for one compiled program (a variant or a sub-case)."""
     mem = v.get("membytes", "")
     return {
         "source": v.get("source", ""),
-        "code_html": _pre(v.get("source", "")),
+        "code_html": _pre(v.get("source", ""), language),
         "ptrdata": v.get("ptrdata"),
         "stdout": v.get("stdout", ""),
         "stderr": v.get("stderr", ""),
@@ -90,7 +91,7 @@ def _bake_program(v: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _bake_one(topic: Any) -> dict[str, Any]:
+def _bake_one(topic: Any, language: str | None = None) -> dict[str, Any]:
     variants = [capture_variant(topic, cs) for cs in expand_variants(topic)]
     entry: dict[str, Any] = {
         "explanation": topic.explanation,
@@ -103,22 +104,26 @@ def _bake_one(topic: Any) -> dict[str, Any]:
             # sub-cases. Preserve them (each keeps its own compile verdict)
             # so the renderer can stack them; don't flatten to one program.
             entry[label] = {
-                "cases": [{**_bake_program(c), "label": c.get("label", "")}
+                "cases": [{**_bake_program(c, language), "label": c.get("label", "")}
                           for c in v["cases"]],
             }
         else:
-            entry[label] = _bake_program(v)
+            entry[label] = _bake_program(v, language)
     return entry
 
 
-def bake_all(bake: dict[str, str]) -> dict[str, Any]:
-    """Compile each ``name: topic_id`` and return ``{name: baked-entry}``."""
+def bake_all(bake: dict[str, str], language: str | None = None) -> dict[str, Any]:
+    """Compile each ``name: topic_id`` and return ``{name: baked-entry}``.
+
+    *language* (from the demo/page YAML) tags each source block with a
+    ``language-XXX`` class for syntax highlighting; ``None`` keeps it classless.
+    """
     registry = _topic_registry()
     data: dict[str, Any] = {}
     for name, topic_id in (bake or {}).items():
         if topic_id not in registry:
             raise KeyError(f"unknown topic id in bake: {topic_id!r}")
-        data[name] = _bake_one(registry[topic_id])
+        data[name] = _bake_one(registry[topic_id], language)
     return data
 
 
@@ -291,7 +296,7 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
             "build time; install a C++ compiler first."
         )
     spec = load_spec(spec_path)
-    data = bake_all(spec.get("bake", {}))
+    data = bake_all(spec.get("bake", {}), spec.get("language"))
     page = render_page(spec, data)
     stem = Path(spec_path).stem.replace(".page", "")
     out = Path(dist_dir) / stem / f"{stem}.html"
@@ -345,7 +350,7 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     items = list(glossary_items)
     for demo_ref in spec.get("demos", []):
         demo_spec = load_spec(base / demo_ref)
-        data = bake_all(demo_spec.get("bake", {}))
+        data = bake_all(demo_spec.get("bake", {}), demo_spec.get("language"))
         fragment = render_fragment(demo_spec, data)
         items.append((demo_spec.get("title", "Demo"), fragment))
 

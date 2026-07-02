@@ -231,6 +231,33 @@ class TestCasesEndToEnd:
         assert not dups, f"duplicate ids: {dups}"
 
 
+class TestSourceLanguageClass:
+    """Source blocks may carry a syntax-highlight hook: a `language:` field from
+    the demo/page YAML becomes `<code class="language-XXX">`. Omitting it keeps
+    the classless `<pre><code>` (backward compat)."""
+
+    def test_pre_emits_language_class(self):
+        assert R._pre("int* p", language="cpp") == \
+            '<pre><code class="language-cpp">int* p</code></pre>'
+
+    def test_pre_without_language_is_classless(self):
+        assert R._pre("int* p") == "<pre><code>int* p</code></pre>"
+
+    def test_bake_program_threads_language(self):
+        html = R._bake_program({"source": "int* p"}, language="cpp")["code_html"]
+        assert 'class="language-cpp"' in html
+
+    def test_bake_program_without_language_classless(self):
+        html = R._bake_program({"source": "int* p"})["code_html"]
+        assert "<pre><code>" in html and "language-" not in html
+
+    @pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+    def test_bake_all_threads_language_end_to_end(self):
+        data = R.bake_all({"bp": "basic_ptr"}, language="cpp")
+        # every baked program's code block carries the language class
+        assert 'class="language-cpp"' in data["bp"]["int"]["code_html"]
+
+
 class TestFragment:
     def test_render_fragment_has_no_html_shell(self):
         spec = {"title": "T", "blocks": [{"color_legend": {"id": "lg"}}]}

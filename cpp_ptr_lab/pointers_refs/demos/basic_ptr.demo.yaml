@@ -1,4 +1,5 @@
 title: "Basic Pointer"
+language: cpp
 bake: { bp: basic_ptr }
 blocks:
   - callout_note: { id: bp-note, label: Concept, text: "${bp.explanation}" }

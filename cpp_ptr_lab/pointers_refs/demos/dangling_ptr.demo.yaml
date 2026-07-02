@@ -1,4 +1,5 @@
 title: "Gotcha: Dangling Ptr"
+language: cpp
 bake: { dp: dangling_ptr }
 blocks:
   - callout_note: { id: dp-note, label: Concept, text: "${dp.explanation}" }

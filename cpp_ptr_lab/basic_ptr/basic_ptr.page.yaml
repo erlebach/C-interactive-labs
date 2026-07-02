@@ -4,6 +4,7 @@
 # but as data rather than Python (see ../topic_page.py for the imperative version).
 title: "Basic Pointer — assembled from YAML"
 
+language: cpp
 bake:
   bp: basic_ptr            # compile this TopicTemplate; expose its variants as ${bp.*}
 
