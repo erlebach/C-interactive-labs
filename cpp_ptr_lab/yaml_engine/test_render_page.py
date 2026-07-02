@@ -301,10 +301,11 @@ class TestLeftRailLayout:
         ids = _ids(html)
         assert len(ids) == len(set(ids)), "dup ids in left_rail_layout"
 
-    def test_left_rail_zero_js(self):
+    def test_left_rail_no_external_script(self):
+        # The mobile-menu enhancement adds an INLINE script; nothing external/networked.
         from cpp_ptr_lab import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
-        assert "<script" not in html
+        assert "<script src" not in html and "src=" not in html and "https://" not in html
 
 
 class TestVariantTabsNesting:
@@ -346,3 +347,47 @@ class TestHeader:
         blocks = [{"glossary": {"id": "g", "source": "g.glossary.yaml"}}]
         html = R._render_header(blocks, tmp_path)
         assert "Pointers" in html and "pointee" in html and "the object pointed to" in html
+
+
+class TestMobileOverflow:
+    """Grid tracks must be shrinkable (minmax(0,...)+min-width:0) so a wide code
+    line scrolls inside its box instead of blowing the page wider than the phone."""
+
+    def test_code_diagram_panel_columns_shrinkable(self):
+        from cpp_ptr_lab import components as C
+        html = C.code_diagram_panel("cdp", "<pre>x</pre>", "<svg></svg>")
+        assert "minmax(0" in html          # 1fr -> minmax(0,1fr)
+        assert "min-width:0" in html        # .cdp-code can shrink; overflow:auto engages
+
+    def test_left_rail_columns_shrinkable(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        assert "minmax(0" in html
+        assert "min-width:0" in html
+
+
+class TestLeftRailMobileMenu:
+    """Route J: at narrow widths the rail becomes a tap-to-open menu (JS), layered
+    on the zero-JS radio baseline so it degrades gracefully with JS disabled."""
+
+    def test_menu_toggle_and_progressive_script_present(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        assert "<button" in html and "aria-expanded" in html   # accessible toggle
+        assert "<script" in html                               # progressive enhancement
+        assert "lr-js" in html                                 # menu CSS gated on JS-added class
+        assert "lr-open" in html                               # open/closed state hook
+
+    def test_baseline_still_works_without_js(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        # radios + rail present regardless of JS (graceful degradation)
+        assert html.count("<input") == 2
+        assert "lr-rail-lab" in html
+        assert "checked" in html
+
+    def test_no_external_script_or_network(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        # inline JS is allowed now, but nothing external / networked
+        assert "<script src" not in html and "https://" not in html and "src=" not in html

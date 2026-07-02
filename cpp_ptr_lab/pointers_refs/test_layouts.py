@@ -80,7 +80,9 @@ class TestPointersRefsRailPage:
 
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
-        assert "<script" not in html and "https://" not in html and "src=" not in html
+        # Self-contained: no network, no external resources. Inline JS (the mobile-menu
+        # progressive enhancement) is allowed; only external `src=` is forbidden.
+        assert "https://" not in html and "src=" not in html
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
@@ -112,7 +114,8 @@ class TestPointersRefsTabsPage:
 
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
-        assert "<script" not in html and "https://" not in html
+        # Inline JS allowed (mobile-menu enhancement); no external script / network.
+        assert "<script src" not in html and "https://" not in html
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"

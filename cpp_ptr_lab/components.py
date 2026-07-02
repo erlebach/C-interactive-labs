@@ -488,10 +488,16 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
     """
     p = _safe(comp_id)
     style_lines = [
-        f"#{p} {{ display:grid; grid-template-columns:14rem 1fr; gap:1rem; align-items:start; }}",
+        f"#{p} {{ display:grid; grid-template-columns:minmax(0,14rem) minmax(0,1fr); gap:1rem; align-items:start; }}",
         f"#{p} .lr-rail-{p} {{ display:flex; flex-direction:column; gap:.3rem; }}",
-        f"#{p} .lr-panel-{p} {{ display:none; }}",
-        f"@media (max-width:760px) {{ #{p} {{ grid-template-columns:1fr; }} }}",
+        f"#{p} .lr-body-{p} {{ min-width:0; }}",
+        f"#{p} .lr-panel-{p} {{ display:none; min-width:0; }}",
+        f"#{p} .lr-menu-{p} {{ display:none; }}",  # menu toggle: shown only on narrow + JS
+        f"@media (max-width:760px) {{ #{p} {{ grid-template-columns:minmax(0,1fr); }} }}",
+        # progressive enhancement: with JS, narrow screens collapse the rail behind a menu
+        f"@media (max-width:760px) {{ #{p}.lr-js .lr-menu-{p} {{ display:flex; }} }}",
+        f"@media (max-width:760px) {{ #{p}.lr-js .lr-rail-{p} {{ display:none; }} }}",
+        f"@media (max-width:760px) {{ #{p}.lr-js.lr-open .lr-rail-{p} {{ display:flex; }} }}",
     ]
     inputs, rail, panels = "", "", ""
     for i, (label, body) in enumerate(items):
@@ -511,11 +517,36 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
             f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
         panels += f'<div class="lr-panel-{p} lr-p{i}-{p}">{body}</div>\n'
     style = "\n".join(style_lines)
+    first = _e(items[0][0]) if items else "Choose demo"
+    menu = (
+        f'<button type="button" class="lr-menu-{p}" aria-expanded="false" aria-controls="{p}-rail" '
+        f'style="min-height:44px;align-items:center;gap:.5rem;border:2px solid var(--border);'
+        f'border-radius:8px;padding:.5rem .8rem;cursor:pointer;font-weight:700">'
+        f'<span aria-hidden="true">☰</span>'
+        f'<span class="lr-menu-label-{p}">{first}</span></button>\n'
+    )
+    # Scoped progressive-enhancement script: toggle the menu, and close it (and update
+    # the button label) when a demo is picked. Baseline works with JS off (rail visible).
+    script = (
+        "<script>\n(function(){\n"
+        f'var r=document.getElementById("{p}");if(!r)return;r.classList.add("lr-js");\n'
+        f'var b=r.querySelector(".lr-menu-{p}"),l=r.querySelector(".lr-menu-label-{p}");\n'
+        'function s(o){r.classList.toggle("lr-open",o);'
+        'b.setAttribute("aria-expanded",o?"true":"false");}\n'
+        'b.addEventListener("click",function(){s(!r.classList.contains("lr-open"));});\n'
+        f'r.querySelectorAll(\'input[name="{p}-lr"]\').forEach(function(x){{'
+        'x.addEventListener("change",function(){'
+        'var t=r.querySelector(\'label[for="\'+x.id+\'"]\');'
+        "if(t&&l)l.textContent=t.textContent;s(false);});});\n"
+        "})();\n</script>\n"
+    )
     return (
         f'<div id="{p}" class="lr">\n<style>\n{style}\n</style>\n'
         f"{inputs}"
-        f'<div class="lr-rail-{p}" role="group" aria-label="Choose demo">\n{rail}</div>\n'
+        f"{menu}"
+        f'<div class="lr-rail-{p}" id="{p}-rail" role="group" aria-label="Choose demo">\n{rail}</div>\n'
         f'<div class="lr-body-{p}">\n{panels}</div>\n'
+        f"{script}"
         f"</div>\n"
     )
 
@@ -524,9 +555,10 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
     style = (
-        f"#{p} {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }}\n"
-        f"#{p} .cdp-code {{ overflow: auto; max-height: 28rem; }}\n"
-        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: 1fr; }} }}"
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} .cdp-code {{ overflow: auto; max-height: 28rem; min-width:0; }}\n"
+        f"#{p} .cdp-diagram {{ min-width:0; }}\n"
+        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
     )
     return (
         f'<div id="{p}" class="cdp">\n<style>\n{style}\n</style>\n'
