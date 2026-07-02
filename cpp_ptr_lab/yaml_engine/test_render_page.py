@@ -229,3 +229,236 @@ class TestCasesEndToEnd:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+
+class TestSourceLanguageClass:
+    """Source blocks may carry a syntax-highlight hook: a `language:` field from
+    the demo/page YAML becomes `<code class="language-XXX">`. Omitting it keeps
+    the classless `<pre><code>` (backward compat)."""
+
+    def test_pre_emits_language_class(self):
+        assert R._pre("int* p", language="cpp") == \
+            '<pre><code class="language-cpp">int* p</code></pre>'
+
+    def test_pre_without_language_is_classless(self):
+        assert R._pre("int* p") == "<pre><code>int* p</code></pre>"
+
+    def test_bake_program_threads_language(self):
+        html = R._bake_program({"source": "int* p"}, language="cpp")["code_html"]
+        assert 'class="language-cpp"' in html
+
+    def test_bake_program_without_language_classless(self):
+        html = R._bake_program({"source": "int* p"})["code_html"]
+        assert "<pre><code>" in html and "language-" not in html
+
+    @pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+    def test_bake_all_threads_language_end_to_end(self):
+        data = R.bake_all({"bp": "basic_ptr"}, language="cpp")
+        # every baked program's code block carries the language class
+        assert 'class="language-cpp"' in data["bp"]["int"]["code_html"]
+
+
+class TestFragment:
+    def test_render_fragment_has_no_html_shell(self):
+        spec = {"title": "T", "blocks": [{"color_legend": {"id": "lg"}}]}
+        frag = R.render_fragment(spec, FAKE)
+        assert "<html" not in frag and "<head" not in frag and "<!DOCTYPE" not in frag
+        assert 'class="legend"' in frag  # the block itself is present
+
+    def test_render_page_still_wraps_shell(self):
+        spec = {"title": "T", "blocks": [{"color_legend": {"id": "lg"}}]}
+        html = R.render_page(spec, FAKE)
+        assert "<!DOCTYPE html>" in html and 'lang="en"' in html
+        assert 'class="legend"' in html
+
+
+class TestRegistry:
+    def test_dangling_ptr_is_registered(self):
+        reg = R._topic_registry()
+        assert "dangling_ptr" in reg
+        assert reg["dangling_ptr"].id == "dangling_ptr"
+
+
+class TestDemoPanel:
+    def test_demo_panel_variant_tabs_and_details_bytes(self):
+        from cpp_ptr_lab import components as C
+        html = C.demo_panel("dp", FAKE["bp"])
+        assert "vt-tabs" in html                 # int/double variant tabs
+        assert "<details" in html                # byte grid collapsed
+        assert 'class="badge"' in html and 'class="byte-grid"' in html
+        ids = _ids(html)
+        assert len(ids) == len(set(ids)), "dup ids in demo_panel"
+
+    def test_no_byte_data_omits_byte_grid(self):
+        # The byte box is data-driven: render it only when byte data exists.
+        # A variant with no bytes (e.g. a failed compile -> no MEMBYTES) must NOT
+        # emit an empty byte-grid (which collapses and wraps its caption).
+        from cpp_ptr_lab import components as C
+        entry = {
+            "explanation": "e", "variants": ["default"],
+            "default": {
+                "code_html": "<pre><code>int&amp; r;</code></pre>", "ptrdata": None,
+                "stdout": "", "stderr": "compile error", "ok": False,
+                "failed": True, "bytes": [], "target_val": "?", "source": "int& r;",
+            },
+        }
+        html = C.demo_panel("mb", entry)
+        assert "byte-grid" not in html          # no empty table
+        assert "Raw bytes" not in html          # no dangling details/caption
+        assert "console--err" in html           # the error output is still shown
+
+    def test_demo_panel_cases_topic_stacks_subcases(self):
+        from cpp_ptr_lab import components as C
+        html = C.demo_panel("dp", FAKE_CASES["ct"])
+        assert html.count('class="ssc"') == 2    # one per decl-type tab
+        assert "console--err" in html            # the failing sub-case
+
+
+class TestGlossary:
+    def test_glossary_renders_dl_with_terms(self):
+        from cpp_ptr_lab import components as C
+        html = C.glossary("g1", "Pointers", [("dereference (*)", "reads the pointee")])
+        assert "<dl" in html and "</dl>" in html
+        assert "<dt" in html and "dereference (*)" in html
+        assert "<dd" in html and "reads the pointee" in html
+        assert 'id="g1"' in html
+
+    def test_glossary_block_via_engine_pairs_adapter(self):
+        spec = {"title": "T", "blocks": [
+            {"glossary": {"id": "g", "title": "Vocab",
+                          "terms": [{"term": "pointee", "def": "the object pointed to"}]}},
+        ]}
+        html = R.render_page(spec, FAKE)
+        assert "pointee" in html and "the object pointed to" in html
+        assert "<dl" in html
+
+
+class TestLeftRailLayout:
+    def test_left_rail_one_panel_per_item_first_checked(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("Basic", "<p>a</p>"), ("const", "<p>b</p>")])
+        assert html.count('class="lr-panel') == 2      # two panel divs
+        assert "lr-panel-lab" in html                  # classes are id-namespaced
+        assert html.count("<input") == 2
+        assert "checked" in html                       # first item checked
+        assert "@media" in html                        # single-column reflow rule
+        assert 'aria-label' in html                    # nav group has a name
+        ids = _ids(html)
+        assert len(ids) == len(set(ids)), "dup ids in left_rail_layout"
+
+    def test_left_rail_no_external_script(self):
+        # The mobile-menu enhancement adds an INLINE script; nothing external/networked.
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        assert "<script src" not in html and "src=" not in html and "https://" not in html
+
+
+class TestLeftRailGlossaryNav:
+    """Option D: a glossary is a pressable rail entry (italic, to distinguish it from
+    demos), while a demo — not the glossary — stays the panel shown on load."""
+
+    def _html(self):
+        from cpp_ptr_lab import components as C
+        return C.left_rail_layout(
+            "lab", [("Vocabulary", "<p>g</p>"), ("Basic", "<p>d</p>")],
+            italic_count=1, selected=1)
+
+    def test_leading_labels_italic_others_not(self):
+        html = self._html()
+        assert re.search(r'<label for="lab-r0"[^>]*font-style:italic', html)      # glossary
+        assert not re.search(r'<label for="lab-r1"[^>]*font-style:italic', html)  # demo
+
+    def test_selected_demo_is_the_shown_panel(self):
+        html = self._html()
+        assert re.search(r'id="lab-r1"[^>]*checked', html)       # first demo shown on load
+        assert not re.search(r'id="lab-r0"[^>]*checked', html)   # glossary not auto-shown
+
+    def test_no_italic_by_default(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        assert "font-style:italic" not in html
+
+
+class TestVariantTabsNesting:
+    def test_classes_are_id_namespaced(self):
+        from cpp_ptr_lab import components as C
+        html = C.variant_tabs("outer", [("A", "x"), ("B", "y")])
+        # every structural class carries the component id — nothing shared across instances
+        assert "vt-panels-outer" in html
+        assert "vt-tabs-outer" in html
+        assert "vt-panel-outer" in html and "vt-p0-outer" in html
+
+    def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
+        from cpp_ptr_lab import components as C
+        inner = C.variant_tabs("inner", [("i0", "a"), ("i1", "b")])
+        outer = C.variant_tabs("outer", [("o0", inner), ("o1", "z")])
+        # inner and outer use disjoint namespaced classes → no selector collision
+        assert "vt-p0-inner" in outer and "vt-p0-outer" in outer
+        # outer's show selector targets only outer-namespaced panels
+        assert "~ .vt-panels-outer .vt-p0-outer" in outer
+        ids = _ids(outer)
+        assert len(ids) == len(set(ids)), "dup ids across nested variant_tabs"
+
+
+class TestHeader:
+    def test_render_header_inline_and_legend(self, tmp_path):
+        blocks = [
+            {"color_legend": {"id": "lg"}},
+            {"glossary": {"id": "g", "title": "V",
+                          "terms": [{"term": "t1", "def": "d1"}]}},
+        ]
+        html = R._render_header(blocks, tmp_path)
+        assert 'class="legend"' in html
+        assert "t1" in html and "d1" in html and "<dl" in html
+
+    def test_render_header_glossary_from_file(self, tmp_path):
+        (tmp_path / "g.glossary.yaml").write_text(
+            "title: Pointers\nterms:\n  - {term: pointee, def: the object pointed to}\n",
+            encoding="utf-8")
+        blocks = [{"glossary": {"id": "g", "source": "g.glossary.yaml"}}]
+        html = R._render_header(blocks, tmp_path)
+        assert "Pointers" in html and "pointee" in html and "the object pointed to" in html
+
+
+class TestMobileOverflow:
+    """Grid tracks must be shrinkable (minmax(0,...)+min-width:0) so a wide code
+    line scrolls inside its box instead of blowing the page wider than the phone."""
+
+    def test_code_diagram_panel_columns_shrinkable(self):
+        from cpp_ptr_lab import components as C
+        html = C.code_diagram_panel("cdp", "<pre>x</pre>", "<svg></svg>")
+        assert "minmax(0" in html          # 1fr -> minmax(0,1fr)
+        assert "min-width:0" in html        # .cdp-code can shrink; overflow:auto engages
+
+    def test_left_rail_columns_shrinkable(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        assert "minmax(0" in html
+        assert "min-width:0" in html
+
+
+class TestLeftRailMobileMenu:
+    """Route J: at narrow widths the rail becomes a tap-to-open menu (JS), layered
+    on the zero-JS radio baseline so it degrades gracefully with JS disabled."""
+
+    def test_menu_toggle_and_progressive_script_present(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        assert "<button" in html and "aria-expanded" in html   # accessible toggle
+        assert "<script" in html                               # progressive enhancement
+        assert "lr-js" in html                                 # menu CSS gated on JS-added class
+        assert "lr-open" in html                               # open/closed state hook
+
+    def test_baseline_still_works_without_js(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        # radios + rail present regardless of JS (graceful degradation)
+        assert html.count("<input") == 2
+        assert "lr-rail-lab" in html
+        assert "checked" in html
+
+    def test_no_external_script_or_network(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
+        # inline JS is allowed now, but nothing external / networked
+        assert "<script src" not in html and "https://" not in html and "src=" not in html

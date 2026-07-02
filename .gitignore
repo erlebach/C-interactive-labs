@@ -113,3 +113,4 @@ dist/
 ._*
 Thumbs.db
 desktop.ini
+.playwright-cli/

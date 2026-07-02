@@ -6,6 +6,7 @@
 # diagram components (memory_diagram is reused for the pointer/reference tabs).
 title: "Function Arguments — value, pointer, reference"
 
+language: cpp
 bake:
   fa: function_args        # compile this topic; expose its variants as ${fa.*}
 

@@ -2,6 +2,206 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 18:25 — WCAG AA fix: highlight.js comment colour #5c6370 → #9199a8
+
+Closed the contrast caveat from the previous entry. atom-one-dark's comment/quote colour `#5c6370` is
+only **2.32:1** on its `#282c34` background — below WCAG AA 1.4.3 (4.5:1). Fixed to **`#9199a8`** (**4.88:1**),
+which stays muted (dimmer than the `#abb2bf` code text) so comments still read as de-emphasized. Applied as
+an override in **our** layer (`_HLJS_OVERRIDE_CSS`, inlined AFTER the theme so it wins) — **not** by editing
+the vendored theme, so a future re-fetch keeps the fix. TDD RED→GREEN: `test_comment_color_meets_wcag_aa`
+parses the effective (last-wins) `.hljs-comment` colour and asserts ≥4.5:1 vs `#282c34` via a WCAG-relative-
+luminance helper (was 2.32 → now 4.88). Verified computed colour `rgb(145,153,168)` in Playwright. Suite
+**404 → 405**. Rail rebuilt.
+
+## 2026-07-02 18:14 — Syntax highlighting on the rail page via inlined highlight.js (self-contained)
+
+Added real syntax highlighting to the rail/layout pages using **highlight.js**, vendored + inlined so the
+page stays self-contained (no CDN/network). Source blocks already carried `class="language-cpp"` (from the
+earlier language-class work), so no markup change — highlight.js colours them on load. **Decision path:**
+user weighed CDN (option 2) vs inline (option 1); the tiebreaker was accessibility, and AT is **identical**
+across both (hljs token `<span>`s are presentational — no role/aria — so screen readers read the plain code
+text regardless), so option 1 (inline, self-contained, graceful JS-off fallback) won. **Scoping:** gated
+behind `page_shell(..., highlight=True)`, default **off**; only `build_layout` opts in — so the ~30 other
+pages' self-containment tests stay green; only 2 layout assertions needed updating. Vendored
+`cpp_ptr_lab/vendor/highlightjs/` (highlight.min.js v11.9.0 common bundle incl. C++, atom-one-dark theme,
+BSD-3-Clause; + README with provenance). **Self-containment invariant refined:** the crude `"https://" not
+in html` check was wrong (the inlined lib carries URL *text* in comments); tests now assert no external
+*load* (`<script src`, `<link`, `src=`, `href="http"`). Program output (`<pre><samp>`) stays unhighlighted.
+Rail page 96KB → 218KB (the inlined 122KB lib). TDD RED→GREEN: `test_highlight_flag_inlines_hljs_no_external`,
+`test_no_highlight_by_default`, `test_source_highlighted_with_hljs`. Suite **401 → 404**. Verified in
+Playwright: 19 highlighted blocks, `window.hljs` defined, zero console errors. **Caveat (noted, not fixed):**
+atom-one-dark's comment gray (~#5c6370 on #282c34) is ~3:1, below WCAG AA 4.5:1 — revisit theme/comment colour.
+
+## 2026-07-02 15:50 — Second glossary on the rail page (0..N glossaries, data-only)
+
+Exercised the 0..N-glossaries-per-page capability by adding a **second** glossary to the pointers_refs rail
+page — **zero engine changes**, pure YAML, the data-over-code North Star in practice. New data file
+`glossaries/references.glossary.yaml` (title "Vocabulary — Reference Semantics", 7 reference-focused terms:
+lvalue, rvalue, bind, alias, lvalue reference, const reference, pass-by-reference) chosen to **complement,
+not duplicate**, the general "Vocabulary" glossary. Wired by one line in the layout's `glossaries:` list
+(`{id: g-ref, label: "Reference Terms"}`). The engine's existing loop renders it as a full rail panel and
+`italic_count = len(glossaries)` auto-bumps to 2, so both leading rail labels are italic; `selected` logic
+still lands on the first **demo** (Basic Pointer) at load. Verified in Playwright: two italic entries
+("Vocabulary", "Reference Terms") above the 8 bold demos, the new panel renders its `<dl>`. TDD RED→GREEN:
+`test_second_reference_glossary_present`. Suite **400 → 401**. Rail rebuilt.
+
+## 2026-07-02 15:40 — Byte box is data-driven: omit empty byte-grid on no-byte variants
+
+User screenshot (Ref: Must Bind — a failing-compile topic) showed a broken "Raw bytes of ptr" box: an
+empty grid with just the `byte`/`value` row-headers, collapsing to minimum width so its `<caption>` wrapped
+one word per line. **Root cause (user's framing):** the box-generating code was already the *same* single
+path for pass/fail — `_demo_variant_body` emitted the details+`byte_grid` **unconditionally**; only the
+*data* differed (failed compile → no `MEMBYTES` → `v["bytes"] == []`). Feeding that path an empty list made a
+degenerate table. **Fix (option 1, user-chosen):** keep one code path, make it **data-driven** — emit the
+byte box only `if v["bytes"]`. Keys off byte-data presence, never the `failed`/`ok` flag; renders identically
+whenever data exists (success), omits the meaningless table otherwise. A failed compile now shows code +
+"✗ Compile failed" + error output and nothing else (verified in Playwright). TDD RED→GREEN:
+`test_no_byte_data_omits_byte_grid`; positive `test_demo_panel_variant_tabs_and_details_bytes` still green.
+Suite **399 → 400**. Rail rebuilt.
+
+## 2026-07-02 15:30 — Byte-grid readability: cell text 13px → 15px (user report)
+
+User screenshot showed the "Raw bytes of ptr" table cramped — its `byte`/`value` cells rendered at
+**13px**, the smallest text on the page (body 16px, console 14px), so the hex bytes looked tiny. Grounded
+the fix with Playwright (served over `http://localhost`): measured cell `font-size:13px`, `cellW:33px`.
+**Fix (one CSS rule):** `.byte-grid td,th` font `13px → 15px` and padding `.3rem .5rem → .35rem .6rem` for
+breathing room. Re-measured after reload: 15px, cellW 38px; screenshot confirms the table now matches the
+surrounding content's readability. TDD RED→GREEN: `test_byte_cells_are_readable_size` (guards the byte-grid
+rule is not 13px and is ≥15px — a regression guard tied to the report). Suite **398 → 399**. Rail page
+rebuilt. No behavioral/layout change beyond the larger cells.
+
+## 2026-07-02 15:18 — Legacy sweep: compiler stderr `<pre>` → `<pre><samp>` (SIA-R79)
+
+Finished carrying the `<samp>` accessibility rule into the **legacy** `html_renderer.py` so *every*
+generated page satisfies the no-bare-`<pre>` invariant, not just the current rail page. The failed-compile
+path emitted a bare `<pre style="margin-top:.5rem">{stderr}</pre>` — compiler error output is program
+output, so it belongs in `<samp>` (sample output), same as the current `output_console`. **Fix (one line):**
+`<pre><samp>{stderr}</samp></pre>`. The adjacent source block was already `<pre><code>` (correct). TDD
+RED→GREEN: `test_no_bare_pre_stderr_wrapped_in_samp` on `TestRenderFragmentMultiCase` (its failed-case
+fragment exercises the path) — guards every `<pre>` carries a `<code>`/`<samp>` child **and** stderr is in
+`<samp>`. Suite **397 → 398**. **Noted, not fixed (out of scope):** `html_renderer.py:576` interpolates
+`{source}` unescaped into `<pre><code>` — verify it's escaped upstream when legacy is unified.
+
+## 2026-07-02 15:05 — Scope the DPG-era viewport lock off document pages (base-CSS holdover)
+
+Cleaned the `body { height:100vh; overflow:hidden; display:flex; flex-direction:column }` holdover in the
+shared `_CSS`. It was DPG-era app-shell layout — right for the legacy `assemble_page` (header + internally
+scrolling panels), **wrong for a document**. The current `page_shell` pages already neutralized it with an
+inline `<body style="height:auto;overflow:auto">` **workaround**, so the base rule was dead weight there and
+a patch here. **Fix:** moved the four viewport-lock properties out of the base `body{}` into a scoped
+`body.lab-shell {…}`; legacy `assemble_page` opts in via `<body class="lab-shell">`; `page_shell` now emits a
+plain `<body>` (base body is document-flow by default — inline workaround deleted). Behavior-preserving both
+ways: document pages were already document-flow via the inline patch; legacy pages get identical properties
+via the class. One inert `.lab-shell` rule still ships in the shared stylesheet (removed fully when legacy is
+unified). TDD RED→GREEN: rewrote the two `assemble_page` body-CSS tests to assert the **scoped** rule +
+`lab-shell` class; added `test_document_flow_no_viewport_lock` (page_shell body tag == `<body>`). Suite
+**396 → 397**. Rail page rebuilt: plain `<body>`, single inert `100vh`.
+
+## 2026-07-02 14:40 — Source blocks: `language:` field → `<code class="language-XXX">` (data-over-code)
+
+Closed the item deferred from the `<samp>` session: source code now carries a syntax-highlight hook.
+**Data-over-code holds** — the language is authored in YAML, not hardcoded: a new top-level `language:`
+field on each demo/page spec is threaded `bake_all → _bake_one → _bake_program → _pre`, and `_pre`
+emits `<pre><code class="language-XXX">` when set (else the classless `<pre><code>` — full backward
+compat). Wired `spec.get("language")` at both `build_page` and `build_layout` call sites (per-demo in a
+layout, since each demo spec is loaded independently). Kept the engine subject-agnostic: `_pre` never
+mentions `cpp`; the 8 pointers_refs demos + 3 page YAMLs (basic_ptr, function_args, pointers_refs) each
+declare `language: cpp` as data. Rebuilt rail page now has **19** `class="language-cpp"` blocks and
+**0** classless `<pre><code>`; program output stays `<pre><samp>` (SIA-R79, untouched). TDD RED→GREEN:
+`TestSourceLanguageClass` (5 tests — `_pre` with/without language, `_bake_program` threading both ways,
+g++-gated end-to-end via `bake_all`). Suite **391 → 396**.
+
+## 2026-07-02 14:02 — Accessibility: wrap program output in `<samp>` (no bare `<pre>`)
+
+ADA scan (Siteimprove Alfa **SIA-R79** "Improper use of preformatted text element") flagged the rail
+page. **Root cause:** `output_console` emitted a **bare `<pre>`** for program/compiler output — a
+`<pre>` needs a semantic child (source code already used `<pre><code>`). **Fix (one line):** program
+output is now `<pre><samp>…</samp></pre>` — `<samp>` = "sample output from a program", the correct
+element for stdout/stderr, distinct from code input; clears SIA-R79 and the underlying WCAG 1.4.12
+Text-Spacing concern, changes nothing visually. TDD RED→GREEN: `test_output_wrapped_in_samp_not_bare_pre`
+(component) + `test_no_bare_pre_semantic_child` (rail-page guard: every `<pre>` carries `<code>`/`<samp>`).
+**Rejected** `aria-label` on `<code>`/`<samp>` for language/output labels — those elements are
+`role=generic`, so `aria-label` is not announced (invalid per ARIA-in-HTML); the console's visible
+"Program output"/"Error output" span already provides the accessible distinction. Saved the general rule
+(applies to *any* generated HTML) to `~/.claude/memory/domain/html-accessibility.md`. **Deferred (user):**
+adding `<code class="language-XXX">` with the real language — `_pre` lives in the subject-agnostic engine,
+so it needs a `language:` field threaded from YAML; not needed for SIA-R79. Suite **389 → 391**.
+
+## 2026-07-02 13:20 — Option D: glossary becomes an italic "Vocabulary" rail entry (not a header block)
+
+Moved the pointers glossary out of the always-on header into the left rail as its own pressable entry
+(the locked-but-unbuilt "Option D" from the 2026-07-01 handoff). **Data-over-code holds:** authored via a
+new top-level `glossaries:` list in the layout YAML (parallel to `demos:`), each `{id, source, label}`;
+the header now carries only the color legend. Engine: `build_layout` renders each glossary as a full rail
+panel and **prepends** them as leading entries; `left_rail_layout` gained two optional kwargs —
+`italic_count` (first N labels italic, to set vocab apart from demos; no underline) and `selected` (which
+panel shows on load). **Default view stays a demo:** glossary sits first in the rail but **Basic Pointer**
+is the on-load panel (`selected = len(glossaries)`); the mobile menu button labels the shown panel. Tabs
+page untouched (keeps its header glossary); italic is left_rail-only. TDD RED→GREEN: `TestLeftRailGlossaryNav`
+(unit: italic + selected + no-italic-default) + `test_glossary_is_italic_rail_entry_not_header` (replaced
+`test_glossary_in_header`). Suite **386 → 389**.
+
+## 2026-07-01 23:14 — Mobile: fix horizontal-overflow blowout + Route J tap-to-open nav menu
+
+Fixed the rail page rendering broken on mobile (user screenshot: giant stacked nav buttons, code
+clipped off the right). **Root cause, found via Playwright at 375px:** the page was 700px wide at any
+viewport because a `1fr` grid track's `min-width:auto` can't shrink below its widest child's
+min-content — the code `<pre>` (`white-space:pre`, 74-char `printf`/PTRDATA line ≈ 673px) — so the
+single-column media query fired but couldn't take effect. **Fix (CSS):** `minmax(0,1fr)` tracks +
+`min-width:0` in `code_diagram_panel` and `left_rail_layout`, letting the code box's `overflow-x:auto`
+engage (long code scrolls in-box); verified `document.scrollWidth == 375` (was 719). **Route J nav
+menu:** at ≤760px the left rail collapses to one tap-to-open `<button>`; picking a demo shows it,
+**closes the menu, and updates the button label** — a scoped inline `<script>` gated on a JS-added
+`lr-js` class, so with JS off the rail just shows (graceful degradation). This relaxes the project's
+**zero-JS invariant** to "**works without JS + no external/network**" (user approved; not using Canvas).
+Also wrote `cpp_ptr_lab/pointers_refs/YAML_GUIDE.md` (plain-language authoring guide, incl. a cases-topic
+worked example). Suite **381 → 386** (RED→GREEN; 3 committed "no `<script>`" assertions relaxed to forbid
+only external script/network). Verified in Playwright: open→pick→close, label update, desktop unchanged.
+
+### Details
+
+- **Files:** `cpp_ptr_lab/components.py` (`left_rail_layout` +menu/CSS, `code_diagram_panel` CSS),
+  `cpp_ptr_lab/yaml_engine/test_render_page.py` (+`TestMobileOverflow`, +`TestLeftRailMobileMenu`,
+  `test_left_rail_zero_js`→`test_left_rail_no_external_script`), `cpp_ptr_lab/pointers_refs/test_layouts.py`
+  (2 self-contained assertions relaxed), `YAML_GUIDE.md`, `.gitignore` (+`.playwright-cli/`).
+- **Playwright gotcha:** `file://` is blocked — serve via `python3 -m http.server` and use `http://localhost:PORT/…`.
+- **Open (next session):** implement **Option D** for glossary compactness (move glossary out of the
+  always-on header into the nav as its own italic "Vocabulary" entry — user's chosen approach, not yet
+  built); then integrate branch `feat/demos-and-layouts` (~14 commits, unmerged). Handoff:
+  `handoffs/HANDOFF_2026-07-01_23h14mEST.md`.
+- **Build/verify:** `python -m cpp_ptr_lab.yaml_engine.render_page cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml`
+  (and `…/pointers_refs.tabs.yaml`); `python -m pytest cpp_ptr_lab/ -q` → 386 passed.
+
+## 2026-07-01 18:47 — Demos & layouts system built (data-over-code); left-rail + top-tabs pages
+
+Executed the 10-task demos/layouts plan end-to-end via **subagent-driven development** (fresh implementer
+per task; spec+quality review on the substantive ones). The **data-over-code North Star holds**: the whole
+Pointers & References lab now renders as *one standalone page where one demo shows at a time*, and authoring
+it added **only YAML — zero per-demo Python**. Engine stays a thin fixed core — `render_fragment` split from
+`render_page`; `_build_topic` reduced to a one-line adapter over a new reusable `demo_panel`; new `glossary`
++ `left_rail_layout` components; `build_layout` composes N demo fragments under a chosen nav `style:` + a
+once-rendered `header:` (legend + shared glossary from `*.glossary.yaml`), CLI-routed on the `demos:` key.
+Content is data: 8 `*.demo.yaml`, one `pointers.glossary.yaml`, two layouts (`.rail`=left_rail phase a,
+`.tabs`=top_tabs phase b) — the second is a **one-file, zero-Python** style swap over the *same* demos.
+**Open decision resolved: full class-namespacing** (not child combinators) — every structural class carries
+its component id (`.vt-panel-{p}`, `.lr-panel-{p}`), so nested `variant_tabs` can't bleed. Suite **357 →
+381** (24 new tests, TDD RED→GREEN throughout). Branch `feat/demos-and-layouts` (12 commits, not yet merged).
+
+### Details
+
+- **Build:** `python -m cpp_ptr_lab.yaml_engine.render_page cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml`
+  (and `…/pointers_refs.tabs.yaml`) → `dist/<stem>/<stem>.html`.
+- **Nesting-safety proof (tabs page):** outer top-tabs nav uses comp-id `lab` → `vt-*-lab`; inner demos use
+  `vt-*-bp/ct/…` — disjoint class sets, **0 duplicate ids** across 162 ids.
+- **WCAG 1.1.1 (asserted test) verified on both built pages:** 19 `<svg>` = 19 `role="img"`, non-empty
+  `<title>`, no `<img>` without `alt`. Both self-contained: 0 `<script>`, 0 `https://`, real baked g++
+  output (30× `PTRDATA`, const `read-only` error ×2).
+- **Final polish (2-reviewer consensus):** `build_layout` now raises a friendly `ValueError` listing valid
+  styles on an unknown `style:` (fail-fast before g++), instead of a raw `KeyError`.
+- **Deferred (non-goals):** move C++ source Python→YAML; unify the old standalone basic_ptr/function_args
+  pages; add `references.glossary.yaml`; clean the base-CSS `100vh/overflow:hidden` holdover in
+  `html_renderer.py` (currently overridden by `page_shell`, harmless).
+
 ## 2026-07-01 14:57 — Design spec + implementation plan: demos & layouts (no code yet)
 
 Brainstormed and specced a **data-over-code** restructuring: separate reusable **demos** (demo = one

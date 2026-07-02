@@ -291,9 +291,10 @@ body {
   font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
   color: var(--fg); background: var(--bg);
   margin: 0; padding: 0;
-  height: 100vh; overflow: hidden;
-  display: flex; flex-direction: column;
 }
+/* legacy DPG-style lab shell: lock to viewport, panels scroll internally.
+   Document pages (page_shell) opt OUT by not carrying the class. */
+body.lab-shell { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .skip {
   position: absolute; left: -9999px; top: 0;
@@ -551,7 +552,7 @@ def _case_block(v: dict, svg_id_prefix: str = "d") -> str:
         out_html = (
             f'<div class="out out--err">'
             f'<span class="err">Compile failed.</span><br>'
-            f'<pre style="margin-top:.5rem">{_html.escape(stderr)}</pre>'
+            f'<pre style="margin-top:.5rem"><samp>{_html.escape(stderr)}</samp></pre>'
             f'</div>'
         )
     else:
@@ -658,7 +659,7 @@ def assemble_page(
         f'<style>\n{_CSS}\n</style>\n'
         f'{extra_style}'
         f'</head>\n'
-        f'<body>\n'
+        f'<body class="lab-shell">\n'
         f'{topic_radios}'
         f'<a class="skip" href="#main">Skip to lab content</a>\n'
         f'<header>\n'

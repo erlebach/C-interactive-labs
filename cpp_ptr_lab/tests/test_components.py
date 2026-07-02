@@ -231,6 +231,48 @@ class TestPageShell:
     def test_body_content_present(self):
         assert "hi" in self._frag()
 
+    def test_no_highlight_by_default(self):
+        # Highlighting is opt-in; a default page carries no highlight.js.
+        assert "hljs" not in self._frag()
+
+    def test_comment_color_meets_wcag_aa(self):
+        # WCAG 1.4.3: the effective highlight.js comment colour must be >= 4.5:1
+        # against the atom-one-dark background (#282c34). Overridden in our layer.
+        page = C.page_shell("s", "<pre><code class='language-cpp'>//c</code></pre>",
+                            title="T", highlight=True)
+        colors = re.findall(r"\.hljs-comment[^{}]*\{[^}]*?color:(#[0-9a-fA-F]{6})", page)
+        assert colors, "no .hljs-comment color rule found"
+        eff = colors[-1]                     # last rule wins at equal specificity
+
+        def _lin(c):
+            c /= 255
+            return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+        def _lum(h):
+            r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
+            return 0.2126 * _lin(r) + 0.7152 * _lin(g) + 0.0722 * _lin(b)
+
+        lo, hi = sorted([_lum(eff), _lum("#282c34")])
+        ratio = (hi + 0.05) / (lo + 0.05)
+        assert ratio >= 4.5, f"comment {eff} only {ratio:.2f}:1 on #282c34"
+
+    def test_highlight_flag_inlines_hljs_no_external(self):
+        # highlight=True inlines the library + theme and runs it on load, with
+        # NO external reference (self-contained; degrades to plain code JS-off).
+        page = C.page_shell("s", '<pre><code class="language-cpp">int x;</code></pre>',
+                            title="T", highlight=True)
+        assert "hljs.highlightAll" in page          # runtime init present
+        assert ".hljs" in page                       # theme CSS inlined
+        assert "<script src" not in page             # inline only, no external script
+        assert not re.search(r'src=|<link\b', page)  # no external resource load
+
+    def test_document_flow_no_viewport_lock(self):
+        # Document pages must NOT opt into the legacy DPG viewport lock: the body
+        # is plain document flow (no `lab-shell` class, no inline height/overflow
+        # workaround). The shared stylesheet may still define `body.lab-shell`.
+        body_tag = re.search(r"<body[^>]*>", self._frag()).group(0)
+        assert body_tag == "<body>"
+
 
 class TestColorLegend:
     def test_each_role_named_in_text(self):
@@ -397,6 +439,13 @@ class TestOutputConsole:
         err = C.output_console("o", "x", error=True)
         assert ok != err
 
+    def test_output_wrapped_in_samp_not_bare_pre(self):
+        # SIA-R79 / WCAG 1.4.12: a <pre> needs a semantic child. Program output is
+        # sample output -> <samp>. No bare <pre> may be emitted.
+        frag = C.output_console("o", "PTRDATA: type=raw\nMEMBYTES: 18")
+        assert re.search(r"<pre[^>]*>\s*<samp>", frag) and "</samp></pre>" in frag
+        assert not re.search(r"<pre\b[^>]*>(?!\s*<(?:code|samp)\b)", frag)
+
 
 # ---------------------------------------------------------------------------
 # 7.x — secondary diagram interactions
@@ -415,6 +464,15 @@ class TestByteGrid:
     def test_has_accessible_caption(self):
         frag = self._frag()
         assert "<caption" in frag or "ptr bytes" in frag
+
+    def test_byte_cells_are_readable_size(self):
+        # Regression: byte-grid cells were 13px — the smallest text on the page
+        # and cramped/hard to read (user report). Keep them at a readable size.
+        rule = re.search(r"\.byte-grid td, \.byte-grid th \{.*?\}",
+                         C.COMPONENT_CSS, re.DOTALL)
+        assert rule, "byte-grid cell rule not found"
+        assert "13px" not in rule.group(0)
+        assert "15px" in rule.group(0)
 
     def test_eight_cells(self):
         # eight byte values -> eight labelled cells

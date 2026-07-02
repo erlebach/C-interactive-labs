@@ -1,0 +1,6 @@
+title: "Gotcha: Null Deref"
+language: cpp
+bake: { nd: null_deref }
+blocks:
+  - callout_note: { id: nd-note, label: Concept, text: "${nd.explanation}" }
+  - topic: { id: nd, source: nd }

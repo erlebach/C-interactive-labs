@@ -54,13 +54,14 @@ _REF_RE = re.compile(r"\$\{([^}]+)\}")
 
 def _topic_registry() -> dict[str, Any]:
     from ..pointers_refs.topics import (
-        basic_ptr, const_taxonomy, null_deref, ref_const,
+        basic_ptr, const_taxonomy, dangling_ptr, null_deref, ref_const,
         ref_must_bind, ref_no_null, ref_rebind_illusion,
     )
     from ..smart_ptrs.topics import TOPICS as SMART
     from ..function_args.topics import TOPICS as FUNC_ARGS
     topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
-              ref_rebind_illusion, ref_const, null_deref, *SMART, *FUNC_ARGS]
+              ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
+              *SMART, *FUNC_ARGS]
     return {t.id: t for t in topics}
 
 
@@ -69,16 +70,17 @@ def _topic_registry() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _pre(text: str) -> str:
-    return f"<pre><code>{_html.escape(text)}</code></pre>"
+def _pre(text: str, language: str | None = None) -> str:
+    cls = f' class="language-{language}"' if language else ""
+    return f"<pre><code{cls}>{_html.escape(text)}</code></pre>"
 
 
-def _bake_program(v: dict[str, Any]) -> dict[str, Any]:
+def _bake_program(v: dict[str, Any], language: str | None = None) -> dict[str, Any]:
     """Render-data for one compiled program (a variant or a sub-case)."""
     mem = v.get("membytes", "")
     return {
         "source": v.get("source", ""),
-        "code_html": _pre(v.get("source", "")),
+        "code_html": _pre(v.get("source", ""), language),
         "ptrdata": v.get("ptrdata"),
         "stdout": v.get("stdout", ""),
         "stderr": v.get("stderr", ""),
@@ -89,7 +91,7 @@ def _bake_program(v: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _bake_one(topic: Any) -> dict[str, Any]:
+def _bake_one(topic: Any, language: str | None = None) -> dict[str, Any]:
     variants = [capture_variant(topic, cs) for cs in expand_variants(topic)]
     entry: dict[str, Any] = {
         "explanation": topic.explanation,
@@ -102,22 +104,26 @@ def _bake_one(topic: Any) -> dict[str, Any]:
             # sub-cases. Preserve them (each keeps its own compile verdict)
             # so the renderer can stack them; don't flatten to one program.
             entry[label] = {
-                "cases": [{**_bake_program(c), "label": c.get("label", "")}
+                "cases": [{**_bake_program(c, language), "label": c.get("label", "")}
                           for c in v["cases"]],
             }
         else:
-            entry[label] = _bake_program(v)
+            entry[label] = _bake_program(v, language)
     return entry
 
 
-def bake_all(bake: dict[str, str]) -> dict[str, Any]:
-    """Compile each ``name: topic_id`` and return ``{name: baked-entry}``."""
+def bake_all(bake: dict[str, str], language: str | None = None) -> dict[str, Any]:
+    """Compile each ``name: topic_id`` and return ``{name: baked-entry}``.
+
+    *language* (from the demo/page YAML) tags each source block with a
+    ``language-XXX`` class for syntax highlighting; ``None`` keeps it classless.
+    """
     registry = _topic_registry()
     data: dict[str, Any] = {}
     for name, topic_id in (bake or {}).items():
         if topic_id not in registry:
             raise KeyError(f"unknown topic id in bake: {topic_id!r}")
-        data[name] = _bake_one(registry[topic_id])
+        data[name] = _bake_one(registry[topic_id], language)
     return data
 
 
@@ -168,6 +174,7 @@ _DISPATCH = {
     "code_diagram_panel": C.code_diagram_panel,
     "stacked_subcases": C.stacked_subcases,
     "progressive_steps": C.progressive_steps,
+    "glossary": C.glossary,
 }
 
 # Components whose one arg is a list of pair-dicts → list of tuples.
@@ -175,6 +182,7 @@ _PAIR_ARGS = {
     "progressive_steps": ("steps", ("summary", "content")),
     "variant_tabs": ("panels", ("label", "html")),
     "stacked_subcases": ("subcases", ("label", "html")),
+    "glossary": ("terms", ("term", "def")),
 }
 
 
@@ -202,44 +210,9 @@ def _build_html(args: dict, data: dict) -> str:
     return str(args.get("content", ""))
 
 
-def _panel_program(pid: str, v: dict, caption: str) -> str:
-    """Render one compiled program: code+diagram split, badge, output, bytes."""
-    return (
-        C.code_diagram_panel(f"{pid}-cdp", v["code_html"],
-                             C.memory_diagram(f"{pid}-md", v["ptrdata"]))
-        + '<div style="margin-top:.8rem">'
-        + C.compile_status_badge(f"{pid}-badge", v["ok"])
-        + "</div>"
-        + C.output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
-                           error=v["failed"])
-        + C.byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
-    )
-
-
 def _build_topic(args: dict, data: dict) -> str:
-    """A variant_tabs cluster over a baked topic: per variant, code+diagram+I/O.
-
-    A cases-topic variant carries a ``cases`` list instead of a single program;
-    its sub-cases are stacked (each with its own compile verdict) inside the tab.
-    """
-    cid = args["id"]
-    entry = data[args["source"]]
-    panels = []
-    for label in entry["variants"]:
-        v = entry[label]
-        pid = f"{cid}-{C._safe(label)}"
-        if "cases" in v:
-            subcases = []
-            for j, case in enumerate(v["cases"]):
-                spid = f"{pid}-c{j}"
-                sub_body = _panel_program(spid, case, "Raw bytes of ptr (little-endian)")
-                subcases.append((case["label"], sub_body))
-            body = C.stacked_subcases(f"{pid}-ssc", subcases)
-        else:
-            body = _panel_program(
-                pid, v, f"Raw bytes of ptr for {label} (little-endian)")
-        panels.append((label, body))
-    return C.variant_tabs(cid, panels)
+    """A demo_panel over a baked topic (thin adapter; content lives in components)."""
+    return C.demo_panel(args["id"], data[args["source"]])
 
 
 _BUILDERS = {
@@ -268,12 +241,39 @@ def _render_block(block: dict, data: dict) -> str:
     return _DISPATCH[name](cid, **args)
 
 
+def _render_header(blocks: list, base_dir: Path) -> str:
+    """Render a layout's ``header:`` blocks once.
+
+    A ``glossary`` block with a ``source:`` key loads a shared
+    ``*.glossary.yaml`` file (relative to *base_dir*) and renders it; all
+    other blocks (color_legend, heading, html, or an inline glossary without
+    ``source:``) are dispatched through ``_render_block`` as normal.
+    """
+    out = []
+    for block in blocks or []:
+        (name, raw), = block.items()
+        args = dict(raw or {})
+        if name == "glossary" and "source" in args:
+            g = load_spec(Path(base_dir) / args["source"])
+            terms = [(t["term"], t["def"]) for t in g.get("terms", [])]
+            out.append(C.glossary(args.get("id", "glossary"),
+                                  g.get("title", "Glossary"), terms))
+        else:
+            out.append(_render_block(block, {}))
+    return "\n".join(out)
+
+
+def render_fragment(spec: dict, data: dict) -> str:
+    """Translate *spec*'s blocks to HTML — no page shell. Pure (no g++)."""
+    return "\n".join(_render_block(b, data) for b in spec.get("blocks", []))
+
+
 def render_page(spec: dict, data: dict) -> str:
     """Translate *spec* (with pre-baked *data*) into a self-contained page.
 
     Pure — no I/O, no g++.  Use :func:`build_page` to bake and write.
     """
-    body = "\n".join(_render_block(b, data) for b in spec.get("blocks", []))
+    body = render_fragment(spec, data)
     return C.page_shell("page", body, title=spec.get("title", "Topic"))
 
 
@@ -296,9 +296,74 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
             "build time; install a C++ compiler first."
         )
     spec = load_spec(spec_path)
-    data = bake_all(spec.get("bake", {}))
+    data = bake_all(spec.get("bake", {}), spec.get("language"))
     page = render_page(spec, data)
     stem = Path(spec_path).stem.replace(".page", "")
+    out = Path(dist_dir) / stem / f"{stem}.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    return out
+
+
+def _stacked_layout(comp_id: str, items) -> str:
+    """Fallback nav: stack every demo (no selector)."""
+    return "\n".join(body for _label, body in items)
+
+
+_LAYOUTS = {
+    "left_rail": C.left_rail_layout,
+    "top_tabs": C.variant_tabs,      # top tabs == variant_tabs (two-row via flex-wrap)
+    "stacked": _stacked_layout,
+}
+
+
+def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
+    """Bake+compose a layout spec into one standalone page.
+
+    Writes ``<dist>/<layout-stem>/<layout-stem>.html``. Raises before baking if
+    g++ is unavailable.
+    """
+    if shutil.which("g++") is None:
+        raise RuntimeError(
+            "g++ not found on PATH. This page bakes real compiler output at "
+            "build time; install a C++ compiler first.")
+    layout_path = Path(layout_path)
+    base = layout_path.parent
+    spec = load_spec(layout_path)
+
+    style = spec.get("style", "left_rail")
+    if style not in _LAYOUTS:
+        raise ValueError(
+            f"unknown layout style {style!r}; valid choices: {sorted(_LAYOUTS)}")
+
+    header_html = _render_header(spec.get("header", []), base)
+
+    # Option D: glossaries declared on the layout become leading rail entries (rendered
+    # in full as a panel), set apart from the demos by an italic label.
+    glossary_items = []
+    for g in spec.get("glossaries", []):
+        gs = load_spec(base / g["source"])
+        terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
+        body = C.glossary(g.get("id", "glossary"), gs.get("title", "Glossary"), terms)
+        glossary_items.append((g.get("label", gs.get("title", "Glossary")), body))
+
+    items = list(glossary_items)
+    for demo_ref in spec.get("demos", []):
+        demo_spec = load_spec(base / demo_ref)
+        data = bake_all(demo_spec.get("bake", {}), demo_spec.get("language"))
+        fragment = render_fragment(demo_spec, data)
+        items.append((demo_spec.get("title", "Demo"), fragment))
+
+    n = len(glossary_items)
+    if style == "left_rail":
+        # keep a demo (not the glossary) as the panel shown on load
+        nav = C.left_rail_layout("lab", items, italic_count=n, selected=n if n < len(items) else 0)
+    else:
+        nav = _LAYOUTS[style]("lab", items)
+    body = f"{header_html}\n{nav}" if header_html else nav
+    page = C.page_shell("page", body, title=spec.get("title", "Lab"), highlight=True)
+
+    stem = layout_path.stem
     out = Path(dist_dir) / stem / f"{stem}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
@@ -316,7 +381,8 @@ def main() -> None:
         sys.exit(2)
     spec_path = Path(sys.argv[1])
     dist = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[2] / "dist"
-    out = build_page(spec_path, dist)
+    spec_probe = load_spec(spec_path)
+    out = build_layout(spec_path, dist) if "demos" in spec_probe else build_page(spec_path, dist)
     print(f"Wrote {out}")
 
 

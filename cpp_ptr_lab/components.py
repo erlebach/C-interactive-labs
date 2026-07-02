@@ -27,9 +27,20 @@ hex, so chrome and SVG share one contrast-vetted palette.
 from __future__ import annotations
 
 import html as _html
+from pathlib import Path
 from typing import Any, Sequence
 
 from .html_renderer import _CSS, SEMANTIC_PALETTE, svg_renderer
+
+# Vendored highlight.js (common bundle incl. C++) + theme, inlined for
+# self-contained syntax highlighting. Loaded once at import; opt-in per page.
+_VENDOR = Path(__file__).parent / "vendor" / "highlightjs"
+_HLJS_JS = (_VENDOR / "highlight.min.js").read_text(encoding="utf-8")
+_HLJS_CSS = (_VENDOR / "atom-one-dark.min.css").read_text(encoding="utf-8")
+# WCAG AA fix (applied in our layer, not the vendored theme, so a re-fetch keeps it):
+# atom-one-dark's comment #5c6370 is only 2.32:1 on its #282c34 bg. #9199a8 is 4.88:1
+# and stays muted (dimmer than the #abb2bf code text). Inlined AFTER the theme so it wins.
+_HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 
 
 # ---------------------------------------------------------------------------
@@ -86,19 +97,28 @@ COMPONENT_CSS = """
 .console-label { display: block; font-weight: 700; margin-bottom: .3rem; }
 .byte-grid { border-collapse: collapse; }
 .byte-grid caption { text-align: left; font-weight: 700; margin-bottom: .3rem; }
-.byte-grid td, .byte-grid th { border: 1px solid var(--border); padding: .3rem .5rem;
-  font: 13px ui-monospace, monospace; text-align: center; }
+.byte-grid td, .byte-grid th { border: 1px solid var(--border); padding: .35rem .6rem;
+  font: 15px ui-monospace, monospace; text-align: center; }
 """
 
 
-def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
+def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
+               highlight: bool = False) -> str:
     """Wrap *body_html* in a complete, self-contained WCAG AA document.
 
     Declares ``lang``, exposes a skip link targeting the ``#main`` landmark,
-    and inlines all CSS (theme + component styles).  No external/script/network
+    and inlines all CSS (theme + component styles).  No external/network
     reference is emitted, so the page pastes directly into Canvas.
+
+    When *highlight* is true, the vendored highlight.js library and theme are
+    inlined and run on load (``<pre><code class="language-XXX">`` blocks get
+    coloured).  Still fully self-contained — nothing external is fetched — and
+    it degrades gracefully: with JS off the code shows as plain text.
     """
     t = _e(title)
+    hl_style = f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n</style>\n" if highlight else ""
+    hl_script = (f"<script>\n{_HLJS_JS}\nhljs.highlightAll();\n</script>\n"
+                 if highlight else "")
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'
@@ -107,13 +127,15 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{t}</title>\n"
         f"<style>\n{_CSS}\n{COMPONENT_CSS}\n</style>\n"
+        f"{hl_style}"
         "</head>\n"
-        "<body style=\"height:auto;overflow:auto\">\n"
+        "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
         f"<header>\n<h1>{t}</h1>\n</header>\n"
         '<main id="main">\n'
         f'<div class="demo-wrap">\n{body_html}\n</div>\n'
         "</main>\n"
+        f"{hl_script}"
         "</body>\n"
         "</html>\n"
     )
@@ -141,6 +163,25 @@ def callout_note(comp_id: str, text: str, *, label: str = "Note") -> str:
         f'style="border:2px solid var(--accent);border-left-width:6px">\n'
         f'<span class="callout-label">{_e(label)}:</span> {_e(text)}\n'
         f"</aside>\n"
+    )
+
+
+def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
+    """A reusable term/definition list (prose vocabulary), rendered as a <dl>.
+
+    Accessible: the <section> is labelled by its heading via aria-labelledby.
+    """
+    p = _safe(comp_id)
+    tid = f"{p}-title"
+    rows = ""
+    for term, definition in terms:
+        rows += f"<dt>{_e(term)}</dt><dd>{_e(definition)}</dd>\n"
+    return (
+        f'<section class="glossary" id="{p}" aria-labelledby="{tid}" '
+        f'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
+        f'<h2 id="{tid}" style="font-size:1rem;margin:.2rem 0 .4rem">{_e(title)}</h2>\n'
+        f'<dl style="margin:0">\n{rows}</dl>\n'
+        f"</section>\n"
     )
 
 
@@ -332,7 +373,7 @@ def output_console(comp_id: str, text: str, *, error: bool = False, title: str |
     return (
         f'<div class="{cls}" id="{p}" style="border:2px solid {border}">'
         f'<span class="console-label">{_e(heading)}</span>'
-        f"<pre style=\"margin:0;background:none;color:inherit;padding:0\">{_e(text)}</pre>"
+        f"<pre style=\"margin:0;background:none;color:inherit;padding:0\"><samp>{_e(text)}</samp></pre>"
         f"</div>\n"
     )
 
@@ -430,35 +471,110 @@ def code_line_link(
 def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
     """Switch between N labelled panels with native radios + ``:checked ~``."""
     p = _safe(comp_id)
-    style_lines = [f"#{p} .vt-panel {{ display: none; }}"]
+    style_lines = [f"#{p} .vt-panel-{p} {{ display: none; }}"]
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
         tid = f"{p}-t{i}"
         checked = " checked" if i == 0 else ""
-        style_lines.append(f"#{tid}:checked ~ .vt-panels .vt-p{i} {{ display: block; }}")
+        style_lines.append(f"#{tid}:checked ~ .vt-panels-{p} .vt-p{i}-{p} {{ display: block; }}")
         style_lines.append(
-            f'#{tid}:checked ~ .vt-tabs label[for="{tid}"]'
-            " { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }"
-        )
+            f'#{tid}:checked ~ .vt-tabs-{p} label[for="{tid}"]'
+            " { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }")
         style_lines.append(
-            f'#{tid}:focus-visible ~ .vt-tabs label[for="{tid}"]'
-            " { outline: 3px solid var(--accent); outline-offset: 2px; }"
-        )
+            f'#{tid}:focus-visible ~ .vt-tabs-{p} label[for="{tid}"]'
+            " { outline: 3px solid var(--accent); outline-offset: 2px; }")
         inputs += f'<input type="radio" name="{p}-vt" id="{tid}" style="{_VH}"{checked}>\n'
         tabs += (
             f'<label for="{tid}" style="border:2px solid var(--border);border-radius:8px 8px 0 0;'
             f'padding:.4rem .9rem;min-height:44px;display:inline-flex;align-items:center;'
-            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n'
-        )
-        panel_html += f'<div class="vt-panel vt-p{i}">{body}</div>\n'
+            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
+        panel_html += f'<div class="vt-panel-{p} vt-p{i}-{p}">{body}</div>\n'
     style = "\n".join(style_lines)
     return (
         f'<div id="{p}">\n<style>\n{style}\n</style>\n'
         f"{inputs}"
-        f'<div class="vt-tabs" role="group" aria-label="Choose variant" '
+        f'<div class="vt-tabs-{p}" role="group" aria-label="Choose variant" '
         f'style="display:flex;gap:.3rem;flex-wrap:wrap">\n{tabs}</div>\n'
-        f'<div class="vt-panels" style="border:2px solid var(--border);border-radius:0 8px 8px 8px;'
+        f'<div class="vt-panels-{p}" style="border:2px solid var(--border);border-radius:0 8px 8px 8px;'
         f'padding:.7rem">\n{panel_html}</div>\n'
+        f"</div>\n"
+    )
+
+
+def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]],
+                     *, italic_count: int = 0, selected: int = 0) -> str:
+    """Vertical radio rail (left) + panel area (right); one item visible at a time.
+
+    Zero-JS (radio + ``:checked ~``). Reflows to a single column at narrow widths.
+    Structural class names are id-namespaced (e.g. ``lr-panel-{p}``) so no class is
+    ever shared across instances — nesting can never bleed styles or switching.
+
+    ``italic_count`` renders the first N rail labels in italic (used to set a leading
+    glossary entry apart from the demos). ``selected`` picks which panel is shown on
+    load (default the first item); the mobile menu button labels that panel.
+    """
+    p = _safe(comp_id)
+    style_lines = [
+        f"#{p} {{ display:grid; grid-template-columns:minmax(0,14rem) minmax(0,1fr); gap:1rem; align-items:start; }}",
+        f"#{p} .lr-rail-{p} {{ display:flex; flex-direction:column; gap:.3rem; }}",
+        f"#{p} .lr-body-{p} {{ min-width:0; }}",
+        f"#{p} .lr-panel-{p} {{ display:none; min-width:0; }}",
+        f"#{p} .lr-menu-{p} {{ display:none; }}",  # menu toggle: shown only on narrow + JS
+        f"@media (max-width:760px) {{ #{p} {{ grid-template-columns:minmax(0,1fr); }} }}",
+        # progressive enhancement: with JS, narrow screens collapse the rail behind a menu
+        f"@media (max-width:760px) {{ #{p}.lr-js .lr-menu-{p} {{ display:flex; }} }}",
+        f"@media (max-width:760px) {{ #{p}.lr-js .lr-rail-{p} {{ display:none; }} }}",
+        f"@media (max-width:760px) {{ #{p}.lr-js.lr-open .lr-rail-{p} {{ display:flex; }} }}",
+    ]
+    inputs, rail, panels = "", "", ""
+    for i, (label, body) in enumerate(items):
+        rid = f"{p}-r{i}"
+        checked = " checked" if i == selected else ""
+        italic = "font-style:italic;" if i < italic_count else ""
+        style_lines.append(f"#{rid}:checked ~ .lr-body-{p} .lr-p{i}-{p} {{ display:block; }}")
+        style_lines.append(
+            f'#{rid}:checked ~ .lr-rail-{p} label[for="{rid}"]'
+            " { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }")
+        style_lines.append(
+            f'#{rid}:focus-visible ~ .lr-rail-{p} label[for="{rid}"]'
+            " { outline:3px solid var(--accent); outline-offset:2px; }")
+        inputs += f'<input type="radio" name="{p}-lr" id="{rid}" style="{_VH}"{checked}>\n'
+        rail += (
+            f'<label for="{rid}" style="border:2px solid var(--border);border-radius:8px;'
+            f'padding:.5rem .8rem;min-height:44px;display:flex;align-items:center;'
+            f'cursor:pointer;font-weight:700;{italic}">{_e(label)}</label>\n')
+        panels += f'<div class="lr-panel-{p} lr-p{i}-{p}">{body}</div>\n'
+    style = "\n".join(style_lines)
+    first = _e(items[selected][0]) if items else "Choose demo"
+    menu = (
+        f'<button type="button" class="lr-menu-{p}" aria-expanded="false" aria-controls="{p}-rail" '
+        f'style="min-height:44px;align-items:center;gap:.5rem;border:2px solid var(--border);'
+        f'border-radius:8px;padding:.5rem .8rem;cursor:pointer;font-weight:700">'
+        f'<span aria-hidden="true">☰</span>'
+        f'<span class="lr-menu-label-{p}">{first}</span></button>\n'
+    )
+    # Scoped progressive-enhancement script: toggle the menu, and close it (and update
+    # the button label) when a demo is picked. Baseline works with JS off (rail visible).
+    script = (
+        "<script>\n(function(){\n"
+        f'var r=document.getElementById("{p}");if(!r)return;r.classList.add("lr-js");\n'
+        f'var b=r.querySelector(".lr-menu-{p}"),l=r.querySelector(".lr-menu-label-{p}");\n'
+        'function s(o){r.classList.toggle("lr-open",o);'
+        'b.setAttribute("aria-expanded",o?"true":"false");}\n'
+        'b.addEventListener("click",function(){s(!r.classList.contains("lr-open"));});\n'
+        f'r.querySelectorAll(\'input[name="{p}-lr"]\').forEach(function(x){{'
+        'x.addEventListener("change",function(){'
+        'var t=r.querySelector(\'label[for="\'+x.id+\'"]\');'
+        "if(t&&l)l.textContent=t.textContent;s(false);});});\n"
+        "})();\n</script>\n"
+    )
+    return (
+        f'<div id="{p}" class="lr">\n<style>\n{style}\n</style>\n'
+        f"{inputs}"
+        f"{menu}"
+        f'<div class="lr-rail-{p}" id="{p}-rail" role="group" aria-label="Choose demo">\n{rail}</div>\n'
+        f'<div class="lr-body-{p}">\n{panels}</div>\n'
+        f"{script}"
         f"</div>\n"
     )
 
@@ -467,9 +583,10 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
     style = (
-        f"#{p} {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }}\n"
-        f"#{p} .cdp-code {{ overflow: auto; max-height: 28rem; }}\n"
-        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: 1fr; }} }}"
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} .cdp-code {{ overflow: auto; max-height: 28rem; min-width:0; }}\n"
+        f"#{p} .cdp-diagram {{ min-width:0; }}\n"
+        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
     )
     return (
         f'<div id="{p}" class="cdp">\n<style>\n{style}\n</style>\n'
@@ -491,6 +608,56 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
             f"<h3>{_e(label)}</h3>\n{body}\n</section>\n"
         )
     return f'<div id="{p}" class="ssc">\n<style>\n{style}\n</style>\n{cases}</div>\n'
+
+
+def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
+    """One compiled program: code+diagram split, badge, output, collapsed bytes.
+
+    The byte box is data-driven: it is emitted only when byte data exists. A
+    variant with no bytes (e.g. a failed compile that never printed MEMBYTES)
+    omits it rather than rendering a degenerate empty grid.
+    """
+    body = (
+        code_diagram_panel(f"{pid}-cdp", v["code_html"],
+                           memory_diagram(f"{pid}-md", v["ptrdata"]))
+        + '<div style="margin-top:.8rem">'
+        + compile_status_badge(f"{pid}-badge", v["ok"])
+        + "</div>"
+        + output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
+                         error=v["failed"])
+    )
+    if v["bytes"]:
+        body += (
+            f'<details style="margin-top:.6rem"><summary style="min-height:44px;'
+            f'cursor:pointer">Raw bytes of ptr (little-endian)</summary>\n'
+            + byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
+            + "</details>\n"
+        )
+    return body
+
+
+def demo_panel(comp_id: str, entry: dict) -> str:
+    """One demo's inner content: a variant_tabs cluster over a topic's baked data.
+
+    A cases-topic variant carries a ``cases`` list; its sub-cases are stacked
+    (each with its own compile verdict) inside the tab. Layout-agnostic.
+    """
+    cid = _safe(comp_id)
+    panels = []
+    for label in entry["variants"]:
+        v = entry[label]
+        pid = f"{cid}-{_safe(label)}"
+        if "cases" in v:
+            subcases = []
+            for j, case in enumerate(v["cases"]):
+                spid = f"{pid}-c{j}"
+                body = _demo_variant_body(spid, case, "Raw bytes of ptr (little-endian)")
+                subcases.append((case["label"], body))
+            body = stacked_subcases(f"{pid}-ssc", subcases)
+        else:
+            body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)")
+        panels.append((label, body))
+    return variant_tabs(cid, panels)
 
 
 def progressive_steps(comp_id: str, steps: Sequence[tuple[str, str]]) -> str:
