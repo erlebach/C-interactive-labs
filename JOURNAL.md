@@ -2,6 +2,20 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 14:40 — Source blocks: `language:` field → `<code class="language-XXX">` (data-over-code)
+
+Closed the item deferred from the `<samp>` session: source code now carries a syntax-highlight hook.
+**Data-over-code holds** — the language is authored in YAML, not hardcoded: a new top-level `language:`
+field on each demo/page spec is threaded `bake_all → _bake_one → _bake_program → _pre`, and `_pre`
+emits `<pre><code class="language-XXX">` when set (else the classless `<pre><code>` — full backward
+compat). Wired `spec.get("language")` at both `build_page` and `build_layout` call sites (per-demo in a
+layout, since each demo spec is loaded independently). Kept the engine subject-agnostic: `_pre` never
+mentions `cpp`; the 8 pointers_refs demos + 3 page YAMLs (basic_ptr, function_args, pointers_refs) each
+declare `language: cpp` as data. Rebuilt rail page now has **19** `class="language-cpp"` blocks and
+**0** classless `<pre><code>`; program output stays `<pre><samp>` (SIA-R79, untouched). TDD RED→GREEN:
+`TestSourceLanguageClass` (5 tests — `_pre` with/without language, `_bake_program` threading both ways,
+g++-gated end-to-end via `bake_all`). Suite **391 → 396**.
+
 ## 2026-07-02 14:02 — Accessibility: wrap program output in `<samp>` (no bare `<pre>`)
 
 ADA scan (Siteimprove Alfa **SIA-R79** "Improper use of preformatted text element") flagged the rail
