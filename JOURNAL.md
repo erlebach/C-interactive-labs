@@ -2,6 +2,25 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 18:14 — Syntax highlighting on the rail page via inlined highlight.js (self-contained)
+
+Added real syntax highlighting to the rail/layout pages using **highlight.js**, vendored + inlined so the
+page stays self-contained (no CDN/network). Source blocks already carried `class="language-cpp"` (from the
+earlier language-class work), so no markup change — highlight.js colours them on load. **Decision path:**
+user weighed CDN (option 2) vs inline (option 1); the tiebreaker was accessibility, and AT is **identical**
+across both (hljs token `<span>`s are presentational — no role/aria — so screen readers read the plain code
+text regardless), so option 1 (inline, self-contained, graceful JS-off fallback) won. **Scoping:** gated
+behind `page_shell(..., highlight=True)`, default **off**; only `build_layout` opts in — so the ~30 other
+pages' self-containment tests stay green; only 2 layout assertions needed updating. Vendored
+`cpp_ptr_lab/vendor/highlightjs/` (highlight.min.js v11.9.0 common bundle incl. C++, atom-one-dark theme,
+BSD-3-Clause; + README with provenance). **Self-containment invariant refined:** the crude `"https://" not
+in html` check was wrong (the inlined lib carries URL *text* in comments); tests now assert no external
+*load* (`<script src`, `<link`, `src=`, `href="http"`). Program output (`<pre><samp>`) stays unhighlighted.
+Rail page 96KB → 218KB (the inlined 122KB lib). TDD RED→GREEN: `test_highlight_flag_inlines_hljs_no_external`,
+`test_no_highlight_by_default`, `test_source_highlighted_with_hljs`. Suite **401 → 404**. Verified in
+Playwright: 19 highlighted blocks, `window.hljs` defined, zero console errors. **Caveat (noted, not fixed):**
+atom-one-dark's comment gray (~#5c6370 on #282c34) is ~3:1, below WCAG AA 4.5:1 — revisit theme/comment colour.
+
 ## 2026-07-02 15:50 — Second glossary on the rail page (0..N glossaries, data-only)
 
 Exercised the 0..N-glossaries-per-page capability by adding a **second** glossary to the pointers_refs rail
