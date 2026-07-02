@@ -2,6 +2,37 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-01 23:14 — Mobile: fix horizontal-overflow blowout + Route J tap-to-open nav menu
+
+Fixed the rail page rendering broken on mobile (user screenshot: giant stacked nav buttons, code
+clipped off the right). **Root cause, found via Playwright at 375px:** the page was 700px wide at any
+viewport because a `1fr` grid track's `min-width:auto` can't shrink below its widest child's
+min-content — the code `<pre>` (`white-space:pre`, 74-char `printf`/PTRDATA line ≈ 673px) — so the
+single-column media query fired but couldn't take effect. **Fix (CSS):** `minmax(0,1fr)` tracks +
+`min-width:0` in `code_diagram_panel` and `left_rail_layout`, letting the code box's `overflow-x:auto`
+engage (long code scrolls in-box); verified `document.scrollWidth == 375` (was 719). **Route J nav
+menu:** at ≤760px the left rail collapses to one tap-to-open `<button>`; picking a demo shows it,
+**closes the menu, and updates the button label** — a scoped inline `<script>` gated on a JS-added
+`lr-js` class, so with JS off the rail just shows (graceful degradation). This relaxes the project's
+**zero-JS invariant** to "**works without JS + no external/network**" (user approved; not using Canvas).
+Also wrote `cpp_ptr_lab/pointers_refs/YAML_GUIDE.md` (plain-language authoring guide, incl. a cases-topic
+worked example). Suite **381 → 386** (RED→GREEN; 3 committed "no `<script>`" assertions relaxed to forbid
+only external script/network). Verified in Playwright: open→pick→close, label update, desktop unchanged.
+
+### Details
+
+- **Files:** `cpp_ptr_lab/components.py` (`left_rail_layout` +menu/CSS, `code_diagram_panel` CSS),
+  `cpp_ptr_lab/yaml_engine/test_render_page.py` (+`TestMobileOverflow`, +`TestLeftRailMobileMenu`,
+  `test_left_rail_zero_js`→`test_left_rail_no_external_script`), `cpp_ptr_lab/pointers_refs/test_layouts.py`
+  (2 self-contained assertions relaxed), `YAML_GUIDE.md`, `.gitignore` (+`.playwright-cli/`).
+- **Playwright gotcha:** `file://` is blocked — serve via `python3 -m http.server` and use `http://localhost:PORT/…`.
+- **Open (next session):** implement **Option D** for glossary compactness (move glossary out of the
+  always-on header into the nav as its own italic "Vocabulary" entry — user's chosen approach, not yet
+  built); then integrate branch `feat/demos-and-layouts` (~14 commits, unmerged). Handoff:
+  `handoffs/HANDOFF_2026-07-01_23h14mEST.md`.
+- **Build/verify:** `python -m cpp_ptr_lab.yaml_engine.render_page cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml`
+  (and `…/pointers_refs.tabs.yaml`); `python -m pytest cpp_ptr_lab/ -q` → 386 passed.
+
 ## 2026-07-01 18:47 — Demos & layouts system built (data-over-code); left-rail + top-tabs pages
 
 Executed the 10-task demos/layouts plan end-to-end via **subagent-driven development** (fresh implementer
