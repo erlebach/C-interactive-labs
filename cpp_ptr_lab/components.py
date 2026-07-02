@@ -86,8 +86,8 @@ COMPONENT_CSS = """
 .console-label { display: block; font-weight: 700; margin-bottom: .3rem; }
 .byte-grid { border-collapse: collapse; }
 .byte-grid caption { text-align: left; font-weight: 700; margin-bottom: .3rem; }
-.byte-grid td, .byte-grid th { border: 1px solid var(--border); padding: .3rem .5rem;
-  font: 13px ui-monospace, monospace; text-align: center; }
+.byte-grid td, .byte-grid th { border: 1px solid var(--border); padding: .35rem .6rem;
+  font: 15px ui-monospace, monospace; text-align: center; }
 """
 
 

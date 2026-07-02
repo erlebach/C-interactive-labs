@@ -430,6 +430,15 @@ class TestByteGrid:
         frag = self._frag()
         assert "<caption" in frag or "ptr bytes" in frag
 
+    def test_byte_cells_are_readable_size(self):
+        # Regression: byte-grid cells were 13px — the smallest text on the page
+        # and cramped/hard to read (user report). Keep them at a readable size.
+        rule = re.search(r"\.byte-grid td, \.byte-grid th \{.*?\}",
+                         C.COMPONENT_CSS, re.DOTALL)
+        assert rule, "byte-grid cell rule not found"
+        assert "13px" not in rule.group(0)
+        assert "15px" in rule.group(0)
+
     def test_eight_cells(self):
         # eight byte values -> eight labelled cells
         frag = self._frag()
