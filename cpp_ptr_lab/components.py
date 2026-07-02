@@ -108,7 +108,7 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo") -> str:
         f"<title>{t}</title>\n"
         f"<style>\n{_CSS}\n{COMPONENT_CSS}\n</style>\n"
         "</head>\n"
-        "<body style=\"height:auto;overflow:auto\">\n"
+        "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
         f"<header>\n<h1>{t}</h1>\n</header>\n"
         '<main id="main">\n'

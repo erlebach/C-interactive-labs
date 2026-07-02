@@ -451,19 +451,23 @@ class TestAssemblePageTopicNav:
         assert 'for="t-basic_ptr"' in page
         assert 'for="t-const_taxonomy"' in page
 
-    def test_body_css_height_100vh(self):
+    def test_body_css_height_100vh_scoped_to_lab_shell(self):
+        # The DPG-era viewport lock is preserved for the legacy lab page, but is
+        # now scoped to `body.lab-shell` (opted into via the body class) rather
+        # than the shared base body rule.
         frags, topics = self._two_frags_with_topics()
         page = assemble_page(frags, topics=topics)
-        assert "height:100vh" in page.replace(" ", "") or "height: 100vh" in page
+        assert 'class="lab-shell"' in page
+        css = re.search(r'<style>(.*?)</style>', page, re.DOTALL).group(1).replace(" ", "")
+        shell = re.search(r'body\.lab-shell\{[^}]*\}', css)
+        assert shell and "height:100vh" in shell.group(0)
 
-    def test_body_css_overflow_hidden(self):
+    def test_body_css_overflow_hidden_scoped_to_lab_shell(self):
         frags, topics = self._two_frags_with_topics()
         page = assemble_page(frags, topics=topics)
-        # Check the body rule in the CSS block contains overflow:hidden
-        style_match = re.search(r'<style>(.*?)</style>', page, re.DOTALL)
-        assert style_match is not None
-        css = style_match.group(1)
-        assert "overflow:hidden" in css.replace(" ", "") or "overflow: hidden" in css
+        css = re.search(r'<style>(.*?)</style>', page, re.DOTALL).group(1).replace(" ", "")
+        shell = re.search(r'body\.lab-shell\{[^}]*\}', css)
+        assert shell and "overflow:hidden" in shell.group(0)
 
     def test_no_topic_nav_when_topics_none(self):
         t1 = _make_topic("basic_ptr")

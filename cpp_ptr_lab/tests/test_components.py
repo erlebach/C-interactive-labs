@@ -231,6 +231,13 @@ class TestPageShell:
     def test_body_content_present(self):
         assert "hi" in self._frag()
 
+    def test_document_flow_no_viewport_lock(self):
+        # Document pages must NOT opt into the legacy DPG viewport lock: the body
+        # is plain document flow (no `lab-shell` class, no inline height/overflow
+        # workaround). The shared stylesheet may still define `body.lab-shell`.
+        body_tag = re.search(r"<body[^>]*>", self._frag()).group(0)
+        assert body_tag == "<body>"
+
 
 class TestColorLegend:
     def test_each_role_named_in_text(self):
