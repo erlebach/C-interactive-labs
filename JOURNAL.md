@@ -2,6 +2,36 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 14:02 — Accessibility: wrap program output in `<samp>` (no bare `<pre>`)
+
+ADA scan (Siteimprove Alfa **SIA-R79** "Improper use of preformatted text element") flagged the rail
+page. **Root cause:** `output_console` emitted a **bare `<pre>`** for program/compiler output — a
+`<pre>` needs a semantic child (source code already used `<pre><code>`). **Fix (one line):** program
+output is now `<pre><samp>…</samp></pre>` — `<samp>` = "sample output from a program", the correct
+element for stdout/stderr, distinct from code input; clears SIA-R79 and the underlying WCAG 1.4.12
+Text-Spacing concern, changes nothing visually. TDD RED→GREEN: `test_output_wrapped_in_samp_not_bare_pre`
+(component) + `test_no_bare_pre_semantic_child` (rail-page guard: every `<pre>` carries `<code>`/`<samp>`).
+**Rejected** `aria-label` on `<code>`/`<samp>` for language/output labels — those elements are
+`role=generic`, so `aria-label` is not announced (invalid per ARIA-in-HTML); the console's visible
+"Program output"/"Error output" span already provides the accessible distinction. Saved the general rule
+(applies to *any* generated HTML) to `~/.claude/memory/domain/html-accessibility.md`. **Deferred (user):**
+adding `<code class="language-XXX">` with the real language — `_pre` lives in the subject-agnostic engine,
+so it needs a `language:` field threaded from YAML; not needed for SIA-R79. Suite **389 → 391**.
+
+## 2026-07-02 13:20 — Option D: glossary becomes an italic "Vocabulary" rail entry (not a header block)
+
+Moved the pointers glossary out of the always-on header into the left rail as its own pressable entry
+(the locked-but-unbuilt "Option D" from the 2026-07-01 handoff). **Data-over-code holds:** authored via a
+new top-level `glossaries:` list in the layout YAML (parallel to `demos:`), each `{id, source, label}`;
+the header now carries only the color legend. Engine: `build_layout` renders each glossary as a full rail
+panel and **prepends** them as leading entries; `left_rail_layout` gained two optional kwargs —
+`italic_count` (first N labels italic, to set vocab apart from demos; no underline) and `selected` (which
+panel shows on load). **Default view stays a demo:** glossary sits first in the rail but **Basic Pointer**
+is the on-load panel (`selected = len(glossaries)`); the mobile menu button labels the shown panel. Tabs
+page untouched (keeps its header glossary); italic is left_rail-only. TDD RED→GREEN: `TestLeftRailGlossaryNav`
+(unit: italic + selected + no-italic-default) + `test_glossary_is_italic_rail_entry_not_header` (replaced
+`test_glossary_in_header`). Suite **386 → 389**.
+
 ## 2026-07-01 23:14 — Mobile: fix horizontal-overflow blowout + Route J tap-to-open nav menu
 
 Fixed the rail page rendering broken on mobile (user screenshot: giant stacked nav buttons, code
