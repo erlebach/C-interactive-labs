@@ -332,14 +332,29 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
             f"unknown layout style {style!r}; valid choices: {sorted(_LAYOUTS)}")
 
     header_html = _render_header(spec.get("header", []), base)
-    items = []
+
+    # Option D: glossaries declared on the layout become leading rail entries (rendered
+    # in full as a panel), set apart from the demos by an italic label.
+    glossary_items = []
+    for g in spec.get("glossaries", []):
+        gs = load_spec(base / g["source"])
+        terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
+        body = C.glossary(g.get("id", "glossary"), gs.get("title", "Glossary"), terms)
+        glossary_items.append((g.get("label", gs.get("title", "Glossary")), body))
+
+    items = list(glossary_items)
     for demo_ref in spec.get("demos", []):
         demo_spec = load_spec(base / demo_ref)
         data = bake_all(demo_spec.get("bake", {}))
         fragment = render_fragment(demo_spec, data)
         items.append((demo_spec.get("title", "Demo"), fragment))
 
-    nav = _LAYOUTS[style]("lab", items)
+    n = len(glossary_items)
+    if style == "left_rail":
+        # keep a demo (not the glossary) as the panel shown on load
+        nav = C.left_rail_layout("lab", items, italic_count=n, selected=n if n < len(items) else 0)
+    else:
+        nav = _LAYOUTS[style]("lab", items)
     body = f"{header_html}\n{nav}" if header_html else nav
     page = C.page_shell("page", body, title=spec.get("title", "Lab"))
 

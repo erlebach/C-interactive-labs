@@ -397,6 +397,13 @@ class TestOutputConsole:
         err = C.output_console("o", "x", error=True)
         assert ok != err
 
+    def test_output_wrapped_in_samp_not_bare_pre(self):
+        # SIA-R79 / WCAG 1.4.12: a <pre> needs a semantic child. Program output is
+        # sample output -> <samp>. No bare <pre> may be emitted.
+        frag = C.output_console("o", "PTRDATA: type=raw\nMEMBYTES: 18")
+        assert re.search(r"<pre[^>]*>\s*<samp>", frag) and "</samp></pre>" in frag
+        assert not re.search(r"<pre\b[^>]*>(?!\s*<(?:code|samp)\b)", frag)
+
 
 # ---------------------------------------------------------------------------
 # 7.x — secondary diagram interactions

@@ -351,7 +351,7 @@ def output_console(comp_id: str, text: str, *, error: bool = False, title: str |
     return (
         f'<div class="{cls}" id="{p}" style="border:2px solid {border}">'
         f'<span class="console-label">{_e(heading)}</span>'
-        f"<pre style=\"margin:0;background:none;color:inherit;padding:0\">{_e(text)}</pre>"
+        f"<pre style=\"margin:0;background:none;color:inherit;padding:0\"><samp>{_e(text)}</samp></pre>"
         f"</div>\n"
     )
 
@@ -479,12 +479,17 @@ def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
     )
 
 
-def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
+def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]],
+                     *, italic_count: int = 0, selected: int = 0) -> str:
     """Vertical radio rail (left) + panel area (right); one item visible at a time.
 
     Zero-JS (radio + ``:checked ~``). Reflows to a single column at narrow widths.
     Structural class names are id-namespaced (e.g. ``lr-panel-{p}``) so no class is
     ever shared across instances — nesting can never bleed styles or switching.
+
+    ``italic_count`` renders the first N rail labels in italic (used to set a leading
+    glossary entry apart from the demos). ``selected`` picks which panel is shown on
+    load (default the first item); the mobile menu button labels that panel.
     """
     p = _safe(comp_id)
     style_lines = [
@@ -502,7 +507,8 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
     inputs, rail, panels = "", "", ""
     for i, (label, body) in enumerate(items):
         rid = f"{p}-r{i}"
-        checked = " checked" if i == 0 else ""
+        checked = " checked" if i == selected else ""
+        italic = "font-style:italic;" if i < italic_count else ""
         style_lines.append(f"#{rid}:checked ~ .lr-body-{p} .lr-p{i}-{p} {{ display:block; }}")
         style_lines.append(
             f'#{rid}:checked ~ .lr-rail-{p} label[for="{rid}"]'
@@ -514,10 +520,10 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]]) -> str:
         rail += (
             f'<label for="{rid}" style="border:2px solid var(--border);border-radius:8px;'
             f'padding:.5rem .8rem;min-height:44px;display:flex;align-items:center;'
-            f'cursor:pointer;font-weight:700">{_e(label)}</label>\n')
+            f'cursor:pointer;font-weight:700;{italic}">{_e(label)}</label>\n')
         panels += f'<div class="lr-panel-{p} lr-p{i}-{p}">{body}</div>\n'
     style = "\n".join(style_lines)
-    first = _e(items[0][0]) if items else "Choose demo"
+    first = _e(items[selected][0]) if items else "Choose demo"
     menu = (
         f'<button type="button" class="lr-menu-{p}" aria-expanded="false" aria-controls="{p}-rail" '
         f'style="min-height:44px;align-items:center;gap:.5rem;border:2px solid var(--border);'

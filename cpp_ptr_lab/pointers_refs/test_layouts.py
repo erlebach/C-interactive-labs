@@ -74,9 +74,14 @@ class TestPointersRefsRailPage:
             assert f">{t}<" in html
         assert 'class="ssc"' in html and "read-only" in html   # const 2x2 + real error
 
-    def test_glossary_in_header(self, tmp_path):
+    def test_glossary_is_italic_rail_entry_not_header(self, tmp_path):
+        # Option D: the glossary lives in the rail as an italic "Vocabulary" entry,
+        # not as an always-on header block above the rail.
         _, html = self._html(tmp_path)
-        assert "<dl" in html and "dereference" in html
+        before_rail = html.split('class="lr"')[0]           # everything before the rail div
+        assert 'class="glossary"' not in before_rail        # no longer a header block
+        assert re.search(r'<label[^>]*font-style:italic[^>]*>\s*Vocabulary', html)
+        assert "<dl" in html and "dereference" in html      # its terms still present (in a panel)
 
     def test_no_dup_ids_self_contained(self, tmp_path):
         _, html = self._html(tmp_path)
@@ -86,6 +91,11 @@ class TestPointersRefsRailPage:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+    def test_no_bare_pre_semantic_child(self, tmp_path):
+        # SIA-R79: every <pre> carries a semantic child (<code> for source, <samp> for output).
+        _, html = self._html(tmp_path)
+        assert not re.search(r'<pre\b[^>]*>(?!\s*<(?:code|samp)\b)', html)
 
     def test_every_svg_has_accessible_name(self, tmp_path):
         _, html = self._html(tmp_path)

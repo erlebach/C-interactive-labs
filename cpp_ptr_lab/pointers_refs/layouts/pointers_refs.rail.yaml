@@ -2,7 +2,8 @@ title: "Pointers & References — Lab 1"
 style: left_rail
 header:
   - color_legend: { id: legend }
-  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml }
+glossaries:
+  - { id: g-ptr, source: ../glossaries/pointers.glossary.yaml, label: "Vocabulary" }
 demos:
   - ../demos/basic_ptr.demo.yaml
   - ../demos/const_taxonomy.demo.yaml

@@ -308,6 +308,32 @@ class TestLeftRailLayout:
         assert "<script src" not in html and "src=" not in html and "https://" not in html
 
 
+class TestLeftRailGlossaryNav:
+    """Option D: a glossary is a pressable rail entry (italic, to distinguish it from
+    demos), while a demo — not the glossary — stays the panel shown on load."""
+
+    def _html(self):
+        from cpp_ptr_lab import components as C
+        return C.left_rail_layout(
+            "lab", [("Vocabulary", "<p>g</p>"), ("Basic", "<p>d</p>")],
+            italic_count=1, selected=1)
+
+    def test_leading_labels_italic_others_not(self):
+        html = self._html()
+        assert re.search(r'<label for="lab-r0"[^>]*font-style:italic', html)      # glossary
+        assert not re.search(r'<label for="lab-r1"[^>]*font-style:italic', html)  # demo
+
+    def test_selected_demo_is_the_shown_panel(self):
+        html = self._html()
+        assert re.search(r'id="lab-r1"[^>]*checked', html)       # first demo shown on load
+        assert not re.search(r'id="lab-r0"[^>]*checked', html)   # glossary not auto-shown
+
+    def test_no_italic_by_default(self):
+        from cpp_ptr_lab import components as C
+        html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
+        assert "font-style:italic" not in html
+
+
 class TestVariantTabsNesting:
     def test_classes_are_id_namespaced(self):
         from cpp_ptr_lab import components as C
