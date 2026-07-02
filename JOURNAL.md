@@ -2,6 +2,18 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 15:18 — Legacy sweep: compiler stderr `<pre>` → `<pre><samp>` (SIA-R79)
+
+Finished carrying the `<samp>` accessibility rule into the **legacy** `html_renderer.py` so *every*
+generated page satisfies the no-bare-`<pre>` invariant, not just the current rail page. The failed-compile
+path emitted a bare `<pre style="margin-top:.5rem">{stderr}</pre>` — compiler error output is program
+output, so it belongs in `<samp>` (sample output), same as the current `output_console`. **Fix (one line):**
+`<pre><samp>{stderr}</samp></pre>`. The adjacent source block was already `<pre><code>` (correct). TDD
+RED→GREEN: `test_no_bare_pre_stderr_wrapped_in_samp` on `TestRenderFragmentMultiCase` (its failed-case
+fragment exercises the path) — guards every `<pre>` carries a `<code>`/`<samp>` child **and** stderr is in
+`<samp>`. Suite **397 → 398**. **Noted, not fixed (out of scope):** `html_renderer.py:576` interpolates
+`{source}` unescaped into `<pre><code>` — verify it's escaped upstream when legacy is unified.
+
 ## 2026-07-02 15:05 — Scope the DPG-era viewport lock off document pages (base-CSS holdover)
 
 Cleaned the `body { height:100vh; overflow:hidden; display:flex; flex-direction:column }` holdover in the
