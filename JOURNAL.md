@@ -2,6 +2,19 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 15:50 — Second glossary on the rail page (0..N glossaries, data-only)
+
+Exercised the 0..N-glossaries-per-page capability by adding a **second** glossary to the pointers_refs rail
+page — **zero engine changes**, pure YAML, the data-over-code North Star in practice. New data file
+`glossaries/references.glossary.yaml` (title "Vocabulary — Reference Semantics", 7 reference-focused terms:
+lvalue, rvalue, bind, alias, lvalue reference, const reference, pass-by-reference) chosen to **complement,
+not duplicate**, the general "Vocabulary" glossary. Wired by one line in the layout's `glossaries:` list
+(`{id: g-ref, label: "Reference Terms"}`). The engine's existing loop renders it as a full rail panel and
+`italic_count = len(glossaries)` auto-bumps to 2, so both leading rail labels are italic; `selected` logic
+still lands on the first **demo** (Basic Pointer) at load. Verified in Playwright: two italic entries
+("Vocabulary", "Reference Terms") above the 8 bold demos, the new panel renders its `<dl>`. TDD RED→GREEN:
+`test_second_reference_glossary_present`. Suite **400 → 401**. Rail rebuilt.
+
 ## 2026-07-02 15:40 — Byte box is data-driven: omit empty byte-grid on no-byte variants
 
 User screenshot (Ref: Must Bind — a failing-compile topic) showed a broken "Raw bytes of ptr" box: an
