@@ -2,6 +2,20 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 15:40 — Byte box is data-driven: omit empty byte-grid on no-byte variants
+
+User screenshot (Ref: Must Bind — a failing-compile topic) showed a broken "Raw bytes of ptr" box: an
+empty grid with just the `byte`/`value` row-headers, collapsing to minimum width so its `<caption>` wrapped
+one word per line. **Root cause (user's framing):** the box-generating code was already the *same* single
+path for pass/fail — `_demo_variant_body` emitted the details+`byte_grid` **unconditionally**; only the
+*data* differed (failed compile → no `MEMBYTES` → `v["bytes"] == []`). Feeding that path an empty list made a
+degenerate table. **Fix (option 1, user-chosen):** keep one code path, make it **data-driven** — emit the
+byte box only `if v["bytes"]`. Keys off byte-data presence, never the `failed`/`ok` flag; renders identically
+whenever data exists (success), omits the meaningless table otherwise. A failed compile now shows code +
+"✗ Compile failed" + error output and nothing else (verified in Playwright). TDD RED→GREEN:
+`test_no_byte_data_omits_byte_grid`; positive `test_demo_panel_variant_tabs_and_details_bytes` still green.
+Suite **399 → 400**. Rail rebuilt.
+
 ## 2026-07-02 15:30 — Byte-grid readability: cell text 13px → 15px (user report)
 
 User screenshot showed the "Raw bytes of ptr" table cramped — its `byte`/`value` cells rendered at
