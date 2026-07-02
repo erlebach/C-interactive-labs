@@ -84,7 +84,7 @@ name: Basic Pointer
 group: Raw
 doc_url: https://en.cppreference.com/w/cpp/language/pointer
 target_var: ptr
-explanation: |-
+explanation: >-
   A raw pointer holds the memory address of another variable. Dereferencing
   it (*ptr) accesses the value at that address. The pointer variable itself
   occupies sizeof(void*) bytes on the stack.
