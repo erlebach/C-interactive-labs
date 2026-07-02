@@ -589,8 +589,13 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
 
 
 def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
-    """One compiled program: code+diagram split, badge, output, collapsed bytes."""
-    return (
+    """One compiled program: code+diagram split, badge, output, collapsed bytes.
+
+    The byte box is data-driven: it is emitted only when byte data exists. A
+    variant with no bytes (e.g. a failed compile that never printed MEMBYTES)
+    omits it rather than rendering a degenerate empty grid.
+    """
+    body = (
         code_diagram_panel(f"{pid}-cdp", v["code_html"],
                            memory_diagram(f"{pid}-md", v["ptrdata"]))
         + '<div style="margin-top:.8rem">'
@@ -598,11 +603,15 @@ def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
         + "</div>"
         + output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
                          error=v["failed"])
-        + f'<details style="margin-top:.6rem"><summary style="min-height:44px;'
-          f'cursor:pointer">Raw bytes of ptr (little-endian)</summary>\n'
-        + byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
-        + "</details>\n"
     )
+    if v["bytes"]:
+        body += (
+            f'<details style="margin-top:.6rem"><summary style="min-height:44px;'
+            f'cursor:pointer">Raw bytes of ptr (little-endian)</summary>\n'
+            + byte_grid(f"{pid}-bytes", v["bytes"], caption=caption)
+            + "</details>\n"
+        )
+    return body
 
 
 def demo_panel(comp_id: str, entry: dict) -> str:

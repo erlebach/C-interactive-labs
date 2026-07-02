@@ -289,6 +289,24 @@ class TestDemoPanel:
         ids = _ids(html)
         assert len(ids) == len(set(ids)), "dup ids in demo_panel"
 
+    def test_no_byte_data_omits_byte_grid(self):
+        # The byte box is data-driven: render it only when byte data exists.
+        # A variant with no bytes (e.g. a failed compile -> no MEMBYTES) must NOT
+        # emit an empty byte-grid (which collapses and wraps its caption).
+        from cpp_ptr_lab import components as C
+        entry = {
+            "explanation": "e", "variants": ["default"],
+            "default": {
+                "code_html": "<pre><code>int&amp; r;</code></pre>", "ptrdata": None,
+                "stdout": "", "stderr": "compile error", "ok": False,
+                "failed": True, "bytes": [], "target_val": "?", "source": "int& r;",
+            },
+        }
+        html = C.demo_panel("mb", entry)
+        assert "byte-grid" not in html          # no empty table
+        assert "Raw bytes" not in html          # no dangling details/caption
+        assert "console--err" in html           # the error output is still shown
+
     def test_demo_panel_cases_topic_stacks_subcases(self):
         from cpp_ptr_lab import components as C
         html = C.demo_panel("dp", FAKE_CASES["ct"])
