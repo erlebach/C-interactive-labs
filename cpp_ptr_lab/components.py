@@ -511,7 +511,7 @@ def code_line_link(
 # ---------------------------------------------------------------------------
 
 
-def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
+def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]], *, selected: int = 0) -> str:
     """Switch between N labelled panels with native radios + ``:checked ~``.
 
     A single panel has nothing to switch between, so the tab strip is noise:
@@ -530,7 +530,7 @@ def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
         tid = f"{p}-t{i}"
-        checked = " checked" if i == 0 else ""
+        checked = " checked" if i == selected else ""
         style_lines.append(f"#{tid}:checked ~ .vt-panels-{p} .vt-p{i}-{p} {{ display: block; }}")
         style_lines.append(
             f'#{tid}:checked ~ .vt-tabs-{p} label[for="{tid}"]'
@@ -632,6 +632,28 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]],
         f"{script}"
         f"</div>\n"
     )
+
+
+def nav_shell(comp_id: str, items: Sequence[tuple[str, str]], *,
+              style: str = "left_rail", leading: int = 0,
+              selected: int | None = None) -> str:
+    """Uniform nav over (label, body) items — one signature for every style.
+
+    ``leading`` sets apart the first N reference entries (left_rail italicises
+    them; other styles ignore it). ``selected`` picks the on-load panel
+    (left_rail and top_tabs honour it; stacked ignores it). Unknown ``style``
+    raises ValueError.
+    """
+    sel = 0 if selected is None else selected
+    if style == "left_rail":
+        return left_rail_layout(comp_id, items, italic_count=leading, selected=sel)
+    if style == "top_tabs":
+        return variant_tabs(comp_id, items, selected=sel)
+    if style == "stacked":
+        return "\n".join(body for _label, body in items)
+    raise ValueError(
+        f"unknown nav style {style!r}; valid choices: "
+        "['left_rail', 'stacked', 'top_tabs']")
 
 
 def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:

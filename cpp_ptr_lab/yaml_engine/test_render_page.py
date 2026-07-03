@@ -533,3 +533,34 @@ class TestConceptBlock:
         spec = {"blocks": [{"concept": {"id": "n2", "text": "hi", "open": True}}]}
         html = R.render_fragment(spec, {})
         assert "class=\"concept\" open" in html
+
+
+class TestNavShell:
+    ITEMS = [("A", "<p>a</p>"), ("B", "<p>b</p>"), ("C", "<p>c</p>")]
+
+    def test_left_rail_is_byte_identical_to_left_rail_layout(self):
+        from cpp_ptr_lab import components as C
+        got = C.nav_shell("lab", self.ITEMS, style="left_rail", leading=1, selected=1)
+        want = C.left_rail_layout("lab", self.ITEMS, italic_count=1, selected=1)
+        assert got == want
+
+    def test_stacked_ignores_leading_and_selected(self):
+        from cpp_ptr_lab import components as C
+        html = C.nav_shell("lab", self.ITEMS, style="stacked", leading=2, selected=2)
+        assert "<p>a</p>" in html and "<p>b</p>" in html and "<p>c</p>" in html
+        assert "type=\"radio\"" not in html and "font-style:italic" not in html
+
+    def test_top_tabs_honors_selected(self):
+        from cpp_ptr_lab import components as C
+        html = C.nav_shell("lab", self.ITEMS, style="top_tabs", selected=2)
+        # the third tab's radio is the checked one
+        assert 'id="lab-t2" style=' in html and 'id="lab-t2"' in html
+        import re
+        checked = re.search(r'id="lab-t(\d)"[^>]*checked', html)
+        assert checked and checked.group(1) == "2"
+
+    def test_unknown_style_raises(self):
+        from cpp_ptr_lab import components as C
+        import pytest
+        with pytest.raises(ValueError, match="unknown nav style"):
+            C.nav_shell("lab", self.ITEMS, style="carousel")
