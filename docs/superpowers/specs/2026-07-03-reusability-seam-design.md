@@ -107,31 +107,48 @@ pointers_refs demos (8) and op_overload demos (4).
 Accessibility: `<details>/<summary>` is natively keyboard- and screen-reader-operable
 ("Concept, collapsed"); no ARIA needed, no JS.
 
-### D. Demonstration Concept (new, optional)
+### D. Demonstration Concept + unified `sidebar:` leading-entry list
 
-The layout YAML gains an optional top-level `concept:` block with inline `text:` (D3 — inline, no
-new file type). `build_layout` renders it through the Section-B shared box and prepends it to the
-leading rail entries (alongside `glossaries:`), italic-labeled and set apart from the examples. It
-is **not** selected on load (D2 — the first example stays the on-load panel); it is a clickable
-leading entry like Vocabulary. Absent `concept:` → nothing changes (backward compatible).
+The layout's leading rail entries (glossaries + the new demonstration concept) are **unified into
+one ordered, keyword-block list** named `sidebar:`, replacing the old bare-mapping `glossaries:`
+list. Every entry is a keyword block through the Section-B shared box, so all leading entries have
+the same shape (consistency; also easier for agents to author). List order = rail order.
 
-`leading` passed to `nav_shell` today is `len(glossary_items)` (e.g. 2 for pointers_refs:
-*Vocabulary* + *Reference Terms*); it becomes `len(demonstration_concept) + len(glossary_items)`.
-`selected` stays "first example" = that leading count. When no demonstration `concept:` is
-present, `leading` is unchanged from today and the output is byte-identical.
+```yaml
+sidebar:
+  - concept:  { id: obj,   text: "What this demonstration teaches…" }   # demonstration concept (optional, new)
+  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml,  label: "Vocabulary" }
+  - glossary: { id: g-ref, source: ../glossaries/references.glossary.yaml, label: "Reference Terms" }
+```
+
+- `glossary:` — `{ id, source, label }`; loads the `*.glossary.yaml` and renders terms (as today).
+- `concept:` — `{ id, text }` (inline, D3); renders prose through the shared box. This is the
+  demonstration concept: a leading rail entry like Vocabulary, **not** selected on load (D2 — the
+  first *example* stays the on-load panel). Optional; omit it and the rail is glossaries-only.
+
+`build_layout` iterates `sidebar:`, unwraps each item's single keyword (`glossary`/`concept`) the
+same way `_render_block` does, and builds `(label, body)` leading items. `leading` passed to
+`nav_shell` = `len(sidebar_items)`; `selected` = that count (the first example). A `sidebar:` of
+two glossaries reproduces today's pointers_refs rail **byte-for-byte** (same order, labels,
+italics, selected) — the migration guard for this section. Note: this is distinct from a
+`glossary:` block under `header:` (render-once at top, used by `.tabs.yaml`); that path is
+unchanged. Renaming `glossaries:`→`sidebar:` touches the 2 existing rail layouts.
 
 ## 4. Components / files touched
 
 - `cpp_ptr_lab/components.py` — add `nav_shell`, `concept_note`, `_prose_box`; refactor
   `callout_note`/`glossary` onto `_prose_box` (no output change). `variant_tabs`,
   `left_rail_layout` unchanged in signature.
-- `cpp_ptr_lab/yaml_engine/render_page.py` — add `concept` to `_BUILDERS`; `build_layout` renders
-  optional `concept:`, computes `leading`/`selected`, calls `nav_shell`; delete `_LAYOUTS` and the
-  `left_rail` branch; `_stacked_layout` folds into `nav_shell`.
+- `cpp_ptr_lab/yaml_engine/render_page.py` — add `concept` to `_BUILDERS`; `build_layout` iterates
+  the `sidebar:` list (glossary/concept entries) instead of `glossaries:`, computes
+  `leading`/`selected`, calls `nav_shell`; delete `_LAYOUTS` and the `left_rail` branch;
+  `_stacked_layout` folds into `nav_shell`.
 - `cpp_ptr_lab/pointers_refs/demos/*.demo.yaml` (8) + `cpp_ptr_lab/op_overload/demos/*.demo.yaml`
   (4) — `callout_note` Concept block → `concept` block.
-- `cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml` — optional: add a demonstration
-  `concept:` (demonstrates the new capability; content is authoring, not engine).
+- `cpp_ptr_lab/pointers_refs/layouts/pointers_refs.rail.yaml` +
+  `cpp_ptr_lab/op_overload/layouts/op_overload.rail.yaml` — `glossaries:` → `sidebar:` (keyword
+  blocks). pointers_refs.rail.yaml also gains a demonstration `concept:` entry to exercise the new
+  capability (content is authoring, not engine).
 - Docs: `COURSE_VIA_TOPICS.md`, `usage/USAGE.md`, `cpp_ptr_lab/pointers_refs/YAML_GUIDE.md` —
   document `nav_shell`, the `concept` block, and demonstration `concept:`; update the locked
   vocabulary.
@@ -149,9 +166,13 @@ present, `leading` is unchanged from today and the output is byte-identical.
   (guard test); `concept_note` and `glossary` share the container class/border.
 - **`concept` block builder** — a demo spec with a `concept:` block renders the disclosure at the
   top of the example; `${x.explanation}` resolves.
-- **Demonstration Concept** — a layout with `concept:` yields an extra italic leading rail entry;
-  `leading` increments; first example still selected on load; absent `concept:` is byte-identical
-  to today.
+- **`sidebar:` keyword-block parsing** — a `sidebar:` list of mixed `- glossary:` / `- concept:`
+  entries parses into the right leading rail items in list order (glossary loads terms; concept
+  renders inline prose); an unknown keyword in `sidebar:` raises. (The consistency test the user
+  requested.)
+- **Demonstration Concept** — a `sidebar:` with a leading `concept:` yields an extra italic rail
+  entry; `leading` increments; first example still selected on load. A `sidebar:` of two
+  glossaries reproduces today's pointers_refs rail byte-for-byte (migration guard).
 - **Integration** — pointers_refs and op_overload pages rebuild self-contained, WCAG-AA, svg-count
   == `role="img"`-count; full suite green (currently 423). g++-gated build tests skip without g++.
 
