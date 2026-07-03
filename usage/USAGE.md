@@ -23,7 +23,7 @@ You **author YAML data**. You almost never write Python.
    ─────────────────────                     ─────────────────────────────────────
    topics/*.topic.yaml   the C++ programs    yaml_engine/render_page.py   the engine
    demos/*.demo.yaml     one lesson slide    components.py                the widgets
-   glossaries/*.yaml     vocabulary boxes    topics_loader.py             YAML → TopicTemplate
+   glossaries/*.yaml     vocabulary boxes    topic_yaml.py                YAML → TopicTemplate
    layouts/*.yaml        the whole page      g++                          bakes real output
 ```
 
@@ -182,22 +182,21 @@ The engine's topic registry must know your topic ids. Two lines:
 1. **`function_args/topics.py`** — a shim that loads the YAML topics (mirror
    `pointers_refs/topics.py`):
    ```python
-   from .topics_loader import load_topics          # the generic loader
-   TOPIC_BY_ID = load_topics()                      # globs this subject's topics/*.topic.yaml
+   from pathlib import Path
+   from cpp_ptr_lab.topic_yaml import load_topics   # the shared loader
+   TOPIC_BY_ID = load_topics(Path(__file__).parent / "topics")   # this subject's topics/*.topic.yaml
    TOPICS = list(TOPIC_BY_ID.values())
    ```
 2. **`cpp_ptr_lab/yaml_engine/render_page.py::_topic_registry()`** — add
    `from ..function_args.topics import TOPICS as FUNC_ARGS` and splice `*FUNC_ARGS`
    into the aggregated list (it already does this for the existing subjects).
 
-> **One-time engine generalization:** the generic loader currently lives at
-> `cpp_ptr_lab/pointers_refs/topics_loader.py` and defaults to that subject's
-> `topics/` dir, but it already takes a `topics_dir` argument. To use it from a
-> second subject, promote it to a shared module (e.g. `cpp_ptr_lab/topics_loader.py`)
-> and have each subject's shim call `load_topics(Path(__file__).parent / "topics")`.
-> This is a small refactor done **once**, then every future subject is pure YAML +
-> the two-line shim. (Until then, the existing `function_args/topics.py` holds its
-> one topic in Python — the older style this guide replaces.)
+> **Shared loader:** the generic loader lives at `cpp_ptr_lab/topic_yaml.py` and
+> takes an explicit `topics_dir`, so every subject's shim just calls
+> `load_topics(Path(__file__).parent / "topics")` — no cross-subject imports.
+> Every future subject is pure YAML + the two-line shim. (The older
+> `function_args/topics.py` still holds its one topic in Python — the pre-YAML
+> style this guide replaces.)
 
 ---
 
