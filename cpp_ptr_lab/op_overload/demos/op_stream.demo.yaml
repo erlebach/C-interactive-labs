@@ -1,0 +1,6 @@
+title: "operator<<  (stream)"
+language: cpp
+bake: { st: op_stream }
+blocks:
+  - callout_note: { id: st-note, label: Concept, text: "${st.explanation}" }
+  - topic: { id: st, source: st, diagram: false }

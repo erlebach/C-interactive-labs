@@ -1,0 +1,21 @@
+id: op_equal
+order: 3
+name: "operator== (member)"
+group: Operators
+doc_url: https://en.cppreference.com/w/cpp/language/operators
+has_ptrdata: false
+explanation: >-
+  operator== compares two objects and returns bool. As a member, a == b calls
+  a.operator==(b); mark it const because comparison must not modify either
+  operand. (std::boolalpha prints true/false instead of 1/0.)
+template: |
+  #include <iostream>
+  struct Vec2 {
+      double x, y;
+      bool operator==(const Vec2& o) const { return x == o.x && y == o.y; }
+  };
+  int main() {
+      Vec2 a{1.0, 2.0};
+      Vec2 b{3.0, 4.0};
+      std::cout << std::boolalpha << "a == b: " << (a == b) << "\n";
+  }

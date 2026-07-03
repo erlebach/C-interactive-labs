@@ -1,0 +1,8 @@
+title: "Vocabulary — Operator Overloading"
+terms:
+  - { term: "operator overloading", def: "defining how built-in operators (+, ==, <<) behave for your own type" }
+  - { term: "member operator", def: "operator defined inside the class; its left operand is the object — a.operator+(b)" }
+  - { term: "non-member operator", def: "a free function; required when the left operand is not your type, e.g. 2.0 * v or std::cout << v" }
+  - { term: "friend", def: "a non-member function granted access to a class's private members" }
+  - { term: "operator<<", def: "stream insertion; must be non-member because the left operand is std::ostream, not your type" }
+  - { term: "return type convention", def: "arithmetic operators return a new value; << returns the stream by reference so calls can chain" }
