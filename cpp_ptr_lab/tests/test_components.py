@@ -634,3 +634,33 @@ class TestProseBox:
         assert "<h2" not in html and "aria-labelledby" not in html
         assert 'class="concept"' in html and "<p>hi</p>" in html
         assert 'border:2px solid var(--border)' in html
+
+
+# ---------------------------------------------------------------------------
+# 10.x — concept_note + concept_panel
+# ---------------------------------------------------------------------------
+
+
+class TestConcept:
+    def test_concept_note_is_collapsed_details_by_default(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_note("c1", "A pointer stores an address.")
+        assert html.startswith("<details")
+        assert " open" not in html.split(">", 1)[0]      # collapsed: no open attr on <details>
+        assert "<summary" in html and "Concept" in html
+        assert "A pointer stores an address." in html
+
+    def test_concept_note_open_and_custom_label_and_escaping(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_note("c2", "1 < 2 & true", label="Why", open=True)
+        assert "<details id=\"c2\" class=\"concept\" open" in html
+        assert ">Why</summary>" in html
+        assert "1 &lt; 2 &amp; true" in html               # body escaped
+
+    def test_concept_panel_is_titled_prose_box(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_panel("cp", "What this teaches.", title="Objective")
+        assert "<details" not in html                      # a panel, not a disclosure
+        assert 'class="concept"' in html
+        assert ">Objective</h2>" in html
+        assert "What this teaches." in html

@@ -167,7 +167,7 @@ def callout_note(comp_id: str, text: str, *, label: str = "Note") -> str:
 
 
 def _prose_box(comp_id: str, body_html: str, *, title: str | None = None,
-               css_class: str = "prose") -> str:
+               css_class: str) -> str:
     """Shared bordered prose section for glossary and concept panels.
 
     With a ``title`` the section is labelled by an ``<h2>`` via aria-labelledby
@@ -199,6 +199,31 @@ def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
         rows += f"<dt>{_e(term)}</dt><dd>{_e(definition)}</dd>\n"
     return _prose_box(comp_id, f'<dl style="margin:0">\n{rows}</dl>',
                       title=title, css_class="glossary")
+
+
+def concept_note(comp_id: str, text: str, *, label: str = "Concept",
+                 open: bool = False) -> str:
+    """Example Concept: a native <details> disclosure (collapsed by default).
+
+    Zero-JS, keyboard- and screen-reader-operable. The expanded body is a
+    borderless prose box (the shared prose behaviour) inside the disclosure.
+    """
+    p = _safe(comp_id)
+    body = _prose_box(f"{p}-box", f'<p style="margin:0">{_e(text)}</p>', css_class="concept")
+    op = " open" if open else ""
+    return (
+        f'<details id="{p}" class="concept"{op} style="margin:.4rem 0">\n'
+        f'<summary style="cursor:pointer;font-weight:700;min-height:44px;'
+        f'display:flex;align-items:center">{_e(label)}</summary>\n'
+        f"{body}"
+        f"</details>\n"
+    )
+
+
+def concept_panel(comp_id: str, text: str, *, title: str = "Concept") -> str:
+    """Demonstration Concept: a titled prose panel shown as a leading rail entry."""
+    return _prose_box(comp_id, f'<p style="margin:0">{_e(text)}</p>',
+                      title=title, css_class="concept")
 
 
 # ---------------------------------------------------------------------------
