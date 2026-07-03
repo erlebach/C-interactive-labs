@@ -194,6 +194,8 @@ A "smart" builder `topic` composes the per-variant cluster (code + diagram +
 badge + console + bytes); `heading` / `html` provide chrome. New subjects will add
 their own smart builders as needed (e.g. a `call_trace` builder for classes).
 
+**Layout composition (2026-07-03).** A layout (`*.rail.yaml`/`*.tabs.yaml`) assembles a page from a `header:` (rendered once), a unified `sidebar:` list, an ordered `demos:` list, and a nav `style:`. The `sidebar:` list — which replaces the earlier separate `glossaries:` list — is an ordered set of single-key keyword blocks, each `- glossary: {id, source, label}` (loads a `*.glossary.yaml`) or `- concept: {id, text, [label]}`; they become the leading (italic) rail entries in list order, not selected on load. There are **two Concept levels**: the *Demonstration Concept* is the optional whole-page `concept` under `sidebar:` (a leading rail panel stating what the entire page imparts), while the *Example Concept* is the per-demo `concept` block (a collapsed native `<details>` disclosure, zero-JS/WCAG-AA) that opens each `*.demo.yaml`. Locked vocabulary: **Demonstration** = one HTML file/topic page; **Example** = one rail entry (one `.demo.yaml`); **Gotcha** = an Example whose point is a failure; **Concept** = prose stating what is imparted (one `text:` field), at those two levels.
+
 ---
 
 ## 7. Known gaps before this generalizes cleanly
@@ -209,6 +211,8 @@ itself (dispatch, ref resolution, render loop) is already topic-agnostic:
    `panel:` block-template) so subjects can vary the per-variant layout.
 3. **Raw-pointer assumptions in convenience data** (`${X.target_val}`, the
    byte-grid caption) degrade to `"?"` for smart/ref topics; make per-type or drop.
+
+> **Update 2026-07-03 (nav interface unified — gap #2 progressed):** every layout `style:` now dispatches through a single component, `nav_shell(comp_id, items, *, style, leading, selected)`, with no per-style branching — `left_rail`, `top_tabs`, and `stacked` are all one uniform interface and an unknown style raises `ValueError`. So the navigation is a pure data choice, and the earlier gaps have receded: multi-sub-case topics are handled (gap #1), and the fixed `topic` recipe is now configurable (`topic: { diagram: false }` drops the memory diagram for non-pointer subjects — gap #2). Gap #3 remains.
 
 ---
 

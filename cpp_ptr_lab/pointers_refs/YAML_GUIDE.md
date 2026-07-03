@@ -84,8 +84,8 @@ is plain YAML.
 title: "Basic Pointer"                                    # ① name of this slide
 bake: { bp: basic_ptr }                                   # ② compile this C++ topic
 blocks:                                                    # ③ what to show, top to bottom
-  - callout_note: { id: bp-note, label: Concept, text: "${bp.explanation}" }
-  - topic:        { id: bp,      source: bp }
+  - concept: { id: bp-note, text: "${bp.explanation}" }
+  - topic:   { id: bp,      source: bp }
 ```
 
 Line by line:
@@ -98,9 +98,7 @@ Line by line:
    diagram data) under the nickname `bp`.
 3. **`blocks:`** — an ordered list of things to render down the page. Each block is
    `{ block_type: {its settings} }`. This demo has two:
-   - **`callout_note`** — a small concept box. Its `text` is `"${bp.explanation}"`.
-     The `${bp.explanation}` part means *"look up the baked topic nicknamed `bp` and
-     insert its explanation text here."* (More on `${…}` in §5.)
+   - **`concept`** — the per-example **Concept**: one sentence stating what this example imparts, rendered as a *collapsed* native `<details>` disclosure (click "Concept" to expand — zero JavaScript, keyboard- and screen-reader-operable). Its `text` is `"${bp.explanation}"`, which means *"look up the baked topic nicknamed `bp` and insert its explanation text here."* (More on `${…}` in §5.) Add `open: true` to have it start expanded, or `label:` to rename the summary from "Concept". (For an *always-visible* aside that never collapses, the older `callout_note` block still exists — `callout_note: { id: …, label: Note, text: … }`.)
    - **`topic`** — the interactive panel: the code, a compile ✓/✗ badge, the real
      program output, and a memory diagram, with tabs for each variant (for `basic_ptr`
      those tabs are `int` / `double` / `float`). `source: bp` tells it which baked
@@ -135,8 +133,11 @@ title: "Pointers & References — Lab 1"   # ① the page's <title> and top head
 style: left_rail                         # ② navigation style (see table below)
 header:                                  # ③ shown ONCE at the top of the page
   - color_legend: { id: legend }
-  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml }
-demos:                                   # ④ which demos appear, in this order
+sidebar:                                 # ④ leading rail entries (concept/glossary), in order
+  - concept:  { id: obj,   text: "Pointers hold addresses; references are permanent aliases. …" }
+  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml,  label: "Vocabulary" }
+  - glossary: { id: g-ref, source: ../glossaries/references.glossary.yaml, label: "Reference Terms" }
+demos:                                   # ⑤ which demos appear, in this order
   - ../demos/basic_ptr.demo.yaml
   - ../demos/const_taxonomy.demo.yaml
   - ../demos/ref_must_bind.demo.yaml
@@ -157,9 +158,9 @@ demos:                                   # ④ which demos appear, in this order
 | `top_tabs`  | A row of tabs across the top; click a tab to show that demo. |
 | `stacked`   | No navigation — every demo stacked down one long page. |
 
-3. **`header:`** — blocks rendered **once**, above all the demos. Here: a color legend
-   and the shared glossary (pulled in from the glossary file via `source:`).
-4. **`demos:`** — the list of demo files to include, in display order. The paths start
+3. **`header:`** — blocks rendered **once**, above all the demos (here just the color legend).
+4. **`sidebar:`** — an ordered list of *keyword blocks* that become the **leading rail entries** (shown in italic, set apart from the demos, and not selected on load). Each entry is a single-key mapping, in rail order: `- glossary: { id, source, label }` loads a `*.glossary.yaml` vocabulary box, and `- concept: { id, text, [label] }` is the optional whole-**Demonstration** Concept — one prose panel stating what the entire page imparts (shown like the Vocabulary entry, no disclosure). This unified `sidebar:` list replaces the older separate `glossaries:` list. The rail order is exactly the list order.
+5. **`demos:`** — the list of demo files to include, in display order. The paths start
    with `../` because the layout file sits in `layouts/`, and the demos sit one level
    up in `demos/`.
 
@@ -177,7 +178,7 @@ because the richness lives in the **topic** (`topics.py`), never in the demo fil
 title: "const Taxonomy"
 bake: { ct: const_taxonomy }
 blocks:
-  - callout_note: { id: ct-note, label: Concept, text: "${ct.explanation}" }
+  - concept: { id: ct-note, text: "${ct.explanation}" }
   - topic: { id: ct, source: ct }
 ```
 
@@ -229,6 +230,8 @@ A layout is the root. Follow the arrows:
    │ style: left_rail                           │
    │ header:                                    │
    │   - color_legend                           │
+   │ sidebar:                                   │
+   │   - concept                                │
    │   - glossary  ── source: ──────────────────┼──▶ glossaries/pointers.glossary.yaml
    │ demos:                                     │        (title + term/def pairs)
    │   - ../demos/basic_ptr.demo.yaml ──────────┼──▶ demos/basic_ptr.demo.yaml
@@ -337,9 +340,11 @@ it as above. From then on it's YAML again.
 | **demo** | One whole topic packaged as a page section (concept note + interactive panel). A `.demo.yaml`. One nav entry. |
 | **variant** | A switchable version *inside* one demo's panel (e.g. `int`/`double`/`float` tabs). Comes from the topic. |
 | **glossary** | A reusable term/definition box. A `.glossary.yaml`. |
-| **layout** | A whole page: chosen demos + a header + a navigation `style:`. A `.rail.yaml`/`.tabs.yaml`. The thing you build. |
-| **block** | One item in a demo's or header's list — `callout_note`, `topic`, `color_legend`, `glossary`, `heading`, `html`, … |
-| **header** | Blocks a layout shows once at the top (legend + glossary), above all demos. |
+| **layout** | A whole page: chosen demos + a header + a `sidebar:` + a navigation `style:`. A `.rail.yaml`/`.tabs.yaml`. The thing you build. |
+| **block** | One item in a demo's or header's list — `concept`, `topic`, `callout_note`, `color_legend`, `glossary`, `heading`, `html`, … |
+| **concept** | Prose stating what is imparted (one `text:` field). Two levels: the **Example Concept** (per-demo `concept` block, a collapsed `<details>`) and the **Demonstration Concept** (the optional whole-page `concept` under `sidebar:`, a leading rail panel). |
+| **header** | Blocks a layout shows once at the top (e.g. the color legend), above all demos. |
+| **sidebar** | An ordered list of `concept`/`glossary` keyword blocks that become the leading (italic) rail entries, in list order. Replaces the older `glossaries:` list. |
 | **bake** | Phase 1: run g++ on the referenced topics and capture real output. |
 | **render** | Phase 2: turn blocks (with `${…}` filled in) into the final HTML. |
 | **`${nick.field}`** | Insert `field` from the baked topic nicknamed `nick` into this text. |
