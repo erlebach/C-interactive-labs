@@ -2,6 +2,26 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-02 19:30 — pointers_refs C++ source migrated Python → YAML (data-over-code North Star)
+
+Final data-over-code North-Star step for pointers_refs: all 8 topics' C++ source (templates,
+controls, value_maps, cases) moved from `topics.py` Python literals into `topics/<id>.topic.yaml`;
+`topics.py` is now a ~17-line re-export shim. TDD-ordered across 4 tasks: frozen
+`topics_snapshot.json` → `topics_loader.load_topics()` built + tested against snapshot →
+equivalence-guard `test_yaml_matches_legacy` asserts byte-for-byte reproduction (non-vacuous:
+fails on any corruption) → Python literals deleted. Scalar-style discipline: `|` for templates,
+`>-` for prose, block scalars for multi-line value_map C++; a review-driven fix converted
+ref_no_null's value_map from a 200-char escaped one-liner to block scalars. **Result:** suite
+**412 passed, 0 failures**; rail rebuilt cleanly (exit 0); diff vs `main` showed only runtime
+stack-address variation in SVG diagrams (expected), structural equivalence proven by the guard.
+smart_ptrs/function_args deferred. Spec: `docs/superpowers/specs/2026-07-02-source-to-yaml-design.md`.
+
+### Details
+
+Plan: `docs/superpowers/plans/2026-07-02-source-to-yaml.md`. Worktree diff excluded from the
+identity check because each g++ run produces fresh stack addresses in SVG `<desc>` nodes; the
+equivalence guard (objects match snapshot) is the authoritative structural proof.
+
 ## 2026-07-02 18:25 — WCAG AA fix: highlight.js comment colour #5c6370 → #9199a8
 
 Closed the contrast caveat from the previous entry. atom-one-dark's comment/quote colour `#5c6370` is
