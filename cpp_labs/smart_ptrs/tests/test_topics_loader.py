@@ -9,7 +9,7 @@ import pytest
 from cpp_labs.tests.topic_equiv import serialize_all
 from cpp_labs.topic_yaml import load_topics
 
-_HERE = Path(__file__).parent
+_HERE = Path(__file__).parents[1]
 _SNAPSHOT = _HERE / "topics_snapshot.json"
 
 _LEGACY_ORDER = [

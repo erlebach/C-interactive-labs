@@ -18,7 +18,7 @@ import pytest
 from cpp_labs.yaml_engine import render_page as R
 
 HAS_GPP = shutil.which("g++") is not None
-SPEC = Path(__file__).parent / "basic_ptr.page.yaml"
+SPEC = Path(__file__).parents[1] / "basic_ptr.page.yaml"
 
 
 def _ids(html):

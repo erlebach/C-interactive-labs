@@ -16,7 +16,7 @@ import pytest
 from cpp_labs.yaml_engine import render_page as R
 
 HAS_GPP = shutil.which("g++") is not None
-LAYOUT = Path(__file__).parent / "layouts" / "op_overload.rail.yaml"
+LAYOUT = Path(__file__).parents[1] / "layouts" / "op_overload.rail.yaml"
 
 pytestmark = pytest.mark.skipif(not HAS_GPP, reason="needs g++ to bake real output")
 

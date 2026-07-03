@@ -48,7 +48,7 @@ class TestBuildLayoutMinimal:
         assert not dups, f"duplicate ids: {dups}"
 
 
-LAYOUT = Path(__file__).parent / "layouts" / "pointers_refs.rail.yaml"
+LAYOUT = Path(__file__).parents[1] / "layouts" / "pointers_refs.rail.yaml"
 
 TOPIC_NAMES = [
     "Basic Pointer", "const Taxonomy", "Ref: Must Bind", "Ref: No Null",
@@ -124,7 +124,7 @@ class TestPointersRefsRailPage:
         assert not re.search(r"<img(?![^>]*\balt=)", html), "an <img> lacks alt"
 
 
-TABS = Path(__file__).parent / "layouts" / "pointers_refs.tabs.yaml"
+TABS = Path(__file__).parents[1] / "layouts" / "pointers_refs.tabs.yaml"
 
 
 @pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")

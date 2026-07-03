@@ -21,8 +21,8 @@ from cpp_labs.code_generator import generate_source
 from cpp_labs.topic_yaml import load_topics
 
 HAS_GPP = shutil.which("g++") is not None
-FA_SPEC = Path(__file__).parent / "function_args.page.yaml"
-function_args = load_topics(Path(__file__).parent / "topics")["function_args"]
+FA_SPEC = Path(__file__).parents[1] / "function_args.page.yaml"
+function_args = load_topics(Path(__file__).parents[1] / "topics")["function_args"]
 
 
 def _ids(html):
