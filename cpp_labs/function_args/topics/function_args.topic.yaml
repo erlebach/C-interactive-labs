@@ -1,5 +1,4 @@
 id: function_args
-order: 1
 name: Function Arguments
 group: Functions
 doc_url: https://en.cppreference.com/w/cpp/language/functions

@@ -1,5 +1,4 @@
 id: basic_ptr
-order: 1
 name: Basic Pointer
 group: Raw
 doc_url: https://en.cppreference.com/w/cpp/language/pointer

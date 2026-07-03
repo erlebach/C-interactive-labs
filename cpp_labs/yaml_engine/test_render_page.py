@@ -22,6 +22,28 @@ from cpp_labs.yaml_engine import render_page as R
 HAS_GPP = shutil.which("g++") is not None
 
 
+class TestTopicDiscovery:
+    """The registry auto-discovers every subject's ``topics/`` dir, so a new
+    subject needs no Python — just a folder of YAML. No per-subject import."""
+
+    def _root(self):
+        import cpp_labs
+        from pathlib import Path
+        return Path(cpp_labs.__file__).parent
+
+    def test_discover_merges_all_subjects(self):
+        from cpp_labs.topic_yaml import discover_topics
+        reg = discover_topics(self._root())
+        # ids from several independent subjects are all present, keyed by id
+        assert "const_taxonomy" in reg   # pointers_refs
+        assert "op_plus" in reg          # op_overload
+        assert "unique_basics" in reg    # smart_ptrs
+
+    def test_registry_equals_discovery(self):
+        from cpp_labs.topic_yaml import discover_topics
+        assert set(R._topic_registry()) == set(discover_topics(self._root()))
+
+
 # Pre-baked data so the pure renderer can be tested without invoking g++.
 FAKE = {
     "bp": {

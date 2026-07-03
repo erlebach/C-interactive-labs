@@ -1,5 +1,4 @@
 id: op_scale
-order: 2
 name: "operator* (non-member)"
 group: Operators
 doc_url: https://en.cppreference.com/w/cpp/language/operators

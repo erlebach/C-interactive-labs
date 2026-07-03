@@ -1,5 +1,4 @@
 id: shared_copy
-order: 5
 name: 'shared_ptr: Copy'
 group: shared_ptr
 doc_url: https://en.cppreference.com/w/cpp/memory/shared_ptr

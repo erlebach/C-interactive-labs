@@ -1,5 +1,4 @@
 id: op_stream
-order: 4
 name: "operator<< (stream)"
 group: Operators
 doc_url: https://en.cppreference.com/w/cpp/language/operators

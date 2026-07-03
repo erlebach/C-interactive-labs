@@ -1,5 +1,4 @@
 id: unique_copy_err
-order: 3
 name: 'unique_ptr: Copy Error'
 group: unique_ptr
 doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr

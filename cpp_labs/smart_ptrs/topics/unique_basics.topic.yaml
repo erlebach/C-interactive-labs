@@ -1,5 +1,4 @@
 id: unique_basics
-order: 1
 name: 'unique_ptr: Basics'
 group: unique_ptr
 doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr

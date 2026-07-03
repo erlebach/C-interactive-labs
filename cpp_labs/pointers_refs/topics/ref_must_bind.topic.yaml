@@ -1,5 +1,4 @@
 id: ref_must_bind
-order: 3
 name: "Ref: Must Bind"
 group: Refs
 doc_url: https://en.cppreference.com/w/cpp/language/reference

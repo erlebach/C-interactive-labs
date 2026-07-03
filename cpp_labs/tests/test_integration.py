@@ -3,6 +3,14 @@ import pytest
 
 from cpp_labs.compiler_runner import compile_and_run
 from cpp_labs.code_generator import generate_source
+from cpp_labs.topic_yaml import load_topics
+
+
+def _subject_topics(name: str) -> list:
+    """Load one subject's topics straight from its YAML (no ``topics.py`` shim)."""
+    import cpp_labs
+    from pathlib import Path
+    return list(load_topics(Path(cpp_labs.__file__).parent / name / "topics").values())
 
 
 # ---------------------------------------------------------------------------
@@ -12,8 +20,7 @@ from cpp_labs.code_generator import generate_source
 
 @pytest.fixture(scope="module")
 def lab1_topics():
-    from cpp_labs.pointers_refs.topics import TOPICS
-    return {t.id: t for t in TOPICS}
+    return {t.id: t for t in _subject_topics("pointers_refs")}
 
 
 def _run(topic):
@@ -90,8 +97,7 @@ def test_ref_rebind_illusion_address_proof(lab1_topics):
 
 @pytest.fixture(scope="module")
 def lab2_topics():
-    from cpp_labs.smart_ptrs.topics import TOPICS
-    return {t.id: t for t in TOPICS}
+    return {t.id: t for t in _subject_topics("smart_ptrs")}
 
 
 def test_lab2_unique_basics(lab2_topics):
@@ -149,12 +155,10 @@ def test_lab2_weak_cycle_fix(lab2_topics):
 
 
 def test_lab1_all_topics_have_doc_url():
-    from cpp_labs.pointers_refs.topics import TOPICS
-    for topic in TOPICS:
+    for topic in _subject_topics("pointers_refs"):
         assert topic.doc_url != "", f"Topic {topic.id!r} is missing doc_url"
 
 
 def test_lab2_all_topics_have_doc_url():
-    from cpp_labs.smart_ptrs.topics import TOPICS
-    for topic in TOPICS:
+    for topic in _subject_topics("smart_ptrs"):
         assert topic.doc_url != "", f"Topic {topic.id!r} is missing doc_url"

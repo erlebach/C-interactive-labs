@@ -1,5 +1,4 @@
 id: op_equal
-order: 3
 name: "operator== (member)"
 group: Operators
 doc_url: https://en.cppreference.com/w/cpp/language/operators

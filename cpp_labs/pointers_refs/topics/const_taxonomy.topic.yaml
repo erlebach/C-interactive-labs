@@ -1,5 +1,4 @@
 id: const_taxonomy
-order: 2
 name: const Taxonomy
 group: Raw
 doc_url: https://en.cppreference.com/w/cpp/language/cv

@@ -1,5 +1,4 @@
 id: null_deref
-order: 7
 name: "Gotcha: Null Deref"
 group: Gotchas
 doc_url: https://en.cppreference.com/w/cpp/language/ub

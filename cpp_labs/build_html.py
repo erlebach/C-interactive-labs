@@ -212,25 +212,16 @@ def main() -> None:
     project_root = Path(__file__).parent.parent
     dist_dir = project_root / "dist_labs"
 
-    from .pointers_refs.topics import (
-        basic_ptr,
-        const_taxonomy,
-        null_deref,
-        ref_const,
-        ref_must_bind,
-        ref_no_null,
-        ref_rebind_illusion,
-    )
-    from .smart_ptrs.topics import TOPICS as SMART_TOPICS
+    from .topic_yaml import load_topics
+
+    pr = load_topics(project_root / "pointers_refs" / "topics")
+    SMART_TOPICS = list(load_topics(project_root / "smart_ptrs" / "topics").values())
 
     pointers_refs_topics = [
-        basic_ptr,
-        const_taxonomy,
-        ref_must_bind,
-        ref_no_null,
-        ref_rebind_illusion,
-        ref_const,
-        null_deref,
+        pr[i] for i in (
+            "basic_ptr", "const_taxonomy", "ref_must_bind", "ref_no_null",
+            "ref_rebind_illusion", "ref_const", "null_deref",
+        )
     ]
 
     print("Building lab: pointers_refs …")

@@ -24,8 +24,10 @@ def loaded():
     return load_topics(_HERE / "topics")
 
 
-def test_order_preserved(loaded):
-    assert list(loaded.keys()) == _LEGACY_ORDER
+def test_all_topics_present(loaded):
+    # Render order comes from the layout's demos: list, not the loader, so we
+    # assert the id set — not a sequence.
+    assert set(loaded) == set(_LEGACY_ORDER)
 
 
 def test_copy_error_has_no_ptrdata(loaded):

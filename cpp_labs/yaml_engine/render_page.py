@@ -53,17 +53,13 @@ _REF_RE = re.compile(r"\$\{([^}]+)\}")
 
 
 def _topic_registry() -> dict[str, Any]:
-    from ..pointers_refs.topics import (
-        basic_ptr, const_taxonomy, dangling_ptr, null_deref, ref_const,
-        ref_must_bind, ref_no_null, ref_rebind_illusion,
-    )
-    from ..smart_ptrs.topics import TOPICS as SMART
-    from ..function_args.topics import TOPICS as FUNC_ARGS
-    from ..op_overload.topics import TOPICS as OP_OVERLOAD
-    topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
-              ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
-              *SMART, *FUNC_ARGS, *OP_OVERLOAD]
-    return {t.id: t for t in topics}
+    """Every subject's topics, auto-discovered from ``cpp_labs/*/topics``.
+
+    No subject is named here: dropping in a new subject folder (a ``topics/``
+    dir of YAML plus a layout) is enough for the engine to bake and render it.
+    """
+    from ..topic_yaml import discover_topics
+    return discover_topics(Path(__file__).resolve().parents[1])
 
 
 # ---------------------------------------------------------------------------

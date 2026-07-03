@@ -1,5 +1,4 @@
 id: unique_move
-order: 2
 name: 'unique_ptr: Move'
 group: unique_ptr
 doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr

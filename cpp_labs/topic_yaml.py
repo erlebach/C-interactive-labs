@@ -55,11 +55,33 @@ def _topic(d: dict) -> TopicTemplate:
 def load_topics(topics_dir: Path) -> dict[str, TopicTemplate]:
     """Return ``{id: TopicTemplate}`` for all ``*.topic.yaml`` in *topics_dir*.
 
-    Ordered by each file's ``order:`` integer (falls back to id for ties).
+    Keyed by id and sorted by id for a stable, reproducible order. The order in
+    which examples actually appear in a demonstration is set by the layout's
+    ``demos:`` list — not here — so a topic file needs no ``order:`` field.
     """
-    docs = []
-    for path in topics_dir.glob("*.topic.yaml"):
-        data = yaml.safe_load(path.read_text())
-        docs.append(data)
-    docs.sort(key=lambda d: (d.get("order", 1_000_000), d.get("id", "")))
+    docs = [yaml.safe_load(p.read_text()) for p in topics_dir.glob("*.topic.yaml")]
+    docs.sort(key=lambda d: d.get("id", ""))
     return {d["id"]: _topic(d) for d in docs}
+
+
+def discover_topics(root: Path) -> dict[str, TopicTemplate]:
+    """Return one ``{id: TopicTemplate}`` registry for every subject under *root*.
+
+    Scans ``root/*/topics`` — each subject folder that owns a ``topics/`` dir
+    contributes its topic files — and merges them into a single id-keyed
+    registry. A subject that only *reuses* another's topics (no ``topics/`` dir
+    of its own) is skipped; its page still resolves those ids from this merged
+    set. This is what lets a brand-new subject be pure YAML: drop a folder with
+    a ``topics/`` dir and a layout, and the engine finds it with no code change.
+
+    Args:
+        root: The package root holding the subject folders (i.e. ``cpp_labs/``).
+
+    Returns:
+        A ``{id: TopicTemplate}`` mapping across all subjects. If two subjects
+        define the same id, the last one scanned (by sorted path) wins.
+    """
+    reg: dict[str, TopicTemplate] = {}
+    for topics_dir in sorted(root.glob("*/topics")):
+        reg.update(load_topics(topics_dir))
+    return reg

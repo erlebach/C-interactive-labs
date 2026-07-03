@@ -1,5 +1,4 @@
 id: dangling_ptr
-order: 8
 name: "Gotcha: Dangling Ptr"
 group: Gotchas
 doc_url: https://en.cppreference.com/w/cpp/language/ub

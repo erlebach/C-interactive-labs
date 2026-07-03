@@ -1,5 +1,4 @@
 id: shared_basics
-order: 4
 name: 'shared_ptr: Basics'
 group: shared_ptr
 doc_url: https://en.cppreference.com/w/cpp/memory/shared_ptr
