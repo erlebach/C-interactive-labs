@@ -222,7 +222,21 @@ def _build_topic(args: dict, data: dict) -> str:
 
 
 def _build_concept(args: dict, data: dict) -> str:
-    """Example Concept disclosure over resolved prose (default collapsed)."""
+    """Build one example's fold-away Concept note from its YAML block.
+
+    Any ``${...}`` references in the block's text have already been filled in
+    with real values before this runs.
+
+    Args:
+        args: The concept block's fields, already filled in: ``id`` and ``text``,
+            plus optional ``label`` (the clickable line) and ``open`` (start
+            already open).
+        data: The page's baked data. Not needed here, because the text is already
+            filled in; kept so every builder has the same shape.
+
+    Returns:
+        The Concept note as a piece of HTML.
+    """
     return C.concept_note(args["id"], args["text"],
                           label=args.get("label", "Concept"),
                           open_=args.get("open", False))
@@ -320,10 +334,29 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
 
 
 def _build_sidebar(sidebar: list, base: Path) -> list:
-    """Turn a layout's ``sidebar:`` keyword-block list into (label, body) items.
+    """Build the page's side-list entries from a layout's ``sidebar:`` list.
 
-    Each entry is a single-key mapping: ``glossary`` (loads a *.glossary.yaml)
-    or ``concept`` (inline prose). Order is preserved (= rail order).
+    Each item in the list names one kind of entry:
+
+    - ``glossary``: opens a vocabulary file and shows its terms.
+    - ``concept``: a short "what this page teaches" note written right there in
+      the layout.
+
+    The entries keep the order they were written in, which is the order they
+    appear in the side list.
+
+    Args:
+        sidebar: The layout's list of side entries. Each entry is a mapping with
+            exactly one key naming its kind (``glossary`` or ``concept``).
+        base: The folder the layout file lives in, used to find any files a
+            ``glossary`` entry points to.
+
+    Returns:
+        One ``(label, html)`` pair per side entry, in order.
+
+    Raises:
+        ValueError: If an entry has more than one key.
+        KeyError: If an entry names a kind other than ``glossary`` or ``concept``.
     """
     items = []
     for entry in sidebar or []:

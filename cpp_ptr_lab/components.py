@@ -168,10 +168,21 @@ def callout_note(comp_id: str, text: str, *, label: str = "Note") -> str:
 
 def _prose_box(comp_id: str, body_html: str, *, title: str | None = None,
                css_class: str) -> str:
-    """Shared bordered prose section for glossary and concept panels.
+    """Draw a bordered box with some text inside.
 
-    With a ``title`` the section is labelled by an ``<h2>`` via aria-labelledby
-    (the glossary's accessible pattern); without one it is a plain bordered box.
+    This is the one shared look for the vocabulary list and the concept boxes,
+    so they all match. Give it a title to add a heading at the top of the box
+    (screen readers then announce the box by that heading). Leave the title out
+    for a plain box with no heading.
+
+    Args:
+        comp_id: A short unique name for this box, used to build its HTML ids.
+        body_html: The ready-made HTML shown inside the box.
+        title: Optional heading at the top of the box; ``None`` means no heading.
+        css_class: The style class placed on the box so it can be styled.
+
+    Returns:
+        The box as a piece of HTML.
     """
     p = _safe(comp_id)
     if title is not None:
@@ -203,9 +214,21 @@ def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
 
 def concept_note(comp_id: str, text: str, *, label: str = "Concept",
                  open_: bool = False) -> str:
-    """Example (per-example) Concept: a native <details> disclosure, collapsed by
-    default. Zero-JS, keyboard- and screen-reader-operable. The expanded body is
-    a bordered prose box rendered through the shared ``_prose_box`` helper.
+    """Show one example's Concept as a fold-away note.
+
+    The note starts folded, showing just a single "Concept" line. Clicking that
+    line (or pressing Enter on it) opens it to reveal the text; clicking again
+    folds it back. It works with the keyboard and with screen readers, and needs
+    no scripting. Use it for the short note that says why one example is here.
+
+    Args:
+        comp_id: A short unique name for this note, used to build its HTML ids.
+        text: The note's wording, shown once the reader opens it.
+        label: The wording of the clickable line; defaults to "Concept".
+        open_: Start already open instead of folded. Defaults to folded.
+
+    Returns:
+        The fold-away note as a piece of HTML.
     """
     p = _safe(comp_id)
     body = _prose_box(f"{p}-box", f'<p style="margin:0">{_e(text)}</p>', css_class="concept")
@@ -220,9 +243,20 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
 
 
 def concept_panel(comp_id: str, text: str, *, title: str = "Concept") -> str:
-    """Demonstration (whole-file) Concept: a titled prose panel shown as a leading
-    rail entry. No disclosure behaviour — for the collapsible per-example variant
-    use ``concept_note``.
+    """Show the whole page's Concept as its own titled panel.
+
+    This is the "what this whole page teaches" note. It appears as an entry in
+    the side list (like the Vocabulary entry) and is shown in full whenever it is
+    picked — it does not fold away. For the fold-away note that belongs to a
+    single example, use ``concept_note`` instead.
+
+    Args:
+        comp_id: A short unique name for this panel, used to build its HTML ids.
+        text: The Concept wording.
+        title: The heading shown at the top of the panel; defaults to "Concept".
+
+    Returns:
+        The panel as a piece of HTML.
     """
     return _prose_box(comp_id, f'<p style="margin:0">{_e(text)}</p>',
                       title=title, css_class="concept")
@@ -637,12 +671,31 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]],
 def nav_shell(comp_id: str, items: Sequence[tuple[str, str]], *,
               style: str = "left_rail", leading: int = 0,
               selected: int | None = None) -> str:
-    """Uniform nav over (label, body) items — one signature for every style.
+    """Arrange a set of titled panels using one chosen navigation style.
 
-    ``leading`` sets apart the first N reference entries (left_rail italicises
-    them; other styles ignore it). ``selected`` picks the on-load panel
-    (left_rail and top_tabs honour it; stacked ignores it). Unknown ``style``
-    raises ValueError.
+    Each panel is a ``(title, html)`` pair. This one function handles all three
+    styles, so a page can choose its style purely from its data:
+
+    - ``"left_rail"``: a clickable list down the left; one panel shows at a time.
+    - ``"top_tabs"``: a row of tabs across the top; one panel shows at a time.
+    - ``"stacked"``: every panel shown one below another, with no switching.
+
+    Args:
+        comp_id: A short unique name for this block, used to build its HTML ids.
+        items: The panels, in order, each a ``(title, html)`` pair.
+        style: Which navigation style to use (see the list above).
+        leading: How many of the first entries are reference material (such as
+            Vocabulary or the page Concept) to set apart. The left-rail style
+            shows them in italics; the other styles ignore this.
+        selected: Which panel is open when the page loads, given by its position
+            (0 is the first). The left-rail and top-tabs styles honour it; the
+            stacked style ignores it. ``None`` means the first panel.
+
+    Returns:
+        The navigation block as a piece of HTML.
+
+    Raises:
+        ValueError: If ``style`` is not one of the three names above.
     """
     sel = 0 if selected is None else selected
     if style == "left_rail":
