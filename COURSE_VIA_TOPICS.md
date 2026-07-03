@@ -6,6 +6,15 @@ course by a manifest. Captures the architecture discussion of 2026-06-30.
 
 > Status: design / direction. Not yet implemented beyond the pointer subject.
 > Load-bearing code referenced by path; this file does not restate it.
+>
+> **Update 2026-07-02:** the pointer subject's topic *source* (C++ templates,
+> controls, value-maps, multi-sub-case truth tables) now lives in **YAML data**
+> — one `pointers_refs/topics/<id>.topic.yaml` per topic, loaded by
+> `topics_loader.py` into the unchanged `TopicTemplate` dataclass; the old
+> `pointers_refs/topics.py` is now a thin re-export shim. Authoring a pointer
+> topic is pure YAML — no Python. This closes the last data-over-code gap for the
+> pointer subject (see §1, §3). `smart_ptrs` / `function_args` still hold their
+> topics in Python, pending the same (loader is generic and ready for them).
 
 ---
 
@@ -17,7 +26,10 @@ are **two independent layers**:
 
 - **Content** — a `TopicTemplate`: a real C++ program (with variants), its
   instrumentation, and its explanation. It bakes to real `g++` output and a
-  diagram. *This is what you author per subject.*
+  diagram. *This is what you author per subject* — and, as of 2026-07-02 for the
+  pointer subject, you author it as **YAML data** (`topics/<id>.topic.yaml`)
+  loaded into the `TopicTemplate` dataclass, not as hand-written Python. Content
+  is data; only new *component/diagram* kinds need code.
 - **Curriculum** — the order and framing of content into lessons and a course.
   *This is text and sequence, expressed as YAML, and is free to change.*
 
@@ -42,7 +54,7 @@ flowchart TD
   page --> engine["render_page engine\ndispatch + ${refs} + g++ bake"]
   engine --> spine["reusable component spine\nshell/tabs/panel/console/badge/\nquiz/steps/callout/subcases/legend"]
   engine --> diagrams["per-subject diagram components\nmemory_diagram (ptr) / stack_frame / class_layout / …"]
-  engine --> topics["per-subject topic libraries\nsubjects/<area>/topics.py"]
+  engine --> topics["per-subject topic libraries\nsubjects/<area>/topics/*.topic.yaml (data)\n→ topics_loader → TopicTemplate"]
   topics --> bake["g++ bake (real stdout/stderr/ptrdata)"]
   spine --> html["self-contained WCAG AA page\n(block order = reading order)"]
   diagrams --> html
@@ -53,14 +65,17 @@ flowchart TD
 |---|---|---|---|
 | **Course manifest** | Ordered list of subjects → pages; drives top-level nav | `course.manifest.yaml` | instructor |
 | **Page spec** | One lesson: a flat `blocks:` list of components | `pages/<lesson>.page.yaml` | instructor |
-| **Topic library** | ~10–15 `TopicTemplate`s for one subject | `subjects/<area>/topics.py` | dev |
+| **Topic library** | ~10–15 topics for one subject, authored as YAML data | `subjects/<area>/topics/*.topic.yaml` (+ generic `topics_loader.py`) | instructor/author |
 | **Components** | Pure render functions (spine + diagrams) | `components.py`, `diagrams/*.py` | dev |
 
 Already built (pointer subject): the component library
 (`cpp_ptr_lab/components.py`), the YAML page engine
-(`cpp_ptr_lab/yaml_engine/render_page.py`), and a worked page spec
-(`cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml`). The manifest layer and the
-non-pointer subjects are future work.
+(`cpp_ptr_lab/yaml_engine/render_page.py`), a worked page spec
+(`cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml`), and — since 2026-07-02 — the
+pointer **topic library itself as YAML data**
+(`cpp_ptr_lab/pointers_refs/topics/*.topic.yaml`, loaded by `topics_loader.py`).
+So all four layers are now data/YAML for pointers except the components. The
+manifest layer and the non-pointer subjects are future work.
 
 ---
 
@@ -71,21 +86,28 @@ flat 30–50 in a single namespace.
 
 ```
 subjects/
-  initializers/topics.py      # ~8 topics
-  pointers/topics.py          # existing 7  (today: pointers_refs/topics.py)
-  smart_ptrs/topics.py        # existing 8
-  stack_frames/topics.py      # recursion / non-recursion / heap vs stack
-  classes/topics.py           # ctor / cctor / assign / move; return & arg types
-  function_args/topics.py     # by value / pointer / reference
-  templates/topics.py         # single / multiple / specialized
-  stl/topics.py               # explore via discussion
+  initializers/topics.py         # ~8 topics
+  pointers/topics/*.topic.yaml    # existing 8, now YAML data (today: pointers_refs/topics/)
+  smart_ptrs/topics.py            # existing 8   (Python; YAML migration pending)
+  stack_frames/topics.py          # recursion / non-recursion / heap vs stack
+  classes/topics.py               # ctor / cctor / assign / move; return & arg types
+  function_args/topics.py         # by value / pointer / reference (Python; pending)
+  templates/topics.py             # single / multiple / specialized
+  stl/topics.py                   # explore via discussion
 ```
+
+The YAML form is the target for every subject (pointers is the first); a
+subject not yet migrated simply keeps its `topics.py`. A per-subject shim can
+re-export the YAML-loaded topics under the old module name, so consumers never
+change (this is exactly what `pointers_refs/topics.py` now does).
 
 **Why per-subject, not flat:** cohesion; independent on/off via
 `lab_config.yaml`; matches the `pointers_refs` / `smart_ptrs` split already
 validated in this repo; each subject is editable in isolation. A flat 50-topic
 namespace gives none of that. The topic registry simply aggregates every
-subject module by id (it already does this for two modules — add imports).
+subject by id — for pointers it globs `topics/*.topic.yaml` via
+`load_topics()`; unmigrated subjects are still imported as Python modules — and
+the two coexist behind the same `{id: TopicTemplate}` registry.
 
 **Author topics lazily.** Do not pre-create 50 topics speculatively. Author a
 subject's topics when you build that subject's lesson, driven by the gotchas and
@@ -273,8 +295,10 @@ mapping) is queued as a next step — see the session handoff.
 
 1. **Decouple content from curriculum.** Curriculum = YAML order/text (free);
    content = per-subject topic templates (authored).
-2. **Content → per-subject libraries** of ~10–15 topics; aggregate by registry;
-   author lazily, with subject-specific instrumentation.
+2. **Content → per-subject libraries** of ~10–15 topics, authored as **YAML data**
+   (`topics/*.topic.yaml` via a generic `topics_loader.py`; pointers done
+   2026-07-02, others pending); aggregate by registry; author lazily, with
+   subject-specific instrumentation. A shim keeps the old `topics.py` import path.
 3. **Reuse the ~10-component spine; budget 1–3 new diagram components per subject.**
 4. **Curriculum → YAML page specs + a course manifest;** flat block order is the
    ADA mechanism (meaningful sequence by construction).
@@ -287,6 +311,9 @@ mapping) is queued as a next step — see the session handoff.
 - `cpp_ptr_lab/components.py` — the component library (the spine + pointer diagrams).
 - `cpp_ptr_lab/yaml_engine/render_page.py` — the YAML lesson engine.
 - `cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml` — a worked lesson spec.
+- `cpp_ptr_lab/pointers_refs/topics/*.topic.yaml` — the pointer **topic source** as YAML data (2026-07-02).
+- `cpp_ptr_lab/pointers_refs/topics_loader.py` — loads topic YAML into `TopicTemplate`; `topics.py` is now its shim.
+- `docs/superpowers/specs/2026-07-02-source-to-yaml-design.md`, `.../plans/2026-07-02-source-to-yaml.md` — the migration design + plan.
 - `cpp_ptr_lab/topic_page.py` — the imperative equivalent (parity reference).
 - `cpp_ptr_lab/lab_config.yaml` — per-lab/topic visibility (the "hide topics" knob).
 - `handoffs/HANDOFF_2026-06-30_18h32mEST.md` — session handoff with next steps.
