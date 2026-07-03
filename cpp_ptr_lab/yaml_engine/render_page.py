@@ -269,6 +269,31 @@ def _render_block(block: dict, data: dict) -> str:
     return _DISPATCH[name](cid, **args)
 
 
+def _glossary_from_source(args: dict, base: Path) -> tuple[str, str]:
+    """Load a shared ``*.glossary.yaml`` file and render it to HTML.
+
+    Both a layout's ``header:`` and its ``sidebar:`` can name a glossary by
+    file (``source:``) rather than writing its terms inline; this is the one
+    place that turns such a reference into rendered HTML.
+
+    Args:
+        args: The glossary block's arguments. ``source`` (required) is the
+            glossary file's path relative to *base*; ``id`` (optional, default
+            ``"glossary"``) becomes the section's HTML id.
+        base: The folder the layout file lives in, used to resolve ``source``.
+
+    Returns:
+        A ``(title, html)`` pair — *title* is the file's ``title:`` (default
+        ``"Glossary"``), *html* is the rendered glossary section. Callers that
+        need a label (e.g. the sidebar) reuse *title* as the default label.
+    """
+    g = load_spec(Path(base) / args["source"])
+    terms = [(t["term"], t["def"]) for t in g.get("terms", [])]
+    title = g.get("title", "Glossary")
+    html = C.glossary(args.get("id", "glossary"), title, terms)
+    return title, html
+
+
 def _render_header(blocks: list, base_dir: Path) -> str:
     """Render a layout's ``header:`` blocks once.
 
@@ -282,10 +307,8 @@ def _render_header(blocks: list, base_dir: Path) -> str:
         (name, raw), = block.items()
         args = dict(raw or {})
         if name == "glossary" and "source" in args:
-            g = load_spec(Path(base_dir) / args["source"])
-            terms = [(t["term"], t["def"]) for t in g.get("terms", [])]
-            out.append(C.glossary(args.get("id", "glossary"),
-                                  g.get("title", "Glossary"), terms))
+            _, html = _glossary_from_source(args, base_dir)
+            out.append(html)
         else:
             out.append(_render_block(block, {}))
     return "\n".join(out)
@@ -364,10 +387,8 @@ def _build_sidebar(sidebar: list, base: Path) -> list:
             raise ValueError(f"a sidebar entry must have exactly one key, got {list(entry)}")
         (kind, a), = entry.items()
         if kind == "glossary":
-            gs = load_spec(Path(base) / a["source"])
-            terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
-            label = a.get("label", gs.get("title", "Glossary"))
-            body = C.glossary(a.get("id", "glossary"), gs.get("title", "Glossary"), terms)
+            title, body = _glossary_from_source(a, base)
+            label = a.get("label", title)
         elif kind == "concept":
             label = a.get("label", "Concept")
             body = C.concept_panel(a.get("id", "concept"), a["text"], title=label)

@@ -449,6 +449,27 @@ class TestHeader:
         assert "Pointers" in html and "pointee" in html and "the object pointed to" in html
 
 
+class TestGlossaryFromSource:
+    """The shared helper both _render_header and _build_sidebar use to load a
+    ``source:`` glossary file and render it: returns ``(title, html)``."""
+
+    def test_returns_title_and_rendered_html(self, tmp_path):
+        (tmp_path / "g.glossary.yaml").write_text(
+            "title: Pointers\nterms:\n  - {term: pointee, def: the object pointed to}\n",
+            encoding="utf-8")
+        title, html = R._glossary_from_source(
+            {"id": "g", "source": "g.glossary.yaml"}, tmp_path)
+        assert title == "Pointers"
+        assert "pointee" in html and "the object pointed to" in html and "<dl" in html
+
+    def test_defaults_when_title_and_id_absent(self, tmp_path):
+        (tmp_path / "g.glossary.yaml").write_text(
+            "terms:\n  - {term: ptr, def: an address}\n", encoding="utf-8")
+        title, html = R._glossary_from_source({"source": "g.glossary.yaml"}, tmp_path)
+        assert title == "Glossary"
+        assert 'id="glossary"' in html and "an address" in html
+
+
 class TestMobileOverflow:
     """Grid tracks must be shrinkable (minmax(0,...)+min-width:0) so a wide code
     line scrolls inside its box instead of blowing the page wider than the phone."""
