@@ -2,5 +2,5 @@ title: "operator*  (non-member)"
 language: cpp
 bake: { s: op_scale }
 blocks:
-  - callout_note: { id: s-note, label: Concept, text: "${s.explanation}" }
+  - concept: { id: s-note, text: "${s.explanation}" }
   - topic: { id: s, source: s, diagram: false }

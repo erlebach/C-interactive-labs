@@ -2,5 +2,5 @@ title: "operator+  (member)"
 language: cpp
 bake: { p: op_plus }
 blocks:
-  - callout_note: { id: p-note, label: Concept, text: "${p.explanation}" }
+  - concept: { id: p-note, text: "${p.explanation}" }
   - topic: { id: p, source: p, diagram: false }

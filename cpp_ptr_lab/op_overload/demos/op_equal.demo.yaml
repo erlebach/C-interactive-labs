@@ -2,5 +2,5 @@ title: "operator==  (member)"
 language: cpp
 bake: { e: op_equal }
 blocks:
-  - callout_note: { id: e-note, label: Concept, text: "${e.explanation}" }
+  - concept: { id: e-note, text: "${e.explanation}" }
   - topic: { id: e, source: e, diagram: false }

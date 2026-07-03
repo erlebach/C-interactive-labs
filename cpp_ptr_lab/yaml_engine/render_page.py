@@ -221,10 +221,18 @@ def _build_topic(args: dict, data: dict) -> str:
                         diagram=args.get("diagram", True))
 
 
+def _build_concept(args: dict, data: dict) -> str:
+    """Example Concept disclosure over resolved prose (default collapsed)."""
+    return C.concept_note(args["id"], args["text"],
+                          label=args.get("label", "Concept"),
+                          open_=args.get("open", False))
+
+
 _BUILDERS = {
     "heading": _build_heading,
     "html": _build_html,
     "topic": _build_topic,
+    "concept": _build_concept,
 }
 
 

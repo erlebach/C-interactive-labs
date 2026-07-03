@@ -514,3 +514,22 @@ class TestOptionalDiagram:
             {"topic": {"id": "t", "source": "bp"}}]}
         html = R.render_page(spec, FAKE)
         assert 'role="img"' in html                 # diagram present by default
+
+
+class TestConceptBlock:
+    def test_concept_block_renders_disclosure_with_resolved_text(self):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        spec = {"blocks": [
+            {"concept": {"id": "n1", "text": "${x.explanation}"}},
+        ]}
+        data = {"x": {"explanation": "A reference is an alias."}}
+        html = R.render_fragment(spec, data)
+        assert "<details" in html and "class=\"concept\"" in html
+        assert ">Concept</summary>" in html
+        assert "A reference is an alias." in html
+
+    def test_concept_block_open_flag(self):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        spec = {"blocks": [{"concept": {"id": "n2", "text": "hi", "open": True}}]}
+        html = R.render_fragment(spec, {})
+        assert "class=\"concept\" open" in html

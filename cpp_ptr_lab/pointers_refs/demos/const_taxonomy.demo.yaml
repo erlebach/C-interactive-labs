@@ -2,5 +2,5 @@ title: "const Taxonomy"
 language: cpp
 bake: { ct: const_taxonomy }
 blocks:
-  - callout_note: { id: ct-note, label: Concept, text: "${ct.explanation}" }
+  - concept: { id: ct-note, text: "${ct.explanation}" }
   - topic: { id: ct, source: ct }
