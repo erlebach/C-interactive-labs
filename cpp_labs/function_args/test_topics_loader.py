@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from cpp_labs.pointers_refs.test_topics_loader import serialize_all
+from cpp_labs.tests.topic_equiv import serialize_all
 from cpp_labs.topic_yaml import load_topics
 
 _HERE = Path(__file__).parent

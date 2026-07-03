@@ -6,35 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from cpp_labs.code_generator import ControlDef, TopicTemplate
+from cpp_labs.tests.topic_equiv import serialize_all
 from cpp_labs.topic_yaml import load_topics
 
 _HERE = Path(__file__).parent
 _SNAPSHOT = _HERE / "topics_snapshot.json"
-
-
-def serialize_control(c: ControlDef) -> dict:
-    return {
-        "id": c.id, "label": c.label, "kind": c.kind,
-        "options": list(c.options), "default": c.default,
-        "placeholder": c.placeholder, "value_map": c.value_map,
-    }
-
-
-def serialize_topic(t: TopicTemplate) -> dict:
-    return {
-        "id": t.id, "name": t.name, "group": t.group, "doc_url": t.doc_url,
-        "explanation": t.explanation, "target_var": t.target_var,
-        "template": t.template, "sanitize": t.sanitize,
-        "has_ptrdata": t.has_ptrdata,
-        "controls": [serialize_control(c) for c in t.controls],
-        "cases": ([{"label": c.label, "subs": c.subs} for c in t.cases]
-                  if t.cases else None),
-    }
-
-
-def serialize_all(topics) -> dict:
-    return {t.id: serialize_topic(t) for t in topics}
 
 
 _LEGACY_ORDER = [

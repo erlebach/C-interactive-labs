@@ -1,16 +1,19 @@
 """Integration tests: compile and run each topic template with defaults."""
+from pathlib import Path
+
 import pytest
 
+import cpp_labs
 from cpp_labs.compiler_runner import compile_and_run
 from cpp_labs.code_generator import generate_source
 from cpp_labs.topic_yaml import load_topics
 
+_ROOT = Path(cpp_labs.__file__).parent
+
 
 def _subject_topics(name: str) -> list:
     """Load one subject's topics straight from its YAML (no ``topics.py`` shim)."""
-    import cpp_labs
-    from pathlib import Path
-    return list(load_topics(Path(cpp_labs.__file__).parent / name / "topics").values())
+    return list(load_topics(_ROOT / name / "topics").values())
 
 
 # ---------------------------------------------------------------------------
