@@ -2,6 +2,23 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-03 00:30 — Operator-overloading demo (op_overload) + optional-diagram flag
+
+Added the first **non-pointer subject**, operator overloading, almost entirely as YAML data — validating
+that a subject outside the memory-diagram domain is cheap. New engine capability: `topic: { diagram: false }`
+suppresses the per-program memory diagram (the `COURSE_VIA_TOPICS.md §7` "topic layout is a fixed recipe"
+fix); default stays **on** so pointer pages are byte-unchanged. Threaded `_build_topic → demo_panel →
+_demo_variant_body` (all default `diagram=True`). New subject `cpp_ptr_lab/op_overload/` mirrors
+`pointers_refs/`: 4 topics (op_plus/op_scale/op_equal/op_stream), 4 demos, 1 glossary, 1 `left_rail`
+layout → **4 rail entries** (one operator each; the `<<` entry stacks the correct non-member version + the
+member-`<<` compile-error gotcha). Wired via an op_overload `topics.py` shim reusing the generic
+`load_topics(topics_dir)` + one line in `_topic_registry`. Real g++ output baked (`a + b = (4, 6)`,
+`2 * a = (2, 4)`, `a == b: false`, `a = (1, 2)`); the member-`<<` case genuinely fails to compile.
+Self-contained, no memory diagram, WCAG AA. TDD RED→GREEN: 2 diagram-flag tests + 7 op_overload build
+tests. Suite **412 → 421**. Known cosmetic: single-variant topics still show a lone "default" tab —
+slated for the reusability pass. Build: `python -m cpp_ptr_lab.yaml_engine.render_page
+cpp_ptr_lab/op_overload/layouts/op_overload.rail.yaml dist`.
+
 ## 2026-07-02 19:30 — pointers_refs C++ source migrated Python → YAML (data-over-code North Star)
 
 Final data-over-code North-Star step for pointers_refs: all 8 topics' C++ source (templates,
