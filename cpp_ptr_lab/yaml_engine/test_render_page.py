@@ -593,3 +593,9 @@ class TestSidebar:
         import pytest
         with pytest.raises(KeyError, match="unknown sidebar entry"):
             R._build_sidebar([{"legend": {"id": "x"}}], tmp_path)
+
+    def test_multi_key_sidebar_entry_raises(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        import pytest
+        with pytest.raises(ValueError, match="exactly one key"):
+            R._build_sidebar([{"glossary": {"id": "g"}, "concept": {"id": "c"}}], tmp_path)

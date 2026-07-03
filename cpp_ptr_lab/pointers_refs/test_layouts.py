@@ -157,5 +157,5 @@ def test_unknown_style_raises_valueerror(tmp_path):
     layout = tmp_path / "bad.rail.yaml"
     layout.write_text("title: Bad\nstyle: leftrail\nheader: []\ndemos: []\n",
                       encoding="utf-8")
-    with pytest.raises(ValueError, match="unknown layout style"):
+    with pytest.raises(ValueError, match="unknown nav style"):
         R.build_layout(layout, tmp_path / "dist")

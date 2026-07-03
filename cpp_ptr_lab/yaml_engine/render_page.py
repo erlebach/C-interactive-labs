@@ -327,6 +327,8 @@ def _build_sidebar(sidebar: list, base: Path) -> list:
     """
     items = []
     for entry in sidebar or []:
+        if len(entry) != 1:
+            raise ValueError(f"a sidebar entry must have exactly one key, got {list(entry)}")
         (kind, a), = entry.items()
         if kind == "glossary":
             gs = load_spec(Path(base) / a["source"])
