@@ -91,9 +91,10 @@ compile_commands.json
 # Project-specific (cpp_ptr_lab)
 # ---------------------------------------------------------------------------
 # Generated, self-contained HTML demos — regenerate with:
-#   python -m cpp_ptr_lab.build_html
+#   python -m cpp_labs.yaml_engine.render_page <layout.yaml> dist_labs
 # Remove this line if you want to track the built artifacts in the repo.
 dist/
+dist_labs/
 
 # ---------------------------------------------------------------------------
 # Editors / IDEs

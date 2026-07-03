@@ -1,0 +1,28 @@
+id: dangling_ptr
+order: 8
+name: "Gotcha: Dangling Ptr"
+group: Gotchas
+doc_url: https://en.cppreference.com/w/cpp/language/ub
+target_var: ptr
+sanitize: true
+explanation: >-
+  A pointer to a local variable becomes dangling when the variable goes out of
+  scope. Using it is undefined behaviour. Contrary to what the output might
+  show, the memory may have been reused. AddressSanitizer reliably catches this.
+template: |
+  #include <iostream>
+  #include <cstdio>
+
+  // Helper returns a pointer to its local variable — dangling after return.
+  int* make_dangling() {
+      int local = 99;
+      return &local;
+  }
+
+  int main() {
+      int* ptr = make_dangling();  // ptr is now dangling — UB
+      printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%d\n",
+             (void*)&ptr, (void*)ptr, *ptr);
+      <<HARNESS>>
+  }
+controls: []

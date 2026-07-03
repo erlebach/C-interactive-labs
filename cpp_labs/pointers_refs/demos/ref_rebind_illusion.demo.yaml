@@ -1,0 +1,6 @@
+title: "Ref: Rebind Illusion"
+language: cpp
+bake: { rri: ref_rebind_illusion }
+blocks:
+  - concept: { id: rri-note, text: "${rri.explanation}" }
+  - topic: { id: rri, source: rri }

@@ -1,0 +1,19 @@
+id: ref_must_bind
+order: 3
+name: "Ref: Must Bind"
+group: Refs
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+target_var: r
+has_ptrdata: false
+explanation: >-
+  Invariant 1: a reference must be bound to an object at the point of
+  declaration — it cannot be declared uninitialized. Contrary to pointers
+  (int* p; is valid), int& r; is a compile error.
+template: |
+  #include <iostream>
+  // Contrary to pointers (int* p; is valid uninitialized),
+  // a reference must be bound at declaration.
+  int main() {
+      int& r;  // compile error: 'r' declared as reference but not initialized
+  }
+controls: []

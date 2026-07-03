@@ -1,0 +1,50 @@
+# Page spec for the Basic Pointer topic, assembled from the component library.
+# A flat list of blocks; each block is {component_or_builder: {args}}. ${a.b.c}
+# pulls in data baked from the `bake:` topics. Reproduces dist/topics_v2/basic_ptr.html
+# but as data rather than Python (see ../topic_page.py for the imperative version).
+title: "Basic Pointer — assembled from YAML"
+
+language: cpp
+bake:
+  bp: basic_ptr            # compile this TopicTemplate; expose its variants as ${bp.*}
+
+blocks:
+  - callout_note:
+      id: intro
+      label: Concept
+      text: "${bp.explanation}"
+
+  - color_legend:
+      id: legend
+
+  - heading:
+      text: "Try each type"
+  - html:
+      content: "<p>Each tab compiles and runs a real program; the diagram, output, and raw bytes are baked from that run.</p>"
+  - topic:                 # reusable cluster: variant_tabs over bp's baked variants
+      id: types
+      source: bp
+
+  - heading:
+      text: "How it works"
+  - progressive_steps:
+      id: steps
+      steps:
+        - summary: "Step 1 — declare a value"
+          content: "<p><code>int val = 42;</code> stores the value 42 at some stack address.</p>"
+        - summary: "Step 2 — take its address"
+          content: "<p><code>int* ptr = &val;</code> makes <code>ptr</code> hold the address of <code>val</code>. <code>ptr</code> itself lives in 8 bytes (see the byte grid).</p>"
+        - summary: "Step 3 — dereference"
+          content: "<p><code>*ptr</code> follows the stored address and reads the value back: ${bp.int.target_val}.</p>"
+
+  - heading:
+      text: "Check yourself"
+  - predict_reveal_quiz:
+      id: quiz
+      question: "Given int val = 42; int* ptr = &val; — what does *ptr evaluate to?"
+      options:
+        - "the address of val"
+        - "${bp.int.target_val}"
+        - "0"
+      correct_index: 1
+      explanation: "*ptr follows the address ptr holds and reads the value: ${bp.int.target_val}."

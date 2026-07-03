@@ -1,0 +1,6 @@
+title: "Ref: Must Bind"
+language: cpp
+bake: { rmb: ref_must_bind }
+blocks:
+  - concept: { id: rmb-note, text: "${rmb.explanation}" }
+  - topic: { id: rmb, source: rmb }

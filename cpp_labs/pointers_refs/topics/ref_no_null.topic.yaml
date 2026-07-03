@@ -1,0 +1,36 @@
+id: ref_no_null
+order: 4
+name: "Ref: No Null"
+group: Refs
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+target_var: ptr
+sanitize: true
+explanation: >-
+  Invariant 2: a reference cannot be null — there is no null reference.
+  Contrary to pointers (int* p = nullptr; is valid), attempting to form
+  a null reference is undefined behaviour. Choose 'Show null ptr' to see
+  a valid null pointer; 'Attempt null ref' triggers UB (shown safely via ASan).
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      <<variant>>
+  }
+controls:
+  - id: variant
+    label: Variant
+    kind: dropdown
+    options: [Show null ptr, Attempt null ref]
+    default: Show null ptr
+    placeholder: "<<variant>>"
+    value_map:
+      "Show null ptr": |-1
+           int* ptr = nullptr;
+           printf("PTRDATA: type=null ptr_addr=%p\n", (void*)ptr);
+           printf("MEMBYTES: 00\n");
+           std::cout << "ptr is null: " << (ptr == nullptr ? "true" : "false") << std::endl;
+      "Attempt null ref": |-1
+           int* raw = nullptr;
+           int& r = *raw;  // UB: null reference — run with ASan for safe output
+           printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+                  (void*)&r, (void*)raw, r);

@@ -1,0 +1,22 @@
+id: null_deref
+order: 7
+name: "Gotcha: Null Deref"
+group: Gotchas
+doc_url: https://en.cppreference.com/w/cpp/language/ub
+target_var: ptr
+sanitize: true
+explanation: >-
+  Dereferencing a null pointer is undefined behaviour. Without AddressSanitizer
+  the program typically crashes with SIGSEGV. With ASan, you get a detailed
+  diagnostic showing the exact instruction. Run this topic to see the ASan output.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      int* ptr = nullptr;
+      printf("PTRDATA: type=null ptr_addr=%p\n", (void*)ptr);
+      int val = *ptr;  // null dereference — UB, caught by ASan
+      std::cout << "val=" << val << std::endl;
+      <<HARNESS>>
+  }
+controls: []

@@ -1,0 +1,40 @@
+id: ref_const
+order: 6
+name: "Ref: const Ref"
+group: Refs
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+target_var: x
+explanation: >-
+  T& allows reading and writing through the reference. const T& (where T is the
+  type of the referred-to object, e.g. int, double) allows only reading —
+  attempting modification is a compile error. const T& also extends the
+  lifetime of temporaries.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      int x = 42;
+      <<ref_decl>>
+      <<modify>>
+      printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+             (void*)&r, (void*)&x, x);
+      <<HARNESS>>
+  }
+controls:
+  - id: ref_type
+    label: Reference type
+    kind: dropdown
+    options: ["int&", "const int&"]
+    default: "int&"
+    placeholder: "<<ref_decl>>"
+    value_map:
+      "int&": "int& r = x;"
+      "const int&": "const int& r = x;"
+  - id: modify
+    label: Attempt modification through reference
+    kind: checkbox
+    default: false
+    placeholder: "<<modify>>"
+    value_map:
+      "false": "// no modification"
+      "true": "r = 99;  // attempt modification"
