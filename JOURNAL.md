@@ -2,6 +2,16 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-03 14:30 — Reusability seam: nav_shell, prose box, concept disclosure, sidebar
+
+Factored the demo_panel/nav_shell reusability seam so the engine dispatches navigation and prose uniformly, entirely as data. New **`nav_shell(comp_id, items, *, style="left_rail", leading=0, selected=None)`** is the single uniform nav interface: `build_layout` routes every layout `style:` (`left_rail`/`top_tabs`/`stacked`) through it with no per-style branching, and an unknown style raises `ValueError`. A shared **`_prose_box`** helper now backs the glossary and both concept renderers. The per-**Example** Concept that opens each demo is now a collapsed native `<details>` disclosure — the new **`concept`** block (`concept_note`, zero-JS/keyboard/SR-operable, optional `open: true`) — replacing the old always-open `callout_note: {label: Concept}` across all **12 demos**; `callout_note` stays valid for always-visible asides (backward compatible). Layouts gained a unified **`sidebar:`** list (replacing the old `glossaries:`): an ordered set of single-key keyword blocks (`- glossary: {id, source, label}` or `- concept: {id, text, [label]}`) rendered as leading italic rail entries in list order — where `concept` is the optional whole-**Demonstration** Concept (`concept_panel`, a leading rail panel, not selected on load). Suite now **438 passing**; both rail pages (`pointers_refs`, `op_overload`) rebuilt clean, self-contained, WCAG-AA.
+
+### Details
+
+**Locked vocabulary:** Demonstration = one HTML file/topic; Example = one rail entry (one `.demo.yaml`); Gotcha = an Example whose point is a failure; Concept = prose stating what is imparted (one `text:` field), at two levels — Demonstration (whole page, in `sidebar:`) and Example (per demo, the `concept` block).
+
+TDD RED→GREEN throughout, guarded by **two byte-identical guards**: one asserts `nav_shell(..., style="left_rail")` reproduces the previous `left_rail_layout` output byte-for-byte; the other asserts the migrated pages match the pre-refactor bytes — proving the seam is a pure refactor, not a behaviour change. Specs: `docs/superpowers/specs/2026-07-03-reusability-seam-design.md`, `docs/superpowers/plans/2026-07-03-reusability-seam.md`.
+
 ## 2026-07-03 00:30 — Operator-overloading demo (op_overload) + optional-diagram flag
 
 Added the first **non-pointer subject**, operator overloading, almost entirely as YAML data — validating
