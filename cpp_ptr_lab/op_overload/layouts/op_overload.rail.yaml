@@ -2,8 +2,8 @@ title: "Operator Overloading — Vec2"
 style: left_rail
 header:
   - heading: { text: "Operator Overloading" }
-glossaries:
-  - { id: g-ops, source: ../glossaries/op_overload.glossary.yaml, label: "Vocabulary" }
+sidebar:
+  - glossary: { id: g-ops, source: ../glossaries/op_overload.glossary.yaml, label: "Vocabulary" }
 demos:
   - ../demos/op_plus.demo.yaml
   - ../demos/op_scale.demo.yaml

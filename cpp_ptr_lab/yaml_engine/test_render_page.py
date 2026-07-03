@@ -572,3 +572,24 @@ class TestBuildLayoutNav:
         from cpp_ptr_lab.yaml_engine import render_page as R
         assert not hasattr(R, "_LAYOUTS")
         assert not hasattr(R, "_stacked_layout")
+
+
+class TestSidebar:
+    def test_mixed_glossary_and_concept_entries_in_order(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        g = tmp_path / "v.glossary.yaml"
+        g.write_text("title: Vocab\nterms:\n  - {term: ptr, def: an address}\n", encoding="utf-8")
+        sidebar = [
+            {"concept": {"id": "obj", "text": "What this teaches."}},
+            {"glossary": {"id": "g", "source": "v.glossary.yaml", "label": "Vocabulary"}},
+        ]
+        items = R._build_sidebar(sidebar, tmp_path)
+        assert [label for label, _ in items] == ["Concept", "Vocabulary"]
+        assert "What this teaches." in items[0][1] and "<details" not in items[0][1]
+        assert "an address" in items[1][1]
+
+    def test_unknown_sidebar_entry_raises(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        import pytest
+        with pytest.raises(KeyError, match="unknown sidebar entry"):
+            R._build_sidebar([{"legend": {"id": "x"}}], tmp_path)

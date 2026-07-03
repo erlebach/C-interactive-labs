@@ -319,6 +319,29 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     return out
 
 
+def _build_sidebar(sidebar: list, base: Path) -> list:
+    """Turn a layout's ``sidebar:`` keyword-block list into (label, body) items.
+
+    Each entry is a single-key mapping: ``glossary`` (loads a *.glossary.yaml)
+    or ``concept`` (inline prose). Order is preserved (= rail order).
+    """
+    items = []
+    for entry in sidebar or []:
+        (kind, a), = entry.items()
+        if kind == "glossary":
+            gs = load_spec(Path(base) / a["source"])
+            terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
+            label = a.get("label", gs.get("title", "Glossary"))
+            body = C.glossary(a.get("id", "glossary"), gs.get("title", "Glossary"), terms)
+        elif kind == "concept":
+            label = a.get("label", "Concept")
+            body = C.concept_panel(a.get("id", "concept"), a["text"], title=label)
+        else:
+            raise KeyError(f"unknown sidebar entry type: {kind!r}")
+        items.append((label, body))
+    return items
+
+
 def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     """Bake+compose a layout spec into one standalone page.
 
@@ -337,23 +360,17 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
 
     header_html = _render_header(spec.get("header", []), base)
 
-    # Option D: glossaries declared on the layout become leading rail entries (rendered
+    # Sidebar entries declared on the layout become leading rail entries (rendered
     # in full as a panel), set apart from the demos by an italic label.
-    glossary_items = []
-    for g in spec.get("glossaries", []):
-        gs = load_spec(base / g["source"])
-        terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
-        body = C.glossary(g.get("id", "glossary"), gs.get("title", "Glossary"), terms)
-        glossary_items.append((g.get("label", gs.get("title", "Glossary")), body))
-
-    items = list(glossary_items)
+    sidebar_items = _build_sidebar(spec.get("sidebar", []), base)
+    items = list(sidebar_items)
     for demo_ref in spec.get("demos", []):
         demo_spec = load_spec(base / demo_ref)
         data = bake_all(demo_spec.get("bake", {}), demo_spec.get("language"))
         fragment = render_fragment(demo_spec, data)
         items.append((demo_spec.get("title", "Demo"), fragment))
 
-    n = len(glossary_items)
+    n = len(sidebar_items)
     nav = C.nav_shell("lab", items, style=style, leading=n,
                       selected=(n if n < len(items) else 0))
     body = f"{header_html}\n{nav}" if header_html else nav
