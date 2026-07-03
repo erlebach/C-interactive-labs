@@ -313,6 +313,24 @@ class TestDemoPanel:
         assert html.count('class="ssc"') == 2    # one per decl-type tab
         assert "console--err" in html            # the failing sub-case
 
+    def test_single_variant_demo_has_no_default_tab(self):
+        # A single-variant topic (no categorical controls) has nothing to switch
+        # between: the lone "default" tab is noise. Render the body, no tab chrome.
+        from cpp_ptr_lab import components as C
+        entry = {
+            "explanation": "e", "variants": ["default"],
+            "default": {
+                "code_html": "<pre><code>int x = 1;</code></pre>", "ptrdata": None,
+                "stdout": "ran", "stderr": "", "ok": True, "failed": False,
+                "bytes": [], "target_val": "?", "source": "int x = 1;",
+            },
+        }
+        html = C.demo_panel("solo", entry)
+        assert ">default<" not in html           # no lone tab label
+        assert "vt-tabs" not in html             # no tab strip
+        assert 'type="radio"' not in html        # nothing to switch → no radio
+        assert "int x = 1;" in html              # the body is still rendered
+
 
 class TestGlossary:
     def test_glossary_renders_dl_with_terms(self):
@@ -388,6 +406,17 @@ class TestVariantTabsNesting:
         assert "vt-tabs-outer" in html
         assert "vt-panel-outer" in html and "vt-p0-outer" in html
 
+    def test_single_panel_renders_body_without_tab_chrome(self):
+        # One panel has nothing to switch: emit just the body in its bordered
+        # container, with no radios and no tab labels.
+        from cpp_ptr_lab import components as C
+        html = C.variant_tabs("solo", [("default", "<p>only</p>")])
+        assert "<p>only</p>" in html
+        assert 'type="radio"' not in html
+        assert "vt-tabs-solo" not in html
+        assert ">default<" not in html
+        assert "vt-panels-solo" in html          # still framed like a panel
+
     def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
         from cpp_ptr_lab import components as C
         inner = C.variant_tabs("inner", [("i0", "a"), ("i1", "b")])
@@ -462,3 +491,111 @@ class TestLeftRailMobileMenu:
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         # inline JS is allowed now, but nothing external / networked
         assert "<script src" not in html and "https://" not in html and "src=" not in html
+
+
+class TestOptionalDiagram:
+    """`topic: {diagram: false}` renders code+output but no memory diagram.
+
+    For subjects with no memory-model picture (operator overloading, classes,
+    templates), the panel must not force a "?" placeholder SVG. Default stays on
+    so pointer pages are unchanged.
+    """
+
+    def test_diagram_false_omits_memory_diagram(self):
+        spec = {"title": "T", "blocks": [
+            {"topic": {"id": "t", "source": "bp", "diagram": False}}]}
+        html = R.render_page(spec, FAKE)
+        assert 'role="img"' not in html            # no memory diagram at all
+        assert "int* ptr" in html and "double* ptr" in html  # code still shown
+        assert "<pre" in html                       # code block present
+
+    def test_diagram_default_keeps_memory_diagram(self):
+        spec = {"title": "T", "blocks": [
+            {"topic": {"id": "t", "source": "bp"}}]}
+        html = R.render_page(spec, FAKE)
+        assert 'role="img"' in html                 # diagram present by default
+
+
+class TestConceptBlock:
+    def test_concept_block_renders_disclosure_with_resolved_text(self):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        spec = {"blocks": [
+            {"concept": {"id": "n1", "text": "${x.explanation}"}},
+        ]}
+        data = {"x": {"explanation": "A reference is an alias."}}
+        html = R.render_fragment(spec, data)
+        assert "<details" in html and "class=\"concept\"" in html
+        assert ">Concept</summary>" in html
+        assert "A reference is an alias." in html
+
+    def test_concept_block_open_flag(self):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        spec = {"blocks": [{"concept": {"id": "n2", "text": "hi", "open": True}}]}
+        html = R.render_fragment(spec, {})
+        assert "class=\"concept\" open" in html
+
+
+class TestNavShell:
+    ITEMS = [("A", "<p>a</p>"), ("B", "<p>b</p>"), ("C", "<p>c</p>")]
+
+    def test_left_rail_is_byte_identical_to_left_rail_layout(self):
+        from cpp_ptr_lab import components as C
+        got = C.nav_shell("lab", self.ITEMS, style="left_rail", leading=1, selected=1)
+        want = C.left_rail_layout("lab", self.ITEMS, italic_count=1, selected=1)
+        assert got == want
+
+    def test_stacked_ignores_leading_and_selected(self):
+        from cpp_ptr_lab import components as C
+        html = C.nav_shell("lab", self.ITEMS, style="stacked", leading=2, selected=2)
+        assert "<p>a</p>" in html and "<p>b</p>" in html and "<p>c</p>" in html
+        assert "type=\"radio\"" not in html and "font-style:italic" not in html
+
+    def test_top_tabs_honors_selected(self):
+        from cpp_ptr_lab import components as C
+        html = C.nav_shell("lab", self.ITEMS, style="top_tabs", selected=2)
+        # the third tab's radio is the checked one
+        assert 'id="lab-t2" style=' in html and 'id="lab-t2"' in html
+        import re
+        checked = re.search(r'id="lab-t(\d)"[^>]*checked', html)
+        assert checked and checked.group(1) == "2"
+
+    def test_unknown_style_raises(self):
+        from cpp_ptr_lab import components as C
+        import pytest
+        with pytest.raises(ValueError, match="unknown nav style"):
+            C.nav_shell("lab", self.ITEMS, style="carousel")
+
+
+class TestBuildLayoutNav:
+    def test_layouts_dict_and_stacked_layout_are_gone(self):
+        # The leaky per-style dispatch is removed; nav_shell is the single seam.
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        assert not hasattr(R, "_LAYOUTS")
+        assert not hasattr(R, "_stacked_layout")
+
+
+class TestSidebar:
+    def test_mixed_glossary_and_concept_entries_in_order(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        g = tmp_path / "v.glossary.yaml"
+        g.write_text("title: Vocab\nterms:\n  - {term: ptr, def: an address}\n", encoding="utf-8")
+        sidebar = [
+            {"concept": {"id": "obj", "text": "What this teaches."}},
+            {"glossary": {"id": "g", "source": "v.glossary.yaml", "label": "Vocabulary"}},
+        ]
+        items = R._build_sidebar(sidebar, tmp_path)
+        assert [label for label, _ in items] == ["Concept", "Vocabulary"]
+        assert "What this teaches." in items[0][1] and "<details" not in items[0][1]
+        assert "an address" in items[1][1]
+
+    def test_unknown_sidebar_entry_raises(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        import pytest
+        with pytest.raises(KeyError, match="unknown sidebar entry"):
+            R._build_sidebar([{"legend": {"id": "x"}}], tmp_path)
+
+    def test_multi_key_sidebar_entry_raises(self, tmp_path):
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        import pytest
+        with pytest.raises(ValueError, match="exactly one key"):
+            R._build_sidebar([{"glossary": {"id": "g"}, "concept": {"id": "c"}}], tmp_path)

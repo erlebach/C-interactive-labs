@@ -59,9 +59,10 @@ def _topic_registry() -> dict[str, Any]:
     )
     from ..smart_ptrs.topics import TOPICS as SMART
     from ..function_args.topics import TOPICS as FUNC_ARGS
+    from ..op_overload.topics import TOPICS as OP_OVERLOAD
     topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
               ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
-              *SMART, *FUNC_ARGS]
+              *SMART, *FUNC_ARGS, *OP_OVERLOAD]
     return {t.id: t for t in topics}
 
 
@@ -211,14 +212,41 @@ def _build_html(args: dict, data: dict) -> str:
 
 
 def _build_topic(args: dict, data: dict) -> str:
-    """A demo_panel over a baked topic (thin adapter; content lives in components)."""
-    return C.demo_panel(args["id"], data[args["source"]])
+    """A demo_panel over a baked topic (thin adapter; content lives in components).
+
+    ``diagram: false`` suppresses the memory diagram for subjects with no
+    memory-model picture (operator overloading, classes, templates); default on.
+    """
+    return C.demo_panel(args["id"], data[args["source"]],
+                        diagram=args.get("diagram", True))
+
+
+def _build_concept(args: dict, data: dict) -> str:
+    """Build one example's fold-away Concept note from its YAML block.
+
+    Any ``${...}`` references in the block's text have already been filled in
+    with real values before this runs.
+
+    Args:
+        args: The concept block's fields, already filled in: ``id`` and ``text``,
+            plus optional ``label`` (the clickable line) and ``open`` (start
+            already open).
+        data: The page's baked data. Not needed here, because the text is already
+            filled in; kept so every builder has the same shape.
+
+    Returns:
+        The Concept note as a piece of HTML.
+    """
+    return C.concept_note(args["id"], args["text"],
+                          label=args.get("label", "Concept"),
+                          open_=args.get("open", False))
 
 
 _BUILDERS = {
     "heading": _build_heading,
     "html": _build_html,
     "topic": _build_topic,
+    "concept": _build_concept,
 }
 
 
@@ -305,16 +333,48 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     return out
 
 
-def _stacked_layout(comp_id: str, items) -> str:
-    """Fallback nav: stack every demo (no selector)."""
-    return "\n".join(body for _label, body in items)
+def _build_sidebar(sidebar: list, base: Path) -> list:
+    """Build the page's side-list entries from a layout's ``sidebar:`` list.
 
+    Each item in the list names one kind of entry:
 
-_LAYOUTS = {
-    "left_rail": C.left_rail_layout,
-    "top_tabs": C.variant_tabs,      # top tabs == variant_tabs (two-row via flex-wrap)
-    "stacked": _stacked_layout,
-}
+    - ``glossary``: opens a vocabulary file and shows its terms.
+    - ``concept``: a short "what this page teaches" note written right there in
+      the layout.
+
+    The entries keep the order they were written in, which is the order they
+    appear in the side list.
+
+    Args:
+        sidebar: The layout's list of side entries. Each entry is a mapping with
+            exactly one key naming its kind (``glossary`` or ``concept``).
+        base: The folder the layout file lives in, used to find any files a
+            ``glossary`` entry points to.
+
+    Returns:
+        One ``(label, html)`` pair per side entry, in order.
+
+    Raises:
+        ValueError: If an entry has more than one key.
+        KeyError: If an entry names a kind other than ``glossary`` or ``concept``.
+    """
+    items = []
+    for entry in sidebar or []:
+        if len(entry) != 1:
+            raise ValueError(f"a sidebar entry must have exactly one key, got {list(entry)}")
+        (kind, a), = entry.items()
+        if kind == "glossary":
+            gs = load_spec(Path(base) / a["source"])
+            terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
+            label = a.get("label", gs.get("title", "Glossary"))
+            body = C.glossary(a.get("id", "glossary"), gs.get("title", "Glossary"), terms)
+        elif kind == "concept":
+            label = a.get("label", "Concept")
+            body = C.concept_panel(a.get("id", "concept"), a["text"], title=label)
+        else:
+            raise KeyError(f"unknown sidebar entry type: {kind!r}")
+        items.append((label, body))
+    return items
 
 
 def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
@@ -332,34 +392,22 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     spec = load_spec(layout_path)
 
     style = spec.get("style", "left_rail")
-    if style not in _LAYOUTS:
-        raise ValueError(
-            f"unknown layout style {style!r}; valid choices: {sorted(_LAYOUTS)}")
 
     header_html = _render_header(spec.get("header", []), base)
 
-    # Option D: glossaries declared on the layout become leading rail entries (rendered
+    # Sidebar entries declared on the layout become leading rail entries (rendered
     # in full as a panel), set apart from the demos by an italic label.
-    glossary_items = []
-    for g in spec.get("glossaries", []):
-        gs = load_spec(base / g["source"])
-        terms = [(t["term"], t["def"]) for t in gs.get("terms", [])]
-        body = C.glossary(g.get("id", "glossary"), gs.get("title", "Glossary"), terms)
-        glossary_items.append((g.get("label", gs.get("title", "Glossary")), body))
-
-    items = list(glossary_items)
+    sidebar_items = _build_sidebar(spec.get("sidebar", []), base)
+    items = list(sidebar_items)
     for demo_ref in spec.get("demos", []):
         demo_spec = load_spec(base / demo_ref)
         data = bake_all(demo_spec.get("bake", {}), demo_spec.get("language"))
         fragment = render_fragment(demo_spec, data)
         items.append((demo_spec.get("title", "Demo"), fragment))
 
-    n = len(glossary_items)
-    if style == "left_rail":
-        # keep a demo (not the glossary) as the panel shown on load
-        nav = C.left_rail_layout("lab", items, italic_count=n, selected=n if n < len(items) else 0)
-    else:
-        nav = _LAYOUTS[style]("lab", items)
+    n = len(sidebar_items)
+    nav = C.nav_shell("lab", items, style=style, leading=n,
+                      selected=(n if n < len(items) else 0))
     body = f"{header_html}\n{nav}" if header_html else nav
     page = C.page_shell("page", body, title=spec.get("title", "Lab"), highlight=True)
 

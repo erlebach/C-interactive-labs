@@ -23,7 +23,7 @@ You **author YAML data**. You almost never write Python.
    ─────────────────────                     ─────────────────────────────────────
    topics/*.topic.yaml   the C++ programs    yaml_engine/render_page.py   the engine
    demos/*.demo.yaml     one lesson slide    components.py                the widgets
-   glossaries/*.yaml     vocabulary boxes    topics_loader.py             YAML → TopicTemplate
+   glossaries/*.yaml     vocabulary boxes    topic_yaml.py                YAML → TopicTemplate
    layouts/*.yaml        the whole page      g++                          bakes real output
 ```
 
@@ -33,7 +33,7 @@ You **author YAML data**. You almost never write Python.
   *.topic.yaml ──load──▶ TopicTemplate ──g++ compile+run──▶ real stdout/stderr/bytes
                                                                      │
   layout.yaml ─┬─ header (rendered once)                            ▼
-               ├─ glossaries[]                          render_page assembles ONE
+               ├─ sidebar[] (concept/glossary)          render_page assembles ONE
                └─ demos[] ── each bakes a topic ───────▶ self-contained WCAG-AA .html
 ```
 
@@ -59,7 +59,7 @@ cpp_ptr_lab/function_args/
     by_reference.demo.yaml
   glossaries/                      ← optional vocabulary box(es) (DATA)
     function_args.glossary.yaml
-  layouts/                         ← the page: header + glossaries + demos + nav style (DATA)
+  layouts/                         ← the page: header + sidebar + demos + nav style (DATA)
     function_args.rail.yaml
   topics.py                        ← 2-line shim: load the topic YAML (only Python you touch)
   test_function_args.py            ← build integration test (recommended, TDD)
@@ -132,9 +132,11 @@ title: "By Value"
 language: cpp
 bake: { v: fa_by_value }        # compile topic id fa_by_value; expose as ${v.*}
 blocks:
-  - callout_note: { id: v-note, label: Concept, text: "${v.explanation}" }
+  - concept: { id: v-note, text: "${v.explanation}" }   # per-example Concept: a collapsed <details> disclosure
   - topic: { id: v, source: v } # the variant cluster: code + diagram + output + bytes
 ```
+
+The opening block of every demo is a **`concept`**: the per-**Example** Concept, one sentence stating what this example imparts, rendered as a *collapsed* native `<details>` (zero-JS, WCAG-AA; add `open: true` to start expanded). `callout_note` still exists for an *always-visible* aside, but the default per-example Concept is now `concept`.
 
 You can add richer blocks (`heading`, `html`, `progressive_steps`,
 `predict_reveal_quiz`, `color_legend`) — see the existing
@@ -156,24 +158,28 @@ Glossaries are reusable and 0..N per page; add as many as make sense.
 
 ### Step D — Compose the page (`layouts/function_args.rail.yaml`)
 
-The layout is the whole page: a `header` rendered once, optional `glossaries`, the
-ordered `demos`, and a nav `style` (`left_rail` today; `top_tabs` / `stacked` planned).
+The layout is the whole page: a `header` rendered once, an optional `sidebar`, the
+ordered `demos`, and a nav `style` (`left_rail`, `top_tabs`, or `stacked` — all three are live).
 
 ```yaml
 title: "Function Arguments — value, pointer, reference"
 style: left_rail
 header:
   - color_legend: { id: legend }
-glossaries:
-  - { id: g-fa, source: ../glossaries/function_args.glossary.yaml, label: "Vocabulary" }
+sidebar:
+  - concept:  { id: obj,  text: "Functions receive arguments by value, pointer, or reference; each has different copy and mutation semantics." }
+  - glossary: { id: g-fa, source: ../glossaries/function_args.glossary.yaml, label: "Vocabulary" }
 demos:
   - ../demos/by_value.demo.yaml
   - ../demos/by_pointer.demo.yaml
   - ../demos/by_reference.demo.yaml
 ```
 
-Paths are relative to the layout file. Each demo becomes one nav entry; glossaries
-appear as leading (italic) rail entries; the first demo is shown on load.
+Paths are relative to the layout file. Each demo becomes one nav entry. The unified **`sidebar:`** list (which replaces the older `glossaries:` list) is an ordered set of keyword blocks — `glossary` (loads a `*.glossary.yaml`) or `concept` (the optional whole-**Demonstration** Concept, inline prose) — that render as leading (italic) rail entries in list order; the first demo (not a sidebar entry) is shown on load.
+
+**One nav interface:** the engine renders every layout through a single component, `nav_shell(comp_id, items, *, style=…, leading=…, selected=…)`, so the navigation `style` is a **pure data choice** — `left_rail`, `top_tabs`, and `stacked` all dispatch through the same signature with no per-style branching. Switching a lab's navigation is a one-word `style:` change; an unknown style raises a clear error.
+
+**Locked vocabulary:** a **Demonstration** is one HTML file / topic page; an **Example** is one rail entry (one `.demo.yaml`); a **Gotcha** is an Example whose point is a failure (e.g. a genuine compile error); a **Concept** is prose stating what is imparted (one `text:` field) at two levels — the Demonstration Concept (whole page, in `sidebar:`) and the Example Concept (per demo, the `concept` block).
 
 ### Step E — Register the subject (the one small code touch)
 
@@ -182,22 +188,21 @@ The engine's topic registry must know your topic ids. Two lines:
 1. **`function_args/topics.py`** — a shim that loads the YAML topics (mirror
    `pointers_refs/topics.py`):
    ```python
-   from .topics_loader import load_topics          # the generic loader
-   TOPIC_BY_ID = load_topics()                      # globs this subject's topics/*.topic.yaml
+   from pathlib import Path
+   from cpp_ptr_lab.topic_yaml import load_topics   # the shared loader
+   TOPIC_BY_ID = load_topics(Path(__file__).parent / "topics")   # this subject's topics/*.topic.yaml
    TOPICS = list(TOPIC_BY_ID.values())
    ```
 2. **`cpp_ptr_lab/yaml_engine/render_page.py::_topic_registry()`** — add
    `from ..function_args.topics import TOPICS as FUNC_ARGS` and splice `*FUNC_ARGS`
    into the aggregated list (it already does this for the existing subjects).
 
-> **One-time engine generalization:** the generic loader currently lives at
-> `cpp_ptr_lab/pointers_refs/topics_loader.py` and defaults to that subject's
-> `topics/` dir, but it already takes a `topics_dir` argument. To use it from a
-> second subject, promote it to a shared module (e.g. `cpp_ptr_lab/topics_loader.py`)
-> and have each subject's shim call `load_topics(Path(__file__).parent / "topics")`.
-> This is a small refactor done **once**, then every future subject is pure YAML +
-> the two-line shim. (Until then, the existing `function_args/topics.py` holds its
-> one topic in Python — the older style this guide replaces.)
+> **Shared loader:** the generic loader lives at `cpp_ptr_lab/topic_yaml.py` and
+> takes an explicit `topics_dir`, so every subject's shim just calls
+> `load_topics(Path(__file__).parent / "topics")` — no cross-subject imports.
+> Every future subject is pure YAML + the two-line shim. (The older
+> `function_args/topics.py` still holds its one topic in Python — the pre-YAML
+> style this guide replaces.)
 
 ---
 
@@ -237,7 +242,7 @@ carry `role="img"` text alternatives for WCAG 1.1.1). These tests are `g++`-gate
 - [ ] `topics/<id>.topic.yaml` for each topic (C++ template + controls/variants + explanation)
 - [ ] `demos/<id>.demo.yaml` for each topic (bakes it, adds prose)
 - [ ] `glossaries/<name>.glossary.yaml` (optional, 0..N)
-- [ ] `layouts/<name>.rail.yaml` (header + glossaries + ordered demos + nav style)
+- [ ] `layouts/<name>.rail.yaml` (header + sidebar + ordered demos + nav style)
 - [ ] `topics.py` shim loading `topics/` (+ splice into `_topic_registry()`)
 - [ ] `test_<subject>.py` build-integration test (TDD, g++-gated)
 - [ ] Build: `python -m cpp_ptr_lab.yaml_engine.render_page <layout>.yaml dist`

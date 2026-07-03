@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from cpp_ptr_lab.code_generator import ControlDef, TopicTemplate
-from cpp_ptr_lab.pointers_refs.topics_loader import load_topics
+from cpp_ptr_lab.topic_yaml import load_topics
 
 _HERE = Path(__file__).parent
 _SNAPSHOT = _HERE / "topics_snapshot.json"
@@ -45,7 +45,7 @@ _LEGACY_ORDER = [
 
 @pytest.fixture(scope="module")
 def loaded():
-    return load_topics()
+    return load_topics(_HERE / "topics")
 
 
 def test_order_preserved(loaded):
@@ -88,6 +88,6 @@ def test_yaml_matches_legacy(loaded):
 
 
 def test_missing_required_field_raises():
-    from cpp_ptr_lab.pointers_refs.topics_loader import _topic
+    from cpp_ptr_lab.topic_yaml import _topic
     with pytest.raises(ValueError, match="name"):
         _topic({"id": "x", "template": "t", "explanation": "e", "group": "g"})

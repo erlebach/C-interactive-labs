@@ -1,8 +1,9 @@
-"""Load pointers_refs topic definitions from YAML into TopicTemplate objects.
+"""Load a subject's topic definitions from YAML into TopicTemplate objects.
 
-Source of truth for each topic's C++ template, controls, and sub-cases is a
-``topics/<id>.topic.yaml`` file next to this module.  This loader is the only
-place that knows the YAML shape; ``topics.py`` is a thin re-export shim over it.
+Shared across subjects: the source of truth for each topic's C++ template,
+controls, and sub-cases is a ``<subject>/topics/<id>.topic.yaml`` file. This
+loader is the only place that knows the YAML shape; each subject's ``topics.py``
+is a thin re-export shim that calls :func:`load_topics` with its own topics dir.
 """
 from __future__ import annotations
 
@@ -11,8 +12,6 @@ from pathlib import Path
 import yaml
 
 from cpp_ptr_lab.code_generator import CaseDef, ControlDef, TopicTemplate
-
-_TOPICS_DIR = Path(__file__).parent / "topics"
 
 _REQUIRED = ("id", "name", "template", "explanation", "group")
 
@@ -53,14 +52,13 @@ def _topic(d: dict) -> TopicTemplate:
     )
 
 
-def load_topics(topics_dir: Path | None = None) -> dict[str, TopicTemplate]:
+def load_topics(topics_dir: Path) -> dict[str, TopicTemplate]:
     """Return ``{id: TopicTemplate}`` for all ``*.topic.yaml`` in *topics_dir*.
 
     Ordered by each file's ``order:`` integer (falls back to id for ties).
     """
-    directory = topics_dir or _TOPICS_DIR
     docs = []
-    for path in directory.glob("*.topic.yaml"):
+    for path in topics_dir.glob("*.topic.yaml"):
         data = yaml.safe_load(path.read_text())
         docs.append(data)
     docs.sort(key=lambda d: (d.get("order", 1_000_000), d.get("id", "")))

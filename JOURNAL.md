@@ -2,6 +2,33 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-03 14:30 — Reusability seam: nav_shell, prose box, concept disclosure, sidebar
+
+Factored the demo_panel/nav_shell reusability seam so the engine dispatches navigation and prose uniformly, entirely as data. New **`nav_shell(comp_id, items, *, style="left_rail", leading=0, selected=None)`** is the single uniform nav interface: `build_layout` routes every layout `style:` (`left_rail`/`top_tabs`/`stacked`) through it with no per-style branching, and an unknown style raises `ValueError`. A shared **`_prose_box`** helper now backs the glossary and both concept renderers. The per-**Example** Concept that opens each demo is now a collapsed native `<details>` disclosure — the new **`concept`** block (`concept_note`, zero-JS/keyboard/SR-operable, optional `open: true`) — replacing the old always-open `callout_note: {label: Concept}` across all **12 demos**; `callout_note` stays valid for always-visible asides (backward compatible). Layouts gained a unified **`sidebar:`** list (replacing the old `glossaries:`): an ordered set of single-key keyword blocks (`- glossary: {id, source, label}` or `- concept: {id, text, [label]}`) rendered as leading italic rail entries in list order — where `concept` is the optional whole-**Demonstration** Concept (`concept_panel`, a leading rail panel, not selected on load). Suite now **438 passing**; both rail pages (`pointers_refs`, `op_overload`) rebuilt clean, self-contained, WCAG-AA.
+
+### Details
+
+**Locked vocabulary:** Demonstration = one HTML file/topic; Example = one rail entry (one `.demo.yaml`); Gotcha = an Example whose point is a failure; Concept = prose stating what is imparted (one `text:` field), at two levels — Demonstration (whole page, in `sidebar:`) and Example (per demo, the `concept` block).
+
+TDD RED→GREEN throughout, guarded by **two byte-identical guards**: one asserts `nav_shell(..., style="left_rail")` reproduces the previous `left_rail_layout` output byte-for-byte; the other asserts the migrated pages match the pre-refactor bytes — proving the seam is a pure refactor, not a behaviour change. Specs: `docs/superpowers/specs/2026-07-03-reusability-seam-design.md`, `docs/superpowers/plans/2026-07-03-reusability-seam.md`.
+
+## 2026-07-03 00:30 — Operator-overloading demo (op_overload) + optional-diagram flag
+
+Added the first **non-pointer subject**, operator overloading, almost entirely as YAML data — validating
+that a subject outside the memory-diagram domain is cheap. New engine capability: `topic: { diagram: false }`
+suppresses the per-program memory diagram (the `COURSE_VIA_TOPICS.md §7` "topic layout is a fixed recipe"
+fix); default stays **on** so pointer pages are byte-unchanged. Threaded `_build_topic → demo_panel →
+_demo_variant_body` (all default `diagram=True`). New subject `cpp_ptr_lab/op_overload/` mirrors
+`pointers_refs/`: 4 topics (op_plus/op_scale/op_equal/op_stream), 4 demos, 1 glossary, 1 `left_rail`
+layout → **4 rail entries** (one operator each; the `<<` entry stacks the correct non-member version + the
+member-`<<` compile-error gotcha). Wired via an op_overload `topics.py` shim reusing the generic
+`load_topics(topics_dir)` + one line in `_topic_registry`. Real g++ output baked (`a + b = (4, 6)`,
+`2 * a = (2, 4)`, `a == b: false`, `a = (1, 2)`); the member-`<<` case genuinely fails to compile.
+Self-contained, no memory diagram, WCAG AA. TDD RED→GREEN: 2 diagram-flag tests + 7 op_overload build
+tests. Suite **412 → 421**. Known cosmetic: single-variant topics still show a lone "default" tab —
+slated for the reusability pass. Build: `python -m cpp_ptr_lab.yaml_engine.render_page
+cpp_ptr_lab/op_overload/layouts/op_overload.rail.yaml dist`.
+
 ## 2026-07-02 19:30 — pointers_refs C++ source migrated Python → YAML (data-over-code North Star)
 
 Final data-over-code North-Star step for pointers_refs: all 8 topics' C++ source (templates,

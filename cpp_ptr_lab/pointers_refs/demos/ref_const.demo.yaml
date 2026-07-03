@@ -2,5 +2,5 @@ title: "Ref: const Ref"
 language: cpp
 bake: { rc: ref_const }
 blocks:
-  - callout_note: { id: rc-note, label: Concept, text: "${rc.explanation}" }
+  - concept: { id: rc-note, text: "${rc.explanation}" }
   - topic: { id: rc, source: rc }

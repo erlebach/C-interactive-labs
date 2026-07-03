@@ -9,8 +9,8 @@ course by a manifest. Captures the architecture discussion of 2026-06-30.
 >
 > **Update 2026-07-02:** the pointer subject's topic *source* (C++ templates,
 > controls, value-maps, multi-sub-case truth tables) now lives in **YAML data**
-> — one `pointers_refs/topics/<id>.topic.yaml` per topic, loaded by
-> `topics_loader.py` into the unchanged `TopicTemplate` dataclass; the old
+> — one `pointers_refs/topics/<id>.topic.yaml` per topic, loaded by the shared
+> `topic_yaml.py` loader into the unchanged `TopicTemplate` dataclass; the old
 > `pointers_refs/topics.py` is now a thin re-export shim. Authoring a pointer
 > topic is pure YAML — no Python. This closes the last data-over-code gap for the
 > pointer subject (see §1, §3). `smart_ptrs` / `function_args` still hold their
@@ -54,7 +54,7 @@ flowchart TD
   page --> engine["render_page engine\ndispatch + ${refs} + g++ bake"]
   engine --> spine["reusable component spine\nshell/tabs/panel/console/badge/\nquiz/steps/callout/subcases/legend"]
   engine --> diagrams["per-subject diagram components\nmemory_diagram (ptr) / stack_frame / class_layout / …"]
-  engine --> topics["per-subject topic libraries\nsubjects/<area>/topics/*.topic.yaml (data)\n→ topics_loader → TopicTemplate"]
+  engine --> topics["per-subject topic libraries\nsubjects/<area>/topics/*.topic.yaml (data)\n→ topic_yaml.load_topics → TopicTemplate"]
   topics --> bake["g++ bake (real stdout/stderr/ptrdata)"]
   spine --> html["self-contained WCAG AA page\n(block order = reading order)"]
   diagrams --> html
@@ -65,7 +65,7 @@ flowchart TD
 |---|---|---|---|
 | **Course manifest** | Ordered list of subjects → pages; drives top-level nav | `course.manifest.yaml` | instructor |
 | **Page spec** | One lesson: a flat `blocks:` list of components | `pages/<lesson>.page.yaml` | instructor |
-| **Topic library** | ~10–15 topics for one subject, authored as YAML data | `subjects/<area>/topics/*.topic.yaml` (+ generic `topics_loader.py`) | instructor/author |
+| **Topic library** | ~10–15 topics for one subject, authored as YAML data | `subjects/<area>/topics/*.topic.yaml` (+ shared `topic_yaml.py`) | instructor/author |
 | **Components** | Pure render functions (spine + diagrams) | `components.py`, `diagrams/*.py` | dev |
 
 Already built (pointer subject): the component library
@@ -73,7 +73,7 @@ Already built (pointer subject): the component library
 (`cpp_ptr_lab/yaml_engine/render_page.py`), a worked page spec
 (`cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml`), and — since 2026-07-02 — the
 pointer **topic library itself as YAML data**
-(`cpp_ptr_lab/pointers_refs/topics/*.topic.yaml`, loaded by `topics_loader.py`).
+(`cpp_ptr_lab/pointers_refs/topics/*.topic.yaml`, loaded by the shared `topic_yaml.py`).
 So all four layers are now data/YAML for pointers except the components. The
 manifest layer and the non-pointer subjects are future work.
 
@@ -194,6 +194,8 @@ A "smart" builder `topic` composes the per-variant cluster (code + diagram +
 badge + console + bytes); `heading` / `html` provide chrome. New subjects will add
 their own smart builders as needed (e.g. a `call_trace` builder for classes).
 
+**Layout composition (2026-07-03).** A layout (`*.rail.yaml`/`*.tabs.yaml`) assembles a page from a `header:` (rendered once), a unified `sidebar:` list, an ordered `demos:` list, and a nav `style:`. The `sidebar:` list — which replaces the earlier separate `glossaries:` list — is an ordered set of single-key keyword blocks, each `- glossary: {id, source, label}` (loads a `*.glossary.yaml`) or `- concept: {id, text, [label]}`; they become the leading (italic) rail entries in list order, not selected on load. There are **two Concept levels**: the *Demonstration Concept* is the optional whole-page `concept` under `sidebar:` (a leading rail panel stating what the entire page imparts), while the *Example Concept* is the per-demo `concept` block (a collapsed native `<details>` disclosure, zero-JS/WCAG-AA) that opens each `*.demo.yaml`. Locked vocabulary: **Demonstration** = one HTML file/topic page; **Example** = one rail entry (one `.demo.yaml`); **Gotcha** = an Example whose point is a failure; **Concept** = prose stating what is imparted (one `text:` field), at those two levels.
+
 ---
 
 ## 7. Known gaps before this generalizes cleanly
@@ -209,6 +211,8 @@ itself (dispatch, ref resolution, render loop) is already topic-agnostic:
    `panel:` block-template) so subjects can vary the per-variant layout.
 3. **Raw-pointer assumptions in convenience data** (`${X.target_val}`, the
    byte-grid caption) degrade to `"?"` for smart/ref topics; make per-type or drop.
+
+> **Update 2026-07-03 (nav interface unified — gap #2 progressed):** every layout `style:` now dispatches through a single component, `nav_shell(comp_id, items, *, style, leading, selected)`, with no per-style branching — `left_rail`, `top_tabs`, and `stacked` are all one uniform interface and an unknown style raises `ValueError`. So the navigation is a pure data choice, and the earlier gaps have receded: multi-sub-case topics are handled (gap #1), and the fixed `topic` recipe is now configurable (`topic: { diagram: false }` drops the memory diagram for non-pointer subjects — gap #2). Gap #3 remains.
 
 ---
 
@@ -296,7 +300,7 @@ mapping) is queued as a next step — see the session handoff.
 1. **Decouple content from curriculum.** Curriculum = YAML order/text (free);
    content = per-subject topic templates (authored).
 2. **Content → per-subject libraries** of ~10–15 topics, authored as **YAML data**
-   (`topics/*.topic.yaml` via a generic `topics_loader.py`; pointers done
+   (`topics/*.topic.yaml` via the shared `topic_yaml.py`; pointers done
    2026-07-02, others pending); aggregate by registry; author lazily, with
    subject-specific instrumentation. A shim keeps the old `topics.py` import path.
 3. **Reuse the ~10-component spine; budget 1–3 new diagram components per subject.**
@@ -312,7 +316,7 @@ mapping) is queued as a next step — see the session handoff.
 - `cpp_ptr_lab/yaml_engine/render_page.py` — the YAML lesson engine.
 - `cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml` — a worked lesson spec.
 - `cpp_ptr_lab/pointers_refs/topics/*.topic.yaml` — the pointer **topic source** as YAML data (2026-07-02).
-- `cpp_ptr_lab/pointers_refs/topics_loader.py` — loads topic YAML into `TopicTemplate`; `topics.py` is now its shim.
+- `cpp_ptr_lab/topic_yaml.py` — shared loader: reads a subject's topic YAML into `TopicTemplate`; each subject's `topics.py` is a shim calling `load_topics(.../topics)`.
 - `docs/superpowers/specs/2026-07-02-source-to-yaml-design.md`, `.../plans/2026-07-02-source-to-yaml.md` — the migration design + plan.
 - `cpp_ptr_lab/topic_page.py` — the imperative equivalent (parity reference).
 - `cpp_ptr_lab/lab_config.yaml` — per-lab/topic visibility (the "hide topics" knob).

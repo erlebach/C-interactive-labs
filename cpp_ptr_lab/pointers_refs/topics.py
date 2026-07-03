@@ -1,16 +1,17 @@
 """Lab 1 — Pointers & References topics.
 
-Source of truth is now ``topics/*.topic.yaml`` (loaded by ``topics_loader``).
-This module is a thin re-export shim so existing importers keep working:
-the C++ source lives in YAML, not here.
+Source of truth is now ``topics/*.topic.yaml`` (loaded by the shared
+``cpp_ptr_lab.topic_yaml`` loader). This module is a thin re-export shim so
+existing importers keep working: the C++ source lives in YAML, not here.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from cpp_ptr_lab.code_generator import TopicTemplate
+from cpp_ptr_lab.topic_yaml import load_topics
 
-from .topics_loader import load_topics
-
-TOPIC_BY_ID: dict[str, TopicTemplate] = load_topics()
+TOPIC_BY_ID: dict[str, TopicTemplate] = load_topics(Path(__file__).parent / "topics")
 TOPICS: list[TopicTemplate] = list(TOPIC_BY_ID.values())
 
 basic_ptr = TOPIC_BY_ID["basic_ptr"]

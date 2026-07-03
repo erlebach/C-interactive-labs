@@ -2,9 +2,10 @@ title: "Pointers & References — Lab 1"
 style: left_rail
 header:
   - color_legend: { id: legend }
-glossaries:
-  - { id: g-ptr, source: ../glossaries/pointers.glossary.yaml, label: "Vocabulary" }
-  - { id: g-ref, source: ../glossaries/references.glossary.yaml, label: "Reference Terms" }
+sidebar:
+  - concept:  { id: obj,   text: "Pointers hold addresses; references are permanent aliases. This lab shows how each behaves, when the compiler stops you, and the classic gotchas." }
+  - glossary: { id: g-ptr, source: ../glossaries/pointers.glossary.yaml,  label: "Vocabulary" }
+  - glossary: { id: g-ref, source: ../glossaries/references.glossary.yaml, label: "Reference Terms" }
 demos:
   - ../demos/basic_ptr.demo.yaml
   - ../demos/const_taxonomy.demo.yaml

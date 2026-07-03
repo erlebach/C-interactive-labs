@@ -606,3 +606,61 @@ class TestProgressiveSteps:
 
     def test_no_js(self):
         assert "<script" not in self._frag()
+
+
+# ---------------------------------------------------------------------------
+# 9.x — _prose_box shared helper
+# ---------------------------------------------------------------------------
+
+
+class TestProseBox:
+    def test_glossary_output_unchanged_after_refactor(self):
+        # Byte-for-byte guard: the _prose_box refactor must not change glossary's HTML.
+        from cpp_ptr_lab import components as C
+        html = C.glossary("g1", "Pointers", [("dereference (*)", "reads the pointee")])
+        assert html == (
+            '<section class="glossary" id="g1" aria-labelledby="g1-title" '
+            'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
+            '<h2 id="g1-title" style="font-size:1rem;margin:.2rem 0 .4rem">Pointers</h2>\n'
+            '<dl style="margin:0">\n'
+            '<dt>dereference (*)</dt><dd>reads the pointee</dd>\n'
+            '</dl>\n'
+            '</section>\n'
+        )
+
+    def test_prose_box_without_title_omits_h2_and_aria(self):
+        from cpp_ptr_lab import components as C
+        html = C._prose_box("b1", "<p>hi</p>", css_class="concept")
+        assert "<h2" not in html and "aria-labelledby" not in html
+        assert 'class="concept"' in html and "<p>hi</p>" in html
+        assert 'border:2px solid var(--border)' in html
+
+
+# ---------------------------------------------------------------------------
+# 10.x — concept_note + concept_panel
+# ---------------------------------------------------------------------------
+
+
+class TestConcept:
+    def test_concept_note_is_collapsed_details_by_default(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_note("c1", "A pointer stores an address.")
+        assert html.startswith("<details")
+        assert " open" not in html.split(">", 1)[0]      # collapsed: no open attr on <details>
+        assert "<summary" in html and "Concept" in html
+        assert "A pointer stores an address." in html
+
+    def test_concept_note_open_and_custom_label_and_escaping(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_note("c2", "1 < 2 & true", label="Why", open_=True)
+        assert "<details id=\"c2\" class=\"concept\" open" in html
+        assert ">Why</summary>" in html
+        assert "1 &lt; 2 &amp; true" in html               # body escaped
+
+    def test_concept_panel_is_titled_prose_box(self):
+        from cpp_ptr_lab import components as C
+        html = C.concept_panel("cp", "What this teaches.", title="Objective")
+        assert "<details" not in html                      # a panel, not a disclosure
+        assert 'class="concept"' in html
+        assert ">Objective</h2>" in html
+        assert "What this teaches." in html

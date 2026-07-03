@@ -166,23 +166,100 @@ def callout_note(comp_id: str, text: str, *, label: str = "Note") -> str:
     )
 
 
+def _prose_box(comp_id: str, body_html: str, *, title: str | None = None,
+               css_class: str) -> str:
+    """Draw a bordered box with some text inside.
+
+    This is the one shared look for the vocabulary list and the concept boxes,
+    so they all match. Give it a title to add a heading at the top of the box
+    (screen readers then announce the box by that heading). Leave the title out
+    for a plain box with no heading.
+
+    Args:
+        comp_id: A short unique name for this box, used to build its HTML ids.
+        body_html: The ready-made HTML shown inside the box.
+        title: Optional heading at the top of the box; ``None`` means no heading.
+        css_class: The style class placed on the box so it can be styled.
+
+    Returns:
+        The box as a piece of HTML.
+    """
+    p = _safe(comp_id)
+    if title is not None:
+        tid = f"{p}-title"
+        head = f'<h2 id="{tid}" style="font-size:1rem;margin:.2rem 0 .4rem">{_e(title)}</h2>\n'
+        label_attr = f' aria-labelledby="{tid}"'
+    else:
+        head = ""
+        label_attr = ""
+    return (
+        f'<section class="{css_class}" id="{p}"{label_attr} '
+        f'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
+        f"{head}{body_html}\n"
+        f"</section>\n"
+    )
+
+
 def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
     """A reusable term/definition list (prose vocabulary), rendered as a <dl>.
 
     Accessible: the <section> is labelled by its heading via aria-labelledby.
     """
-    p = _safe(comp_id)
-    tid = f"{p}-title"
     rows = ""
     for term, definition in terms:
         rows += f"<dt>{_e(term)}</dt><dd>{_e(definition)}</dd>\n"
+    return _prose_box(comp_id, f'<dl style="margin:0">\n{rows}</dl>',
+                      title=title, css_class="glossary")
+
+
+def concept_note(comp_id: str, text: str, *, label: str = "Concept",
+                 open_: bool = False) -> str:
+    """Show one example's Concept as a fold-away note.
+
+    The note starts folded, showing just a single "Concept" line. Clicking that
+    line (or pressing Enter on it) opens it to reveal the text; clicking again
+    folds it back. It works with the keyboard and with screen readers, and needs
+    no scripting. Use it for the short note that says why one example is here.
+
+    Args:
+        comp_id: A short unique name for this note, used to build its HTML ids.
+        text: The note's wording, shown once the reader opens it.
+        label: The wording of the clickable line; defaults to "Concept".
+        open_: Start already open instead of folded. Defaults to folded.
+
+    Returns:
+        The fold-away note as a piece of HTML.
+    """
+    p = _safe(comp_id)
+    body = _prose_box(f"{p}-box", f'<p style="margin:0">{_e(text)}</p>', css_class="concept")
+    op = " open" if open_ else ""
     return (
-        f'<section class="glossary" id="{p}" aria-labelledby="{tid}" '
-        f'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
-        f'<h2 id="{tid}" style="font-size:1rem;margin:.2rem 0 .4rem">{_e(title)}</h2>\n'
-        f'<dl style="margin:0">\n{rows}</dl>\n'
-        f"</section>\n"
+        f'<details id="{p}" class="concept"{op} style="margin:.4rem 0">\n'
+        f'<summary style="cursor:pointer;font-weight:700;min-height:44px;'
+        f'display:flex;align-items:center">{_e(label)}</summary>\n'
+        f"{body}"
+        f"</details>\n"
     )
+
+
+def concept_panel(comp_id: str, text: str, *, title: str = "Concept") -> str:
+    """Show the whole page's Concept as its own titled panel.
+
+    This is the "what this whole page teaches" note. It appears as an entry in
+    the side list (like the Vocabulary entry) and is shown in full whenever it is
+    picked — it does not fold away. For the fold-away note that belongs to a
+    single example, use ``concept_note`` instead.
+
+    Args:
+        comp_id: A short unique name for this panel, used to build its HTML ids.
+        text: The Concept wording.
+        title: The heading shown at the top of the panel; defaults to "Concept".
+
+    Returns:
+        The panel as a piece of HTML.
+    """
+    return _prose_box(comp_id, f'<p style="margin:0">{_e(text)}</p>',
+                      title=title, css_class="concept")
 
 
 # ---------------------------------------------------------------------------
@@ -468,14 +545,26 @@ def code_line_link(
 # ---------------------------------------------------------------------------
 
 
-def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
-    """Switch between N labelled panels with native radios + ``:checked ~``."""
+def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]], *, selected: int = 0) -> str:
+    """Switch between N labelled panels with native radios + ``:checked ~``.
+
+    A single panel has nothing to switch between, so the tab strip is noise:
+    render just its body in the same bordered container, with no radios/labels.
+    """
     p = _safe(comp_id)
+    if len(panels) == 1:
+        _, body = panels[0]
+        return (
+            f'<div id="{p}">\n'
+            f'<div class="vt-panels-{p}" style="border:2px solid var(--border);'
+            f'border-radius:8px;padding:.7rem">\n{body}</div>\n'
+            f"</div>\n"
+        )
     style_lines = [f"#{p} .vt-panel-{p} {{ display: none; }}"]
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
         tid = f"{p}-t{i}"
-        checked = " checked" if i == 0 else ""
+        checked = " checked" if i == selected else ""
         style_lines.append(f"#{tid}:checked ~ .vt-panels-{p} .vt-p{i}-{p} {{ display: block; }}")
         style_lines.append(
             f'#{tid}:checked ~ .vt-tabs-{p} label[for="{tid}"]'
@@ -579,6 +668,47 @@ def left_rail_layout(comp_id: str, items: Sequence[tuple[str, str]],
     )
 
 
+def nav_shell(comp_id: str, items: Sequence[tuple[str, str]], *,
+              style: str = "left_rail", leading: int = 0,
+              selected: int | None = None) -> str:
+    """Arrange a set of titled panels using one chosen navigation style.
+
+    Each panel is a ``(title, html)`` pair. This one function handles all three
+    styles, so a page can choose its style purely from its data:
+
+    - ``"left_rail"``: a clickable list down the left; one panel shows at a time.
+    - ``"top_tabs"``: a row of tabs across the top; one panel shows at a time.
+    - ``"stacked"``: every panel shown one below another, with no switching.
+
+    Args:
+        comp_id: A short unique name for this block, used to build its HTML ids.
+        items: The panels, in order, each a ``(title, html)`` pair.
+        style: Which navigation style to use (see the list above).
+        leading: How many of the first entries are reference material (such as
+            Vocabulary or the page Concept) to set apart. The left-rail style
+            shows them in italics; the other styles ignore this.
+        selected: Which panel is open when the page loads, given by its position
+            (0 is the first). The left-rail and top-tabs styles honour it; the
+            stacked style ignores it. ``None`` means the first panel.
+
+    Returns:
+        The navigation block as a piece of HTML.
+
+    Raises:
+        ValueError: If ``style`` is not one of the three names above.
+    """
+    sel = 0 if selected is None else selected
+    if style == "left_rail":
+        return left_rail_layout(comp_id, items, italic_count=leading, selected=sel)
+    if style == "top_tabs":
+        return variant_tabs(comp_id, items, selected=sel)
+    if style == "stacked":
+        return "\n".join(body for _label, body in items)
+    raise ValueError(
+        f"unknown nav style {style!r}; valid choices: "
+        "['left_rail', 'stacked', 'top_tabs']")
+
+
 def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
@@ -610,16 +740,23 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
     return f'<div id="{p}" class="ssc">\n<style>\n{style}\n</style>\n{cases}</div>\n'
 
 
-def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
+def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) -> str:
     """One compiled program: code+diagram split, badge, output, collapsed bytes.
 
     The byte box is data-driven: it is emitted only when byte data exists. A
     variant with no bytes (e.g. a failed compile that never printed MEMBYTES)
     omits it rather than rendering a degenerate empty grid.
+
+    ``diagram=False`` drops the memory diagram (and the two-column split),
+    showing the code full-width — for subjects with no memory-model picture.
     """
-    body = (
+    code_block = (
         code_diagram_panel(f"{pid}-cdp", v["code_html"],
                            memory_diagram(f"{pid}-md", v["ptrdata"]))
+        if diagram else v["code_html"]
+    )
+    body = (
+        code_block
         + '<div style="margin-top:.8rem">'
         + compile_status_badge(f"{pid}-badge", v["ok"])
         + "</div>"
@@ -636,11 +773,14 @@ def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
     return body
 
 
-def demo_panel(comp_id: str, entry: dict) -> str:
+def demo_panel(comp_id: str, entry: dict, diagram: bool = True) -> str:
     """One demo's inner content: a variant_tabs cluster over a topic's baked data.
 
     A cases-topic variant carries a ``cases`` list; its sub-cases are stacked
     (each with its own compile verdict) inside the tab. Layout-agnostic.
+
+    ``diagram=False`` suppresses the per-program memory diagram (see
+    :func:`_demo_variant_body`).
     """
     cid = _safe(comp_id)
     panels = []
@@ -651,11 +791,13 @@ def demo_panel(comp_id: str, entry: dict) -> str:
             subcases = []
             for j, case in enumerate(v["cases"]):
                 spid = f"{pid}-c{j}"
-                body = _demo_variant_body(spid, case, "Raw bytes of ptr (little-endian)")
+                body = _demo_variant_body(spid, case, "Raw bytes of ptr (little-endian)",
+                                          diagram=diagram)
                 subcases.append((case["label"], body))
             body = stacked_subcases(f"{pid}-ssc", subcases)
         else:
-            body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)")
+            body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)",
+                                      diagram=diagram)
         panels.append((label, body))
     return variant_tabs(cid, panels)
 

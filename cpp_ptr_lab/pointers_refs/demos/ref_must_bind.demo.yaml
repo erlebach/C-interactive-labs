@@ -2,5 +2,5 @@ title: "Ref: Must Bind"
 language: cpp
 bake: { rmb: ref_must_bind }
 blocks:
-  - callout_note: { id: rmb-note, label: Concept, text: "${rmb.explanation}" }
+  - concept: { id: rmb-note, text: "${rmb.explanation}" }
   - topic: { id: rmb, source: rmb }
