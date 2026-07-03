@@ -313,6 +313,24 @@ class TestDemoPanel:
         assert html.count('class="ssc"') == 2    # one per decl-type tab
         assert "console--err" in html            # the failing sub-case
 
+    def test_single_variant_demo_has_no_default_tab(self):
+        # A single-variant topic (no categorical controls) has nothing to switch
+        # between: the lone "default" tab is noise. Render the body, no tab chrome.
+        from cpp_ptr_lab import components as C
+        entry = {
+            "explanation": "e", "variants": ["default"],
+            "default": {
+                "code_html": "<pre><code>int x = 1;</code></pre>", "ptrdata": None,
+                "stdout": "ran", "stderr": "", "ok": True, "failed": False,
+                "bytes": [], "target_val": "?", "source": "int x = 1;",
+            },
+        }
+        html = C.demo_panel("solo", entry)
+        assert ">default<" not in html           # no lone tab label
+        assert "vt-tabs" not in html             # no tab strip
+        assert 'type="radio"' not in html        # nothing to switch → no radio
+        assert "int x = 1;" in html              # the body is still rendered
+
 
 class TestGlossary:
     def test_glossary_renders_dl_with_terms(self):
@@ -387,6 +405,17 @@ class TestVariantTabsNesting:
         assert "vt-panels-outer" in html
         assert "vt-tabs-outer" in html
         assert "vt-panel-outer" in html and "vt-p0-outer" in html
+
+    def test_single_panel_renders_body_without_tab_chrome(self):
+        # One panel has nothing to switch: emit just the body in its bordered
+        # container, with no radios and no tab labels.
+        from cpp_ptr_lab import components as C
+        html = C.variant_tabs("solo", [("default", "<p>only</p>")])
+        assert "<p>only</p>" in html
+        assert 'type="radio"' not in html
+        assert "vt-tabs-solo" not in html
+        assert ">default<" not in html
+        assert "vt-panels-solo" in html          # still framed like a panel
 
     def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
         from cpp_ptr_lab import components as C

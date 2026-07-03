@@ -469,8 +469,20 @@ def code_line_link(
 
 
 def variant_tabs(comp_id: str, panels: Sequence[tuple[str, str]]) -> str:
-    """Switch between N labelled panels with native radios + ``:checked ~``."""
+    """Switch between N labelled panels with native radios + ``:checked ~``.
+
+    A single panel has nothing to switch between, so the tab strip is noise:
+    render just its body in the same bordered container, with no radios/labels.
+    """
     p = _safe(comp_id)
+    if len(panels) == 1:
+        _, body = panels[0]
+        return (
+            f'<div id="{p}">\n'
+            f'<div class="vt-panels-{p}" style="border:2px solid var(--border);'
+            f'border-radius:8px;padding:.7rem">\n{body}</div>\n'
+            f"</div>\n"
+        )
     style_lines = [f"#{p} .vt-panel-{p} {{ display: none; }}"]
     inputs, tabs, panel_html = "", "", ""
     for i, (label, body) in enumerate(panels):
