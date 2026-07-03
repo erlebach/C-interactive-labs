@@ -53,15 +53,15 @@ def _topic(d: dict) -> TopicTemplate:
     )
 
 
-def load_topics(dir: Path | None = None) -> dict[str, TopicTemplate]:
-    """Return ``{id: TopicTemplate}`` for all ``*.topic.yaml`` in *dir*.
+def load_topics(topics_dir: Path | None = None) -> dict[str, TopicTemplate]:
+    """Return ``{id: TopicTemplate}`` for all ``*.topic.yaml`` in *topics_dir*.
 
     Ordered by each file's ``order:`` integer (falls back to id for ties).
     """
-    directory = dir or _TOPICS_DIR
+    directory = topics_dir or _TOPICS_DIR
     docs = []
     for path in directory.glob("*.topic.yaml"):
         data = yaml.safe_load(path.read_text())
         docs.append(data)
-    docs.sort(key=lambda d: (d.get("order", 1_000_000), d["id"]))
+    docs.sort(key=lambda d: (d.get("order", 1_000_000), d.get("id", "")))
     return {d["id"]: _topic(d) for d in docs}

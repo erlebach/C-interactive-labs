@@ -24,5 +24,13 @@ controls:
     default: Show null ptr
     placeholder: "<<variant>>"
     value_map:
-      "Show null ptr": "    int* ptr = nullptr;\n    printf(\"PTRDATA: type=null ptr_addr=%p\\n\", (void*)ptr);\n    printf(\"MEMBYTES: 00\\n\");\n    std::cout << \"ptr is null: \" << (ptr == nullptr ? \"true\" : \"false\") << std::endl;"
-      "Attempt null ref": "    int* raw = nullptr;\n    int& r = *raw;  // UB: null reference — run with ASan for safe output\n    printf(\"PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\\n\",\n           (void*)&r, (void*)raw, r);"
+      "Show null ptr": |-1
+           int* ptr = nullptr;
+           printf("PTRDATA: type=null ptr_addr=%p\n", (void*)ptr);
+           printf("MEMBYTES: 00\n");
+           std::cout << "ptr is null: " << (ptr == nullptr ? "true" : "false") << std::endl;
+      "Attempt null ref": |-1
+           int* raw = nullptr;
+           int& r = *raw;  // UB: null reference — run with ASan for safe output
+           printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+                  (void*)&r, (void*)raw, r);

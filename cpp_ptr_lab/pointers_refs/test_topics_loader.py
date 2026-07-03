@@ -4,7 +4,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from cpp_ptr_lab.code_generator import ControlDef, TopicTemplate
+from cpp_ptr_lab.pointers_refs.topics_loader import load_topics
 
 _HERE = Path(__file__).parent
 _SNAPSHOT = _HERE / "topics_snapshot.json"
@@ -33,10 +36,6 @@ def serialize_topic(t: TopicTemplate) -> dict:
 def serialize_all(topics) -> dict:
     return {t.id: serialize_topic(t) for t in topics}
 
-
-import pytest
-
-from cpp_ptr_lab.pointers_refs.topics_loader import load_topics
 
 _LEGACY_ORDER = [
     "basic_ptr", "const_taxonomy", "ref_must_bind", "ref_no_null",
@@ -86,3 +85,9 @@ def test_yaml_matches_legacy(loaded):
     golden = json.loads(_SNAPSHOT.read_text())
     actual = serialize_all(loaded.values())
     assert actual == golden
+
+
+def test_missing_required_field_raises():
+    from cpp_ptr_lab.pointers_refs.topics_loader import _topic
+    with pytest.raises(ValueError, match="name"):
+        _topic({"id": "x", "template": "t", "explanation": "e", "group": "g"})
