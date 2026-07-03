@@ -610,16 +610,23 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
     return f'<div id="{p}" class="ssc">\n<style>\n{style}\n</style>\n{cases}</div>\n'
 
 
-def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
+def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) -> str:
     """One compiled program: code+diagram split, badge, output, collapsed bytes.
 
     The byte box is data-driven: it is emitted only when byte data exists. A
     variant with no bytes (e.g. a failed compile that never printed MEMBYTES)
     omits it rather than rendering a degenerate empty grid.
+
+    ``diagram=False`` drops the memory diagram (and the two-column split),
+    showing the code full-width — for subjects with no memory-model picture.
     """
-    body = (
+    code_block = (
         code_diagram_panel(f"{pid}-cdp", v["code_html"],
                            memory_diagram(f"{pid}-md", v["ptrdata"]))
+        if diagram else v["code_html"]
+    )
+    body = (
+        code_block
         + '<div style="margin-top:.8rem">'
         + compile_status_badge(f"{pid}-badge", v["ok"])
         + "</div>"
@@ -636,11 +643,14 @@ def _demo_variant_body(pid: str, v: dict, caption: str) -> str:
     return body
 
 
-def demo_panel(comp_id: str, entry: dict) -> str:
+def demo_panel(comp_id: str, entry: dict, diagram: bool = True) -> str:
     """One demo's inner content: a variant_tabs cluster over a topic's baked data.
 
     A cases-topic variant carries a ``cases`` list; its sub-cases are stacked
     (each with its own compile verdict) inside the tab. Layout-agnostic.
+
+    ``diagram=False`` suppresses the per-program memory diagram (see
+    :func:`_demo_variant_body`).
     """
     cid = _safe(comp_id)
     panels = []
@@ -651,11 +661,13 @@ def demo_panel(comp_id: str, entry: dict) -> str:
             subcases = []
             for j, case in enumerate(v["cases"]):
                 spid = f"{pid}-c{j}"
-                body = _demo_variant_body(spid, case, "Raw bytes of ptr (little-endian)")
+                body = _demo_variant_body(spid, case, "Raw bytes of ptr (little-endian)",
+                                          diagram=diagram)
                 subcases.append((case["label"], body))
             body = stacked_subcases(f"{pid}-ssc", subcases)
         else:
-            body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)")
+            body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)",
+                                      diagram=diagram)
         panels.append((label, body))
     return variant_tabs(cid, panels)
 

@@ -462,3 +462,26 @@ class TestLeftRailMobileMenu:
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         # inline JS is allowed now, but nothing external / networked
         assert "<script src" not in html and "https://" not in html and "src=" not in html
+
+
+class TestOptionalDiagram:
+    """`topic: {diagram: false}` renders code+output but no memory diagram.
+
+    For subjects with no memory-model picture (operator overloading, classes,
+    templates), the panel must not force a "?" placeholder SVG. Default stays on
+    so pointer pages are unchanged.
+    """
+
+    def test_diagram_false_omits_memory_diagram(self):
+        spec = {"title": "T", "blocks": [
+            {"topic": {"id": "t", "source": "bp", "diagram": False}}]}
+        html = R.render_page(spec, FAKE)
+        assert 'role="img"' not in html            # no memory diagram at all
+        assert "int* ptr" in html and "double* ptr" in html  # code still shown
+        assert "<pre" in html                       # code block present
+
+    def test_diagram_default_keeps_memory_diagram(self):
+        spec = {"title": "T", "blocks": [
+            {"topic": {"id": "t", "source": "bp"}}]}
+        html = R.render_page(spec, FAKE)
+        assert 'role="img"' in html                 # diagram present by default

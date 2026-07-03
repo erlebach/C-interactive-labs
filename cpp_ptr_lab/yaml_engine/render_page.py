@@ -59,9 +59,10 @@ def _topic_registry() -> dict[str, Any]:
     )
     from ..smart_ptrs.topics import TOPICS as SMART
     from ..function_args.topics import TOPICS as FUNC_ARGS
+    from ..op_overload.topics import TOPICS as OP_OVERLOAD
     topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
               ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
-              *SMART, *FUNC_ARGS]
+              *SMART, *FUNC_ARGS, *OP_OVERLOAD]
     return {t.id: t for t in topics}
 
 
@@ -211,8 +212,13 @@ def _build_html(args: dict, data: dict) -> str:
 
 
 def _build_topic(args: dict, data: dict) -> str:
-    """A demo_panel over a baked topic (thin adapter; content lives in components)."""
-    return C.demo_panel(args["id"], data[args["source"]])
+    """A demo_panel over a baked topic (thin adapter; content lives in components).
+
+    ``diagram: false`` suppresses the memory diagram for subjects with no
+    memory-model picture (operator overloading, classes, templates); default on.
+    """
+    return C.demo_panel(args["id"], data[args["source"]],
+                        diagram=args.get("diagram", True))
 
 
 _BUILDERS = {
