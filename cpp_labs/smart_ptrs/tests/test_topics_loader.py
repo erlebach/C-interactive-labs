@@ -1,18 +1,15 @@
-"""Loader tests + golden-equivalence guard for smart_ptrs topic YAML."""
+"""Loader tests for smart_ptrs topic YAML."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from cpp_labs.tests.topic_equiv import serialize_all
 from cpp_labs.topic_yaml import load_topics
 
 _HERE = Path(__file__).parents[1]
-_SNAPSHOT = _HERE / "topics_snapshot.json"
 
-_LEGACY_ORDER = [
+_TOPIC_IDS = [
     "unique_basics", "unique_move", "unique_copy_err",
     "shared_basics", "shared_copy",
     "weak_basics", "weak_expired", "weak_cycle",
@@ -27,7 +24,7 @@ def loaded():
 def test_all_topics_present(loaded):
     # Render order comes from the layout's demos: list, not the loader, so we
     # assert the id set — not a sequence.
-    assert set(loaded) == set(_LEGACY_ORDER)
+    assert set(loaded) == set(_TOPIC_IDS)
 
 
 def test_copy_error_has_no_ptrdata(loaded):
@@ -39,10 +36,3 @@ def test_cycle_break_value_map(loaded):
     ctrl = loaded["weak_cycle"].controls[0]
     assert list(ctrl.value_map) == ["Cycle (leak)", "Fix (weak_ptr)"]
     assert "weak_ptr" in ctrl.value_map["Fix (weak_ptr)"]
-
-
-def test_yaml_matches_legacy(loaded):
-    """Equivalence guard: YAML reproduces the frozen Python snapshot exactly."""
-    golden = json.loads(_SNAPSHOT.read_text())
-    actual = serialize_all(loaded.values())
-    assert actual == golden

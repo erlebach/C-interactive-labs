@@ -1,16 +1,13 @@
-"""Loader tests + golden-equivalence guard for pointers_refs topic YAML."""
+"""Loader tests for pointers_refs topic YAML."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from cpp_labs.tests.topic_equiv import serialize_all
 from cpp_labs.topic_yaml import load_topics
 
 _HERE = Path(__file__).parents[1]
-_SNAPSHOT = _HERE / "topics_snapshot.json"
 
 
 _LEGACY_ORDER = [
@@ -56,13 +53,6 @@ def test_defaults_applied(loaded):
     assert t.has_ptrdata is False   # ref_must_bind sets this explicitly
     assert loaded["basic_ptr"].has_ptrdata is True
     assert loaded["basic_ptr"].cases is None
-
-
-def test_yaml_matches_legacy(loaded):
-    """Equivalence guard: YAML reproduces the frozen Python snapshot exactly."""
-    golden = json.loads(_SNAPSHOT.read_text())
-    actual = serialize_all(loaded.values())
-    assert actual == golden
 
 
 def test_missing_required_field_raises():

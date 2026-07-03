@@ -20,7 +20,7 @@ import pytest
 from cpp_labs.yaml_engine import render_page as R
 
 HAS_GPP = shutil.which("g++") is not None
-SPEC = Path(__file__).parents[1] / "pointers_refs.page.yaml"
+SPEC = Path(__file__).parents[1] / "layouts" / "pointers_refs.page.yaml"
 
 # The demos the combined page must present, by display name (tab/section heading).
 TOPIC_NAMES = [
