@@ -564,3 +564,11 @@ class TestNavShell:
         import pytest
         with pytest.raises(ValueError, match="unknown nav style"):
             C.nav_shell("lab", self.ITEMS, style="carousel")
+
+
+class TestBuildLayoutNav:
+    def test_layouts_dict_and_stacked_layout_are_gone(self):
+        # The leaky per-style dispatch is removed; nav_shell is the single seam.
+        from cpp_ptr_lab.yaml_engine import render_page as R
+        assert not hasattr(R, "_LAYOUTS")
+        assert not hasattr(R, "_stacked_layout")

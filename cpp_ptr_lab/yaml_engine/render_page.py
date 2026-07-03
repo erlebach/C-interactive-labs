@@ -319,18 +319,6 @@ def build_page(spec_path: Path | str, dist_dir: Path) -> Path:
     return out
 
 
-def _stacked_layout(comp_id: str, items) -> str:
-    """Fallback nav: stack every demo (no selector)."""
-    return "\n".join(body for _label, body in items)
-
-
-_LAYOUTS = {
-    "left_rail": C.left_rail_layout,
-    "top_tabs": C.variant_tabs,      # top tabs == variant_tabs (two-row via flex-wrap)
-    "stacked": _stacked_layout,
-}
-
-
 def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     """Bake+compose a layout spec into one standalone page.
 
@@ -346,9 +334,6 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
     spec = load_spec(layout_path)
 
     style = spec.get("style", "left_rail")
-    if style not in _LAYOUTS:
-        raise ValueError(
-            f"unknown layout style {style!r}; valid choices: {sorted(_LAYOUTS)}")
 
     header_html = _render_header(spec.get("header", []), base)
 
@@ -369,11 +354,8 @@ def build_layout(layout_path: "Path | str", dist_dir: Path) -> Path:
         items.append((demo_spec.get("title", "Demo"), fragment))
 
     n = len(glossary_items)
-    if style == "left_rail":
-        # keep a demo (not the glossary) as the panel shown on load
-        nav = C.left_rail_layout("lab", items, italic_count=n, selected=n if n < len(items) else 0)
-    else:
-        nav = _LAYOUTS[style]("lab", items)
+    nav = C.nav_shell("lab", items, style=style, leading=n,
+                      selected=(n if n < len(items) else 0))
     body = f"{header_html}\n{nav}" if header_html else nav
     page = C.page_shell("page", body, title=spec.get("title", "Lab"), highlight=True)
 
