@@ -166,23 +166,39 @@ def callout_note(comp_id: str, text: str, *, label: str = "Note") -> str:
     )
 
 
+def _prose_box(comp_id: str, body_html: str, *, title: str | None = None,
+               css_class: str = "prose") -> str:
+    """Shared bordered prose section for glossary and concept panels.
+
+    With a ``title`` the section is labelled by an ``<h2>`` via aria-labelledby
+    (the glossary's accessible pattern); without one it is a plain bordered box.
+    """
+    p = _safe(comp_id)
+    if title is not None:
+        tid = f"{p}-title"
+        head = f'<h2 id="{tid}" style="font-size:1rem;margin:.2rem 0 .4rem">{_e(title)}</h2>\n'
+        label_attr = f' aria-labelledby="{tid}"'
+    else:
+        head = ""
+        label_attr = ""
+    return (
+        f'<section class="{css_class}" id="{p}"{label_attr} '
+        f'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
+        f"{head}{body_html}\n"
+        f"</section>\n"
+    )
+
+
 def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
     """A reusable term/definition list (prose vocabulary), rendered as a <dl>.
 
     Accessible: the <section> is labelled by its heading via aria-labelledby.
     """
-    p = _safe(comp_id)
-    tid = f"{p}-title"
     rows = ""
     for term, definition in terms:
         rows += f"<dt>{_e(term)}</dt><dd>{_e(definition)}</dd>\n"
-    return (
-        f'<section class="glossary" id="{p}" aria-labelledby="{tid}" '
-        f'style="border:2px solid var(--border);border-radius:8px;padding:.6rem .9rem;margin:.6rem 0">\n'
-        f'<h2 id="{tid}" style="font-size:1rem;margin:.2rem 0 .4rem">{_e(title)}</h2>\n'
-        f'<dl style="margin:0">\n{rows}</dl>\n'
-        f"</section>\n"
-    )
+    return _prose_box(comp_id, f'<dl style="margin:0">\n{rows}</dl>',
+                      title=title, css_class="glossary")
 
 
 # ---------------------------------------------------------------------------
