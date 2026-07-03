@@ -652,7 +652,7 @@ class TestConcept:
 
     def test_concept_note_open_and_custom_label_and_escaping(self):
         from cpp_ptr_lab import components as C
-        html = C.concept_note("c2", "1 < 2 & true", label="Why", open=True)
+        html = C.concept_note("c2", "1 < 2 & true", label="Why", open_=True)
         assert "<details id=\"c2\" class=\"concept\" open" in html
         assert ">Why</summary>" in html
         assert "1 &lt; 2 &amp; true" in html               # body escaped

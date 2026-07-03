@@ -202,15 +202,14 @@ def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
 
 
 def concept_note(comp_id: str, text: str, *, label: str = "Concept",
-                 open: bool = False) -> str:
-    """Example Concept: a native <details> disclosure (collapsed by default).
-
-    Zero-JS, keyboard- and screen-reader-operable. The expanded body is a
-    borderless prose box (the shared prose behaviour) inside the disclosure.
+                 open_: bool = False) -> str:
+    """Example (per-example) Concept: a native <details> disclosure, collapsed by
+    default. Zero-JS, keyboard- and screen-reader-operable. The expanded body is
+    a bordered prose box rendered through the shared ``_prose_box`` helper.
     """
     p = _safe(comp_id)
     body = _prose_box(f"{p}-box", f'<p style="margin:0">{_e(text)}</p>', css_class="concept")
-    op = " open" if open else ""
+    op = " open" if open_ else ""
     return (
         f'<details id="{p}" class="concept"{op} style="margin:.4rem 0">\n'
         f'<summary style="cursor:pointer;font-weight:700;min-height:44px;'
@@ -221,7 +220,10 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
 
 
 def concept_panel(comp_id: str, text: str, *, title: str = "Concept") -> str:
-    """Demonstration Concept: a titled prose panel shown as a leading rail entry."""
+    """Demonstration (whole-file) Concept: a titled prose panel shown as a leading
+    rail entry. No disclosure behaviour — for the collapsible per-example variant
+    use ``concept_note``.
+    """
     return _prose_box(comp_id, f'<p style="margin:0">{_e(text)}</p>',
                       title=title, css_class="concept")
 
