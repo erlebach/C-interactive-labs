@@ -1,0 +1,19 @@
+id: unique_move
+order: 2
+name: 'unique_ptr: Move'
+group: unique_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr
+target_var: q
+explanation: 'unique_ptr cannot be copied — ownership is transferred with std::move(). After the move, the source unique_ptr is null. This enforces exclusive ownership: exactly one unique_ptr owns the object.'
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      auto p = std::make_unique<int>(99);
+      auto q = std::move(p);  // transfer ownership; p is now null
+      printf("p is null after move: %s\n", (p == nullptr ? "true" : "false"));
+      printf("PTRDATA: type=unique ptr_addr=%p target_addr=%p val=%d is_null=%d\n",
+             (void*)&q, (void*)q.get(), *q, (q == nullptr ? 1 : 0));
+      <<HARNESS>>
+  }

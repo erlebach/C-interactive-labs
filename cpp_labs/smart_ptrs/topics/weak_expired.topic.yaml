@@ -1,0 +1,24 @@
+id: weak_expired
+order: 7
+name: 'weak_ptr: Expired'
+group: weak_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/weak_ptr
+target_var: wp
+explanation: 'When the last shared_ptr owning an object is destroyed, the weak_ptr that observed it becomes expired. wp.expired() returns true; wp.lock() returns an empty shared_ptr. See the next tab (Cycle Break) for why this matters: weak_ptr is the standard fix for shared_ptr reference cycles.'
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      std::weak_ptr<int> wp;
+      {
+          auto sp = std::make_shared<int>(55);
+          wp = sp;
+          std::cout << "use_count inside scope: " << sp.use_count() << std::endl;
+      }  // sp destroyed here — wp becomes expired
+      printf("PTRDATA: type=weak ptr_addr=%p expired=%d use_count=%ld\n",
+             (void*)&wp, (int)wp.expired(), (long)wp.use_count());
+      std::cout << "expired: " << (wp.expired() ? "true" : "false") << std::endl;
+      std::cout << "lock empty: " << (!wp.lock() ? "true" : "false") << std::endl;
+      <<HARNESS>>
+  }

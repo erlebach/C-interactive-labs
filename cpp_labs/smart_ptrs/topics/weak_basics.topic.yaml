@@ -1,0 +1,28 @@
+id: weak_basics
+order: 6
+name: 'weak_ptr: Basics'
+group: weak_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/weak_ptr
+target_var: sp
+explanation: std::weak_ptr<T> observes a shared_ptr without contributing to its reference count. Creating a weak_ptr does not increase use_count(). To access the object, call .lock() which returns a shared_ptr (or empty if expired). use_count() of the shared_ptr remains 1 after creating the weak_ptr.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      auto sp = std::make_shared<int>(<<value>>);
+      std::weak_ptr<int> wp = sp;
+      std::cout << "use_count with weak_ptr: " << sp.use_count() << std::endl;
+      printf("PTRDATA: type=weak ptr_addr=%p expired=%d use_count=%ld\n",
+             (void*)&wp, (int)wp.expired(), (long)sp.use_count());
+      if (auto locked = wp.lock()) {
+          std::cout << "locked val=" << *locked << std::endl;
+      }
+      <<HARNESS>>
+  }
+controls:
+- id: value
+  label: Value
+  kind: text
+  default: '77'
+  placeholder: <<value>>

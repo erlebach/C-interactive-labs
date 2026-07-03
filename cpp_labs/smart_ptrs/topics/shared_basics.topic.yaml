@@ -1,0 +1,35 @@
+id: shared_basics
+order: 4
+name: 'shared_ptr: Basics'
+group: shared_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/shared_ptr
+target_var: sp1
+explanation: 'std::shared_ptr<T> is reference-counted: copying it increments the count; destroying a copy decrements it. The heap object is freed only when the count reaches 0. This demo traces the full lifecycle: 1 owner -> 2 owners -> 1 owner -> 0 owners (freed). A weak_ptr observer lets us read use_count() safely after the last shared_ptr is gone.'
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      std::weak_ptr<int> wp;
+      {
+          auto sp1 = std::make_shared<int>(<<value>>);
+          wp = sp1;
+          std::cout << "use_count: " << sp1.use_count() << "  (1 owner)" << std::endl;
+          {
+              auto sp2 = sp1;  // copy: use_count -> 2
+              std::cout << "use_count: " << sp1.use_count() << "  (2 owners)" << std::endl;
+              printf("PTRDATA: type=shared ptr_addr=%p ptr2_addr=%p target_addr=%p val=%d use_count=%ld\n",
+                     (void*)&sp1, (void*)&sp2, (void*)sp1.get(), *sp1, (long)sp1.use_count());
+          }  // sp2 destroyed: use_count -> 1
+          std::cout << "use_count: " << sp1.use_count() << "  (1 owner, sp2 gone)" << std::endl;
+          <<HARNESS>>
+      }  // sp1 destroyed: use_count -> 0, heap object freed
+      std::cout << "use_count: " << wp.use_count() << "  (0 owners, object freed)" << std::endl;
+      std::cout << "expired:   " << (wp.expired() ? "true" : "false") << std::endl;
+  }
+controls:
+- id: value
+  label: Value
+  kind: text
+  default: '99'
+  placeholder: <<value>>

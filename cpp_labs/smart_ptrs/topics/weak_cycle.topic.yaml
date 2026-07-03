@@ -1,0 +1,44 @@
+id: weak_cycle
+order: 8
+name: 'weak_ptr: Cycle Break'
+group: weak_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/weak_ptr
+target_var: a
+has_ptrdata: false
+explanation: 'Problem: A holds shared_ptr<B> and B holds shared_ptr<A>. Neither use_count ever reaches 0, so neither destructor runs — memory leak. Fix: make one link a weak_ptr (it does not increment use_count). Proof: select ''Cycle (leak)'' — no destructor output. Select ''Fix (weak_ptr)'' — both destructors fire.'
+template: |
+  #include <iostream>
+  #include <memory>
+
+  struct B;
+
+  struct A {
+      std::shared_ptr<B> b_ptr;
+      ~A() { std::cout << "A destroyed" << std::endl; }
+  };
+  struct B {
+      <<b_ptr_decl>>
+      ~B() { std::cout << "B destroyed" << std::endl; }
+  };
+
+  int main() {
+      auto a = std::make_shared<A>();
+      auto b = std::make_shared<B>();
+      a->b_ptr = b;
+      b->a_ptr = a;
+      std::cout << "a.use_count: " << a.use_count() << std::endl;
+      std::cout << "b.use_count: " << b.use_count() << std::endl;
+      // a and b go out of scope here
+  }
+controls:
+- id: variant
+  label: Variant
+  kind: dropdown
+  options:
+  - Cycle (leak)
+  - Fix (weak_ptr)
+  default: Cycle (leak)
+  placeholder: <<b_ptr_decl>>
+  value_map:
+    Cycle (leak): '    std::shared_ptr<A> a_ptr;  // keeps A alive — use_count never 0'
+    Fix (weak_ptr): '    std::weak_ptr<A>   a_ptr;  // does not keep A alive — cycle broken'

@@ -1,0 +1,22 @@
+id: shared_copy
+order: 5
+name: 'shared_ptr: Copy'
+group: shared_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/shared_ptr
+target_var: sp1
+explanation: Copying a shared_ptr increments the reference count. Both sp1 and sp2 own the same heap object. use_count() is 2 while both are alive; drops to 1 when sp2 goes out of scope.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      auto sp1 = std::make_shared<int>(42);
+      {
+          auto sp2 = sp1;  // copy: use_count becomes 2
+          std::cout << "use_count after copy: " << sp1.use_count() << std::endl;
+          printf("PTRDATA: type=shared ptr_addr=%p ptr2_addr=%p target_addr=%p val=%d use_count=%ld\n",
+                 (void*)&sp1, (void*)&sp2, (void*)sp1.get(), *sp1, (long)sp1.use_count());
+      }
+      std::cout << "use_count after sp2 scope: " << sp1.use_count() << std::endl;
+      <<HARNESS>>
+  }

@@ -1,0 +1,64 @@
+id: function_args
+order: 1
+name: Function Arguments
+group: Functions
+doc_url: https://en.cppreference.com/w/cpp/language/functions
+target_var: val
+explanation: How a function receives an argument decides whether it can change the caller's variable. By value it gets a copy (the caller is untouched). By pointer it gets a copy of the address, so *x reaches back and writes the caller's variable. By reference the parameter is an alias for the caller's variable — same address — so writing it changes the original. Each tab passes the same val = 42 and prints it after the call.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  <<mode>>
+controls:
+- id: mode
+  label: Passing convention
+  kind: dropdown
+  options:
+  - by value
+  - by pointer
+  - by reference
+  default: by value
+  placeholder: <<mode>>
+  value_map:
+    by value: |
+      void modify(int x) {
+          x = 99;  // modifies the local copy only
+          std::cout << "(by value: x is a separate copy; nothing links it to val)"
+                    << std::endl;
+      }
+
+      int main() {
+          int val = 42;
+          std::cout << "before: val = " << val << std::endl;
+          modify(val);
+          std::cout << "after:  val = " << val << std::endl;
+          <<HARNESS>>
+      }
+    by pointer: |
+      void modify(int* x) {
+          *x = 99;  // write THROUGH the pointer into the caller's val
+          printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%d\n",
+                 (void*)&x, (void*)x, *x);
+      }
+
+      int main() {
+          int val = 42;
+          std::cout << "before: val = " << val << std::endl;
+          modify(&val);
+          std::cout << "after:  val = " << val << std::endl;
+          <<HARNESS>>
+      }
+    by reference: |
+      void modify(int& x) {
+          x = 99;  // x is another name for val — same object
+          printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+                 (void*)&x, (void*)&x, x);
+      }
+
+      int main() {
+          int val = 42;
+          std::cout << "before: val = " << val << std::endl;
+          modify(val);
+          std::cout << "after:  val = " << val << std::endl;
+          <<HARNESS>>
+      }
