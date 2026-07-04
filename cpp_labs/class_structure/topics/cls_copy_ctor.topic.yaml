@@ -1,0 +1,31 @@
+id: cls_copy_ctor
+name: "copy constructor"
+group: Class Structure
+doc_url: https://en.cppreference.com/w/cpp/language/copy_constructor
+has_ptrdata: false
+explanation: >-
+  The copy constructor builds a NEW object from an existing one:
+  "Buffer b = a;". For a class that owns a resource (here a heap array) it must
+  deep-copy, giving the new object independent storage. A shallow copy would
+  leave two objects pointing at one buffer — double-freed at destruction and
+  aliased on every write.
+template: |
+  #include <iostream>
+  struct Buffer {
+      int* data;
+      int  n;
+      Buffer(int n) : data(new int[n]), n(n) {
+          for (int i = 0; i < n; ++i) data[i] = i;
+      }
+      Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) {   // copy ctor: deep copy
+          for (int i = 0; i < n; ++i) data[i] = o.data[i];
+          std::cout << "copy ctor: deep-copied " << n << " ints\n";
+      }
+      ~Buffer() { delete[] data; }
+  };
+  int main() {
+      Buffer a(3);
+      Buffer b = a;          // copy constructor
+      b.data[0] = 99;        // writes independent storage
+      std::cout << "a[0]=" << a.data[0] << "  b[0]=" << b.data[0] << "\n";
+  }

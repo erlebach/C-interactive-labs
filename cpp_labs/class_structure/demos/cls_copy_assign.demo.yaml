@@ -1,0 +1,6 @@
+title: "Copy Assignment"
+language: cpp
+bake: { ca: cls_copy_assign }
+blocks:
+  - concept: { id: ca-note, text: "${ca.explanation}" }
+  - topic: { id: ca, source: ca, diagram: false }

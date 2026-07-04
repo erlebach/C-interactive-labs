@@ -1,0 +1,6 @@
+title: "Move Operations"
+language: cpp
+bake: { m: cls_move_ops }
+blocks:
+  - concept: { id: m-note, text: "${m.explanation}" }
+  - topic: { id: m, source: m, diagram: false }

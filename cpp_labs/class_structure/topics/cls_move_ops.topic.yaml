@@ -1,0 +1,40 @@
+id: cls_move_ops
+name: "move constructor & move assignment"
+group: Class Structure
+doc_url: https://en.cppreference.com/w/cpp/language/move_constructor
+has_ptrdata: false
+explanation: >-
+  Move operations TRANSFER ownership of a resource instead of copying it: the
+  new object steals the source's pointer, and the moved-from object is left
+  empty (data=nullptr, n=0) but still valid to destroy. std::move casts an
+  lvalue to an rvalue so the move overloads are chosen. Mark them noexcept so
+  standard containers can move rather than copy on reallocation.
+template: |
+  #include <iostream>
+  #include <utility>
+  struct Buffer {
+      int* data;
+      int  n;
+      Buffer(int n) : data(new int[n]{}), n(n) {}
+      Buffer(Buffer&& o) noexcept : data(o.data), n(o.n) {   // move ctor: steal
+          o.data = nullptr; o.n = 0;                         // leave source empty
+          std::cout << "move ctor: stole buffer\n";
+      }
+      Buffer& operator=(Buffer&& o) noexcept {               // move assignment
+          if (this == &o) return *this;
+          delete[] data;
+          data = o.data; n = o.n;
+          o.data = nullptr; o.n = 0;
+          std::cout << "move assign: stole buffer\n";
+          return *this;
+      }
+      ~Buffer() { delete[] data; }
+  };
+  int main() {
+      Buffer a(3);
+      Buffer b = std::move(a);      // move constructor
+      std::cout << "after move ctor:    a.n=" << a.n << "  b.n=" << b.n << "\n";
+      Buffer c(1);
+      c = std::move(b);             // move assignment
+      std::cout << "after move assign:  b.n=" << b.n << "  c.n=" << c.n << "\n";
+  }

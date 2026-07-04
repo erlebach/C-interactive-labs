@@ -1,0 +1,12 @@
+title: "Class Structure — Special Member Functions"
+style: left_rail
+header:
+  - heading: { text: "Class Structure & the Rule of Five" }
+sidebar:
+  - glossary: { id: g-cls, source: ../glossaries/class_structure.glossary.yaml, label: "Vocabulary" }
+demos:
+  - ../demos/cls_ctor.demo.yaml
+  - ../demos/cls_copy_ctor.demo.yaml
+  - ../demos/cls_copy_assign.demo.yaml
+  - ../demos/cls_move_ops.demo.yaml
+  - ../demos/cls_init_list.demo.yaml

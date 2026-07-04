@@ -1,0 +1,35 @@
+id: cls_copy_assign
+name: "copy assignment operator"
+group: Class Structure
+doc_url: https://en.cppreference.com/w/cpp/language/copy_assignment
+has_ptrdata: false
+explanation: >-
+  operator= assigns to an object that ALREADY exists — unlike the copy
+  constructor, which builds a new one. It must release the old resource, guard
+  against self-assignment ("a = a"), copy the source, and return *this so
+  assignments chain: "a = b = c".
+template: |
+  #include <iostream>
+  struct Buffer {
+      int* data;
+      int  n;
+      Buffer(int n) : data(new int[n]{}), n(n) {}
+      Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) {
+          for (int i = 0; i < n; ++i) data[i] = o.data[i];
+      }
+      Buffer& operator=(const Buffer& o) {      // copy assignment
+          if (this == &o) return *this;         // self-assignment guard
+          delete[] data;                        // release old resource
+          n = o.n;
+          data = new int[n];
+          for (int i = 0; i < n; ++i) data[i] = o.data[i];
+          std::cout << "copy assign: replaced contents (" << n << " ints)\n";
+          return *this;                         // enables chaining
+      }
+      ~Buffer() { delete[] data; }
+  };
+  int main() {
+      Buffer a(3), b(1);
+      b = a;                 // copy assignment (b already exists)
+      std::cout << "b now holds " << b.n << " ints\n";
+  }

@@ -1,0 +1,23 @@
+id: cls_ctor
+name: "constructor"
+group: Class Structure
+doc_url: https://en.cppreference.com/w/cpp/language/constructor
+has_ptrdata: false
+explanation: >-
+  A constructor initializes a new object. The member initializer list
+  ": x(x), y(y)" initializes members directly, before the constructor body
+  runs. Prefer it over assigning in the body: it is required for const and
+  reference members, and it avoids default-constructing a member only to
+  overwrite it.
+template: |
+  #include <iostream>
+  struct Point {
+      int x, y;
+      Point(int x, int y) : x(x), y(y) {   // member initializer list
+          std::cout << "ctor: Point(" << x << ", " << y << ")\n";
+      }
+  };
+  int main() {
+      Point p(3, 4);
+      std::cout << "p = (" << p.x << ", " << p.y << ")\n";
+  }

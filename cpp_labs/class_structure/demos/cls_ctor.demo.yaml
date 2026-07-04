@@ -1,0 +1,6 @@
+title: "Constructor"
+language: cpp
+bake: { c: cls_ctor }
+blocks:
+  - concept: { id: c-note, text: "${c.explanation}" }
+  - topic: { id: c, source: c, diagram: false }

@@ -1,0 +1,31 @@
+id: cls_init_list
+name: "initializer_list constructor"
+group: Class Structure
+doc_url: https://en.cppreference.com/w/cpp/utility/initializer_list
+has_ptrdata: false
+explanation: >-
+  A std::initializer_list<T> constructor lets an object be built from a brace
+  list: "Buffer b{10, 20, 30}". When such a constructor exists, brace
+  initialization PREFERS it over other constructors — so "Buffer b{3}" would
+  make a one-element list, not call Buffer(int). That overload-resolution
+  subtlety is the main gotcha to remember.
+template: |
+  #include <iostream>
+  #include <initializer_list>
+  struct Buffer {
+      int* data;
+      int  n;
+      Buffer(std::initializer_list<int> init)
+          : data(new int[init.size()]), n(static_cast<int>(init.size())) {
+          int i = 0;
+          for (int v : init) data[i++] = v;
+          std::cout << "init-list ctor: " << n << " ints\n";
+      }
+      ~Buffer() { delete[] data; }
+  };
+  int main() {
+      Buffer b{10, 20, 30, 40};      // brace list selects the initializer_list ctor
+      std::cout << "b = {";
+      for (int i = 0; i < b.n; ++i) std::cout << b.data[i] << (i + 1 < b.n ? ", " : "");
+      std::cout << "}\n";
+  }

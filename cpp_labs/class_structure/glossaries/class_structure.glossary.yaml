@@ -1,0 +1,17 @@
+title: "Vocabulary — Class Structure"
+terms:
+  - { term: "constructor (ctor)", def: "special member that initializes a new object of the class" }
+  - { term: "member initializer list", def: "the ': a(x), b(y)' after a constructor's signature; initializes members directly, before the body runs" }
+  - { term: "copy constructor", def: "builds a new object from an existing one: Buffer b = a; must deep-copy owned resources" }
+  - { term: "copy assignment (operator=)", def: "assigns to an object that already exists; releases the old resource, guards self-assignment, returns *this" }
+  - { term: "move constructor", def: "builds a new object by stealing an rvalue's resource, leaving the source empty but valid" }
+  - { term: "move assignment", def: "operator=(T&&); steals the source's resource into an existing object" }
+  - { term: "std::move", def: "casts an lvalue to an rvalue reference so the move overloads are selected; it moves nothing itself" }
+  - { term: "rvalue reference (T&&)", def: "binds to temporaries and moved-from objects; the parameter type that selects move overloads" }
+  - { term: "deep copy", def: "duplicate the owned resource so each object has independent storage" }
+  - { term: "shallow copy", def: "copy only the pointer; two objects then share (and double-free) one resource" }
+  - { term: "moved-from state", def: "the empty-but-valid state a source is left in after a move (here data=nullptr, n=0)" }
+  - { term: "noexcept", def: "promises a function throws no exception; move ops marked noexcept let containers move instead of copy" }
+  - { term: "self-assignment guard", def: "the 'if (this == &o) return *this;' check that makes a = a safe" }
+  - { term: "std::initializer_list<T>", def: "lightweight read-only list from a brace list {..}; a matching ctor is preferred by brace initialization" }
+  - { term: "Rule of Five", def: "if a class needs a custom destructor, copy ctor, or copy assignment, it usually needs all five special members (incl. the two moves)" }

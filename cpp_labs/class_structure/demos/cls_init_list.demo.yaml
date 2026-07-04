@@ -1,0 +1,6 @@
+title: "Initializer-List Constructor"
+language: cpp
+bake: { il: cls_init_list }
+blocks:
+  - concept: { id: il-note, text: "${il.explanation}" }
+  - topic: { id: il, source: il, diagram: false }
