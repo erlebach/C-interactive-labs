@@ -10,26 +10,29 @@ explanation: >-
   assignments chain: "a = b = c".
 template: |
   #include <iostream>
-  struct Buffer {
-      int* data;
-      int  n;
-      Buffer(int n) : data(new int[n]{}), n(n) {}
-      Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) {
-          for (int i = 0; i < n; ++i) data[i] = o.data[i];
+  class Buffer {
+  public:
+      Buffer(int n) : data_(new int[n]{}), n_(n) {}
+      Buffer(const Buffer& o) : data_(new int[o.n_]), n_(o.n_) {
+          for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
       }
       Buffer& operator=(const Buffer& o) {      // copy assignment
           if (this == &o) return *this;         // self-assignment guard
-          delete[] data;                        // release old resource
-          n = o.n;
-          data = new int[n];
-          for (int i = 0; i < n; ++i) data[i] = o.data[i];
-          std::cout << "copy assign: replaced contents (" << n << " ints)\n";
+          delete[] data_;                       // release old resource
+          n_ = o.n_;
+          data_ = new int[n_];
+          for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
+          std::cout << "copy assign: replaced contents (" << n_ << " ints)\n";
           return *this;                         // enables chaining
       }
-      ~Buffer() { delete[] data; }
+      ~Buffer() { delete[] data_; }
+      int size() const { return n_; }
+  private:
+      int* data_;
+      int  n_;
   };
   int main() {
       Buffer a(3), b(1);
       b = a;                 // copy assignment (b already exists)
-      std::cout << "b now holds " << b.n << " ints\n";
+      std::cout << "b now holds " << b.size() << " ints\n";
   }

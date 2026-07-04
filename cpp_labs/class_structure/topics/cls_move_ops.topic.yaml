@@ -3,38 +3,54 @@ name: "move constructor & move assignment"
 group: Class Structure
 doc_url: https://en.cppreference.com/w/cpp/language/move_constructor
 has_ptrdata: false
+sanitize: true
 explanation: >-
-  Move operations TRANSFER ownership of a resource instead of copying it: the
-  new object steals the source's pointer, and the moved-from object is left
-  empty (data=nullptr, n=0) but still valid to destroy. std::move casts an
-  lvalue to an rvalue so the move overloads are chosen. Mark them noexcept so
-  standard containers can move rather than copy on reallocation.
+  Move operations TRANSFER ownership of a resource instead of copying it: the new
+  object steals the source's pointer, and the moved-from object is left empty
+  (data_=nullptr, n_=0) but still valid to destroy. std::move casts an lvalue to
+  an rvalue so the move overloads are chosen; mark them noexcept so standard
+  containers move rather than copy on reallocation. A moved-from object is EMPTY,
+  so reading its elements is undefined behaviour — the mistake case dereferences
+  the moved-from buffer and AddressSanitizer reports the null dereference.
 template: |
   #include <iostream>
   #include <utility>
-  struct Buffer {
-      int* data;
-      int  n;
-      Buffer(int n) : data(new int[n]{}), n(n) {}
-      Buffer(Buffer&& o) noexcept : data(o.data), n(o.n) {   // move ctor: steal
-          o.data = nullptr; o.n = 0;                         // leave source empty
+  class Buffer {
+  public:
+      Buffer(int n) : data_(new int[n]{}), n_(n) {}
+      Buffer(Buffer&& o) noexcept : data_(o.data_), n_(o.n_) {   // move ctor: steal
+          o.data_ = nullptr; o.n_ = 0;                           // leave source empty
           std::cout << "move ctor: stole buffer\n";
       }
-      Buffer& operator=(Buffer&& o) noexcept {               // move assignment
+      Buffer& operator=(Buffer&& o) noexcept {                   // move assignment
           if (this == &o) return *this;
-          delete[] data;
-          data = o.data; n = o.n;
-          o.data = nullptr; o.n = 0;
+          delete[] data_;
+          data_ = o.data_; n_ = o.n_;
+          o.data_ = nullptr; o.n_ = 0;
           std::cout << "move assign: stole buffer\n";
           return *this;
       }
-      ~Buffer() { delete[] data; }
+      ~Buffer() { delete[] data_; }
+      int size() const { return n_; }
+      int operator[](int i) const { return data_[i]; }
+  private:
+      int* data_;
+      int  n_;
   };
   int main() {
       Buffer a(3);
       Buffer b = std::move(a);      // move constructor
-      std::cout << "after move ctor:    a.n=" << a.n << "  b.n=" << b.n << "\n";
-      Buffer c(1);
-      c = std::move(b);             // move assignment
-      std::cout << "after move assign:  b.n=" << b.n << "  c.n=" << c.n << "\n";
+      std::cout << "after move: a.size()=" << a.size() << "  b.size()=" << b.size() << "\n";
+      <<use_moved>>
   }
+cases:
+  - label: "Correct: inspect moved-from size only"
+    subs:
+      "<<use_moved>>": |-
+        Buffer c(1);
+        c = std::move(b);           // move assignment
+        std::cout << "after move assign: b.size()=" << b.size() << "  c.size()=" << c.size() << "\n";
+  - label: "Mistake: read a moved-from buffer  (null deref at runtime)"
+    subs:
+      "<<use_moved>>": |-
+        std::cout << "a[0] after move = " << a[0] << "\n";   // UB: a is empty

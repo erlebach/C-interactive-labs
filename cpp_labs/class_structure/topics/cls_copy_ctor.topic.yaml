@@ -3,29 +3,44 @@ name: "copy constructor"
 group: Class Structure
 doc_url: https://en.cppreference.com/w/cpp/language/copy_constructor
 has_ptrdata: false
+sanitize: true
 explanation: >-
-  The copy constructor builds a NEW object from an existing one:
-  "Buffer b = a;". For a class that owns a resource (here a heap array) it must
-  deep-copy, giving the new object independent storage. A shallow copy would
-  leave two objects pointing at one buffer — double-freed at destruction and
-  aliased on every write.
+  The copy constructor builds a NEW object from an existing one ("Buffer b = a;").
+  For a class that owns a resource (here a heap array) it must DEEP-copy, giving
+  the new object independent storage. The mistake case omits the copy constructor,
+  so the compiler's default shallow copy leaves both objects pointing at one
+  buffer: writing through b also changes a, and at destruction the same pointer is
+  freed twice — a double free, caught here by AddressSanitizer.
 template: |
   #include <iostream>
-  struct Buffer {
-      int* data;
-      int  n;
-      Buffer(int n) : data(new int[n]), n(n) {
-          for (int i = 0; i < n; ++i) data[i] = i;
+  class Buffer {
+  public:
+      Buffer(int n) : data_(new int[n]), n_(n) {
+          for (int i = 0; i < n_; ++i) data_[i] = i;
       }
-      Buffer(const Buffer& o) : data(new int[o.n]), n(o.n) {   // copy ctor: deep copy
-          for (int i = 0; i < n; ++i) data[i] = o.data[i];
-          std::cout << "copy ctor: deep-copied " << n << " ints\n";
-      }
-      ~Buffer() { delete[] data; }
+      <<copy_ctor>>
+      ~Buffer() { delete[] data_; }
+      int  size() const { return n_; }
+      int& operator[](int i) { return data_[i]; }
+      int  operator[](int i) const { return data_[i]; }
+  private:
+      int* data_;
+      int  n_;
   };
   int main() {
       Buffer a(3);
       Buffer b = a;          // copy constructor
-      b.data[0] = 99;        // writes independent storage
-      std::cout << "a[0]=" << a.data[0] << "  b[0]=" << b.data[0] << "\n";
+      b[0] = 99;             // write through b
+      std::cout << "a[0]=" << a[0] << "  b[0]=" << b[0] << "\n";
   }
+cases:
+  - label: "Correct: deep copy"
+    subs:
+      "<<copy_ctor>>": |-
+        Buffer(const Buffer& o) : data_(new int[o.n_]), n_(o.n_) {   // deep copy
+            for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
+            std::cout << "copy ctor: deep-copied " << n_ << " ints\n";
+        }
+  - label: "Mistake: default shallow copy  (double free at runtime)"
+    subs:
+      "<<copy_ctor>>": ""

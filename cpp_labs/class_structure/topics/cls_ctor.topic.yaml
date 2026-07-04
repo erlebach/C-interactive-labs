@@ -5,19 +5,24 @@ doc_url: https://en.cppreference.com/w/cpp/language/constructor
 has_ptrdata: false
 explanation: >-
   A constructor initializes a new object. The member initializer list
-  ": x(x), y(y)" initializes members directly, before the constructor body
+  ": x_(x), y_(y)" initializes members directly, before the constructor body
   runs. Prefer it over assigning in the body: it is required for const and
   reference members, and it avoids default-constructing a member only to
-  overwrite it.
+  overwrite it. Point is a class, so x_ and y_ are private and read through the
+  public accessors x() and y().
 template: |
   #include <iostream>
-  struct Point {
-      int x, y;
-      Point(int x, int y) : x(x), y(y) {   // member initializer list
-          std::cout << "ctor: Point(" << x << ", " << y << ")\n";
+  class Point {
+  public:
+      Point(int x, int y) : x_(x), y_(y) {   // member initializer list
+          std::cout << "ctor: Point(" << x_ << ", " << y_ << ")\n";
       }
+      int x() const { return x_; }
+      int y() const { return y_; }
+  private:
+      int x_, y_;
   };
   int main() {
       Point p(3, 4);
-      std::cout << "p = (" << p.x << ", " << p.y << ")\n";
+      std::cout << "p = (" << p.x() << ", " << p.y() << ")\n";
   }
