@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer, _marker_defs, _arrow_v, _vbox
+from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer, _marker_defs, _arrow_v, _vbox, _LH
 from cpp_labs.code_generator import ControlDef, TopicTemplate
 
 
@@ -543,6 +543,7 @@ class TestRenderFragmentLayout:
 class TestVerticalPrimitives:
     def test_marker_defs_has_marker_and_color(self):
         out = _marker_defs("m1", "#0b5394")
+        assert out.startswith("<defs>")
         assert "<marker" in out
         assert 'id="m1"' in out
         assert 'orient="auto-start-reverse"' in out
@@ -558,6 +559,6 @@ class TestVerticalPrimitives:
         svg2, h2 = _vbox(10, 10, 160, [("ptr", "#1a1a1a"), ("0xabc", "#555555")], "#0b5394")
         svg3, h3 = _vbox(10, 10, 160,
                          [("a", "#1a1a1a"), ("b", "#555"), ("c", "#555")], "#0b5394")
-        assert h3 > h2
+        assert h3 == h2 + _LH
         assert 'font-size="14"' in svg2      # matches code panel
         assert "<rect" in svg2 and "ptr" in svg2

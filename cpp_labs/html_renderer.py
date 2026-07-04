@@ -46,6 +46,7 @@ _SHARED_COUNT_COLOR = "#4a7c20"
 _FONT = 14           # px, == code panel font-size (ui-monospace)
 _LH = 22             # text line height within a box
 _BOX_TOP_PAD = 20    # box top padding to first text baseline
+_SVG_TEXT_ASCENDER = 4  # SVG <text> y is the baseline; add this to reach the visual top of glyphs
 _PAD = 16            # outer padding / gap between boxes
 _SRC_W1 = 160        # source/target box width when a single source
 _SRC_W2 = 120        # source box width when two sources sit side-by-side
@@ -121,7 +122,7 @@ def _vbox(x: int, y: int, w: int, lines: list[tuple[str, str]], stroke: str) -> 
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" '
         f'fill="{_BOX_FILL}" stroke="{stroke}" stroke-width="2"/>'
     ]
-    ty = y + _BOX_TOP_PAD + 4
+    ty = y + _BOX_TOP_PAD + _SVG_TEXT_ASCENDER
     for txt, color in lines:
         parts.append(
             f'<text x="{x + 14}" y="{ty}" font-size="{_FONT}" '
