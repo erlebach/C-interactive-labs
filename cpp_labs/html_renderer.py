@@ -132,14 +132,92 @@ def _vbox(x: int, y: int, w: int, lines: list[tuple[str, str]], stroke: str) -> 
     return "".join(parts), h
 
 
-def _wrap_svg(p: str, title_text: str, desc_text: str, body: str) -> str:
-    """Wrap *body* in an accessible SVG shell.  ``p`` is the unique id prefix."""
+def _stack_svg(p: str, title: str, desc: str,
+               sources: list[dict], target: "dict | None",
+               *, arrow_color: str = _ARROW_COLOR) -> str:
+    """Vertical memory diagram. `sources`/`target` are box specs
+    ({"lines": [(text,color)...], "stroke": color}). Encodes the source-count
+    rule: <=2 sources sit side-by-side and converge onto the target; >=3 stack
+    in a column with arrows routed down the right. `target=None` draws no arrow
+    (e.g. weak_ptr)."""
+    n = len(sources)
+    marker_id = f"{p}-ah"
+    body = _marker_defs(marker_id, arrow_color) if target is not None else ""
+
+    if n >= 3:
+        # Stacked column; arrows route down a right-side channel into the target.
+        ws = _SRC_W1
+        x = _PAD
+        y = _PAD
+        right_edges = []
+        for s in sources:
+            svg, h = _vbox(x, y, ws, s["lines"], s["stroke"])
+            body += svg
+            right_edges.append((x + ws, y + h // 2))
+            y += h + 12
+        chan = x + ws + _STACK_RM // 2
+        ty = y - 12 + _ARROW_GAP
+        tsvg, th = _vbox(x, ty, ws, target["lines"], target["stroke"]) if target else ("", 0)
+        body += tsvg
+        for ex, ey in right_edges:
+            body += (
+                f'<path d="M{ex} {ey} H{chan} V{ty + th // 2} H{x + ws}" '
+                f'fill="none" stroke="{arrow_color}" stroke-width="3" '
+                f'marker-end="url(#{marker_id})"/>'
+            )
+        vb_w = ws + 2 * _PAD + _STACK_RM
+        vb_h = ty + th + _PAD if target else y - 12 + _PAD
+        return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+    # n <= 2: converge. Sources in a top row, target centered below.
+    sw = _SRC_W1 if n == 1 else _SRC_W2
+    tw = _SRC_W1
+    row_w = n * sw + (n - 1) * _PAD
+    vb_w = max(row_w + 2 * _PAD, tw + 2 * _PAD)
+    start_x = (vb_w - row_w) // 2
+    src_y = _PAD
+    src_h = 0
+    bottoms = []
+    for i, s in enumerate(sources):
+        bx = start_x + i * (sw + _PAD)
+        svg, h = _vbox(bx, src_y, sw, s["lines"], s["stroke"])
+        body += svg
+        src_h = max(src_h, h)
+        bottoms.append((bx + sw // 2, src_y + h))
+
+    if target is None:
+        vb_h = src_y + src_h + _PAD
+        return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+    tgt_y = src_y + src_h + _ARROW_GAP
+    tgt_x = (vb_w - tw) // 2
+    tsvg, th = _vbox(tgt_x, tgt_y, tw, target["lines"], target["stroke"])
+    body += tsvg
+    tip_x = vb_w // 2
+    for bx, by in bottoms:
+        body += _arrow_v(bx, by, tip_x, tgt_y, arrow_color, marker_id)
+    if n == 1:
+        body += (
+            f'<text x="{tip_x + 8}" y="{(by + tgt_y) // 2}" font-size="11" '
+            f'fill="{_DIM_COLOR}">points to</text>'
+        )
+    vb_h = tgt_y + th + _PAD
+    return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+
+def _wrap_svg(p: str, title_text: str, desc_text: str, body: str,
+              *, vb_w: int = 500, vb_h: int = 160) -> str:
+    """Wrap *body* in an accessible SVG shell. `p` is the unique id prefix.
+    `vb_w`/`vb_h` set the viewBox. `max-width:{vb_w}px; height:auto` keeps the
+    diagram at its intrinsic aspect and caps it so 14 user-units ≈ 14px (matching
+    the code panel) in the common case, scaling down only on very narrow screens."""
     title_id = f"{p}-title"
     desc_id = f"{p}-desc"
     return (
-        f'<svg viewBox="0 0 500 160" role="img" '
+        f'<svg viewBox="0 0 {vb_w} {vb_h}" role="img" '
         f'aria-labelledby="{title_id} {desc_id}" '
-        f'style="width:100%;height:100%;min-height:0;background:#fff;border:1px solid #c5cee0;border-radius:8px">'
+        f'style="width:100%;max-width:{vb_w}px;height:auto;background:#fff;'
+        f'border:1px solid #c5cee0;border-radius:8px">'
         f'<title id="{title_id}">{_e(title_text)}</title>'
         f'<desc id="{desc_id}">{_e(desc_text)}</desc>'
         f'{body}'

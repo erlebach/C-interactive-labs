@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer, _marker_defs, _arrow_v, _vbox, _LH
+from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer, _marker_defs, _arrow_v, _vbox, _LH, _stack_svg
 from cpp_labs.code_generator import ControlDef, TopicTemplate
 
 
@@ -562,3 +562,48 @@ class TestVerticalPrimitives:
         assert h3 == h2 + _LH
         assert 'font-size="14"' in svg2      # matches code panel
         assert "<rect" in svg2 and "ptr" in svg2
+
+
+# ---------------------------------------------------------------------------
+# _stack_svg tests
+# ---------------------------------------------------------------------------
+
+def _box(lines, stroke="#0b5394"):
+    return {"lines": lines, "stroke": stroke}
+
+
+class TestStackSvg:
+    def _one(self):
+        return _stack_svg("t", "title", "desc",
+                          [_box([("ptr", "#1a1a1a"), ("0xa", "#555")])],
+                          _box([("val=42", "#1a1a1a"), ("0xb", "#555")]))
+
+    def test_single_source_is_vertical_viewbox(self):
+        out = self._one()
+        assert "<svg" in out and 'role="img"' in out
+        import re
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        w, h = int(m.group(1)), int(m.group(2))
+        assert h > w
+        assert (w, h) != (500, 160)
+
+    def test_single_source_one_arrow(self):
+        assert self._one().count("<line") == 1
+
+    def test_two_sources_converge_two_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("sp1", "#1a1a1a")]), _box([("sp2", "#1a1a1a")])],
+                         _box([("val=42", "#1a1a1a")]))
+        assert out.count("<line") == 2
+
+    def test_three_sources_stack_three_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("a", "#1a1a1a")]), _box([("b", "#1a1a1a")]),
+                          _box([("c", "#1a1a1a")])],
+                         _box([("val", "#1a1a1a")]))
+        assert out.count("<path") >= 3
+
+    def test_no_target_draws_no_arrow(self):
+        out = _stack_svg("t", "weak", "desc",
+                         [_box([("weak_ptr", "#1a1a1a"), ("exp", "#555")])], None)
+        assert out.count("<line") == 0 and "url(#" not in out
