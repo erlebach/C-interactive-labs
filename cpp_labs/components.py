@@ -298,48 +298,22 @@ def memory_diagram(comp_id: str, ptrdata: dict[str, Any] | None) -> str:
 
 
 def hover_link_diagram(comp_id: str, ptrdata: dict[str, Any] | None) -> str:
-    """Hovering/focusing the pointer lights its target + arrow (CSS only).
-
-    The highlight is conveyed by color *and* a thicker stroke (non-color cue).
-    The pointer box is focusable (``tabindex``) so keyboard users get the same
-    highlight as mouse users.
-    """
-    pd = ptrdata or {}
+    """Hovering/focusing the diagram lights the arrow + target (CSS only), on top
+    of the shared vertical diagram. Highlight is color *and* thicker stroke (a
+    non-color cue); the figure is focusable so keyboard users get the same effect."""
     p = _safe(comp_id)
-    addr = _e(pd.get("ptr_addr", "?"))
-    tgt = _e(pd.get("target_addr", "?"))
-    val = _e(pd.get("target_val", "?"))
-    title_id, desc_id = f"{p}-title", f"{p}-desc"
+    svg = svg_renderer(ptrdata, p)          # the shared vertical diagram
     style = (
-        f"#{p} .ptr:hover ~ .target, #{p} .ptr:focus ~ .target,"
-        f"#{p} .ptr:hover ~ .arrow, #{p} .ptr:focus ~ .arrow"
-        " { stroke: var(--c-val); stroke-width: 5; }\n"
-        f"#{p} .ptr {{ cursor: pointer; }}\n"
-        f"#{p} .ptr:focus {{ outline: none; }}"
+        f"#{p} {{ cursor: pointer; }}\n"
+        f"#{p}:focus {{ outline: none; }}\n"
+        f"#{p}:hover line, #{p}:focus line,"
+        f"#{p}:hover path, #{p}:focus path"
+        " { stroke: var(--c-val); stroke-width: 5; }"
     )
-    svg = (
-        f'<svg viewBox="0 0 500 160" role="img" aria-labelledby="{title_id} {desc_id}" '
-        'style="width:100%;background:#fff;border:1px solid var(--border);border-radius:8px">'
-        f'<title id="{title_id}">hover-link pointer diagram</title>'
-        f'<desc id="{desc_id}">Hover or focus the pointer box to highlight the '
-        f'value it points to (val={val} at {tgt}).</desc>'
-        f'<g class="ptr" tabindex="0">'
-        f'<rect x="20" y="50" width="180" height="62" rx="8" fill="#e8f0ff" '
-        f'stroke="var(--c-addr)" stroke-width="2"/>'
-        f'<text x="34" y="78" font-family="ui-monospace,monospace" font-size="16">ptr</text>'
-        f'<text x="34" y="98" font-family="ui-monospace,monospace" font-size="12" fill="#555">{addr}</text>'
-        f"</g>"
-        f'<line class="arrow" x1="200" y1="81" x2="296" y2="81" '
-        f'stroke="var(--c-addr)" stroke-width="3"/>'
-        f'<polygon class="arrow" points="296,75 312,81 296,87" fill="var(--c-addr)" '
-        f'stroke="var(--c-addr)" stroke-width="1"/>'
-        f'<rect class="target" x="312" y="50" width="170" height="62" rx="8" fill="#e8f0ff" '
-        f'stroke="var(--c-addr)" stroke-width="2"/>'
-        f'<text x="326" y="78" font-family="ui-monospace,monospace" font-size="16">val={val}</text>'
-        f'<text x="326" y="98" font-family="ui-monospace,monospace" font-size="12" fill="#555">{tgt}</text>'
-        f"</svg>"
+    return (
+        f'<figure id="{p}" tabindex="0" style="margin:0">\n'
+        f'<style>\n{style}\n</style>\n{svg}\n</figure>\n'
     )
-    return f'<figure id="{p}" style="margin:0">\n<style>\n{style}\n</style>\n{svg}\n</figure>\n'
 
 
 def before_after_toggle(

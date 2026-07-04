@@ -356,6 +356,14 @@ class TestHoverLinkDiagram:
     def test_namespaced(self):
         assert "hl" in self._frag()
 
+    def test_hover_link_is_vertical_and_interactive(self):
+        out = C.hover_link_diagram("hl", PD)
+        assert 'role="img"' in out
+        assert ":hover" in out or ":focus" in out          # still interactive
+        assert 'tabindex="0"' in out                        # keyboard focusable
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        assert m and int(m.group(2)) > int(m.group(1))      # taller than wide
+
 
 class TestBeforeAfterToggle:
     def _frag(self):
