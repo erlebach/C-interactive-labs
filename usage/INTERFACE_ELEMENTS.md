@@ -27,7 +27,7 @@ Use these as single-key entries in a demo's or page's `blocks:` list, e.g.
 | `callout_note` | generic | `callout_note()` | text, label | A pedagogical aside distinguished by a text label and a border. |
 | `color_legend` | cpp-memory | `color_legend()` | — | Document the semantic palette: a colored swatch + text name per role. |
 | `memory_diagram` | cpp-memory | `memory_diagram()` | ptrdata | Render pointer state as an accessible inline SVG. |
-| `hover_link_diagram` | cpp-memory | `hover_link_diagram()` | ptrdata | Hovering/focusing the diagram lights the arrow + target (CSS only), on top |
+| `hover_link_diagram` | cpp-memory | `hover_link_diagram()` | ptrdata | Hovering/focusing the pointer lights its target + arrow (CSS only). |
 | `before_after_toggle` | generic | `before_after_toggle()` | before_svg, after_svg, labels, caption | Switch one diagram between two pre-baked states via a 2-option radio. |
 | `predict_reveal_quiz` | generic | `predict_reveal_quiz()` | question, options, correct_index, explanation | Radio answers reveal baked correct/incorrect feedback via `:checked`. |
 | `compile_status_badge` | code | `compile_status_badge()` | ok, label, kind | Build/run verdict shown by text + icon + border in addition to colour. |

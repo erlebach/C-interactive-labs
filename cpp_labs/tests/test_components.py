@@ -359,8 +359,9 @@ class TestHoverLinkDiagram:
     def test_hover_link_is_vertical_and_interactive(self):
         out = C.hover_link_diagram("hl", PD)
         assert 'role="img"' in out
-        assert ":hover" in out or ":focus" in out          # still interactive
+        assert ":hover" in out and ":focus" in out          # still interactive
         assert 'tabindex="0"' in out                        # keyboard focusable
+        assert 'aria-label=' in out                          # focusable element is named
         m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
         assert m and int(m.group(2)) > int(m.group(1))      # taller than wide
 
