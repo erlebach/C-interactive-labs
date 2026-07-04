@@ -89,9 +89,13 @@ class TestSvgRendererRaw:
         out = svg_renderer(_raw_pd())
         assert 'role="img"' in out
 
-    def test_has_viewbox(self):
+    def test_has_vertical_viewbox(self):
+        import re
         out = svg_renderer(_raw_pd())
-        assert 'viewBox="0 0 500 160"' in out
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        assert m, "no viewBox"
+        w, h = int(m.group(1)), int(m.group(2))
+        assert h > w, "diagram should be taller than wide (vertical)"
 
     def test_aria_labelledby_references_title_and_desc(self):
         out = svg_renderer(_raw_pd())

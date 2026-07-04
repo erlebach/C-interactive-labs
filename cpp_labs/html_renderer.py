@@ -67,30 +67,10 @@ def _e(s: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _rect(x1: int, y1: int, x2: int, y2: int, stroke: str = _BOX_STROKE) -> str:
-    w, h = x2 - x1, y2 - y1
-    return (
-        f'<rect x="{x1}" y="{y1}" width="{w}" height="{h}" rx="8" '
-        f'fill="{_BOX_FILL}" stroke="{stroke}" stroke-width="2"/>'
-    )
-
-
 def _text(x: int, y: int, txt: str, color: str = _LABEL_COLOR, size: int = 14) -> str:
     return (
         f'<text x="{x}" y="{y}" font-size="{size}" '
         f'font-family="ui-monospace,monospace" fill="{color}">{_e(txt)}</text>'
-    )
-
-
-def _arrow(x1: int, y1: int, x2: int, y2: int, color: str = _ARROW_COLOR) -> str:
-    tip = x2
-    mid_y = y1
-    return (
-        f'<line x1="{x1}" y1="{mid_y}" x2="{tip - 16}" y2="{mid_y}" '
-        f'stroke="{color}" stroke-width="3"/>'
-        f'<polygon points="{tip-16},{mid_y-6} {tip},{mid_y} {tip-16},{mid_y+6}" '
-        f'fill="{color}"/>'
-        f'<text x="{x1 + 6}" y="{mid_y - 6}" font-size="11" fill="{_DIM_COLOR}">points to</text>'
     )
 
 
@@ -106,8 +86,8 @@ def _marker_defs(marker_id: str, color: str) -> str:
 
 
 def _arrow_v(x1: int, y1: int, x2: int, y2: int, color: str, marker_id: str) -> str:
-    """A straight arrow from (x1,y1) to (x2,y2) with a marker arrowhead. Unlike the
-    old `_arrow`, the endpoints are honored as given (no forced horizontal)."""
+    """A straight arrow from (x1,y1) to (x2,y2) with a marker arrowhead.
+    Endpoints are honored as given, so vertical and diagonal arrows are supported."""
     return (
         f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
         f'stroke-width="3" marker-end="url(#{marker_id})"/>'
@@ -234,135 +214,75 @@ def _wrap_svg(p: str, title_text: str, desc_text: str, body: str,
 
 
 def _svg_raw(pd: dict, p: str) -> str:
-    addr = pd.get("ptr_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("target_val", "?")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ptr", size=16)
-        + _text(34, 96, str(addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81)
-        + _rect(312, 50, 482, 112)
-        + _text(326, 75, f"val={val}", size=16)
-        + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-    )
-    return _wrap_svg(p, "raw pointer diagram",
-                     f"ptr at {_e(addr)} → val={_e(val)} at {_e(tgt)}.", body)
+    addr, tgt, val = pd.get("ptr_addr", "?"), pd.get("target_addr", "?"), pd.get("target_val", "?")
+    src = {"lines": [("ptr", _LABEL_COLOR), (str(addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "raw pointer diagram",
+                      f"ptr at {_e(addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_null(pd: dict, p: str) -> str:
     addr = pd.get("ptr_addr", "0x0")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ptr", size=16)
-        + _text(34, 96, str(addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81, _NULL_COLOR)
-        + _rect(312, 50, 482, 112, stroke=_NULL_COLOR)
-        + _text(350, 88, "NULL", _NULL_COLOR, 18)
-    )
-    return _wrap_svg(p, "null pointer diagram",
-                     f"ptr at {_e(addr)} points to NULL.", body)
+    src = {"lines": [("ptr", _LABEL_COLOR), (str(addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [("NULL", _NULL_COLOR)], "stroke": _NULL_COLOR}
+    return _stack_svg(p, "null pointer diagram", f"ptr at {_e(addr)} points to NULL.",
+                      [src], dst, arrow_color=_NULL_COLOR)
 
 
 def _svg_ref(pd: dict, p: str) -> str:
-    ref_addr = pd.get("ref_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("target_val", "?")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ref", size=16)
-        + _text(34, 96, str(ref_addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81)
-        + _rect(312, 50, 482, 112)
-        + _text(326, 75, f"val={val}", size=16)
-        + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-    )
-    return _wrap_svg(p, "reference diagram",
-                     f"ref at {_e(ref_addr)} → val={_e(val)} at {_e(tgt)}.", body)
+    ref_addr, tgt, val = pd.get("ref_addr", "?"), pd.get("target_addr", "?"), pd.get("target_val", "?")
+    src = {"lines": [("ref", _LABEL_COLOR), (str(ref_addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "reference diagram",
+                      f"ref at {_e(ref_addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_unique(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("val", "?")
+    ptr_addr, tgt, val = pd.get("ptr_addr", "?"), pd.get("target_addr", "?"), pd.get("val", "?")
     is_null = pd.get("is_null", "0") == "1"
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "unique_ptr", size=14)
-        + _text(34, 96, str(ptr_addr), _DIM_COLOR, 12)
-    )
+    src = {"lines": [("unique_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
     if is_null:
-        body += (
-            _arrow(200, 81, 312, 81, _NULL_COLOR)
-            + _rect(312, 50, 482, 112, stroke=_NULL_COLOR)
-            + _text(350, 88, "NULL", _NULL_COLOR, 18)
-        )
-        desc = f"unique_ptr at {_e(ptr_addr)} → NULL."
-    else:
-        body += (
-            _arrow(200, 81, 312, 81)
-            + _rect(312, 50, 482, 112)
-            + _text(326, 75, f"val={val}", size=16)
-            + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-        )
-        desc = f"unique_ptr at {_e(ptr_addr)} → val={_e(val)} at {_e(tgt)}."
-    return _wrap_svg(p, "unique_ptr diagram", desc, body)
+        dst = {"lines": [("NULL", _NULL_COLOR)], "stroke": _NULL_COLOR}
+        return _stack_svg(p, "unique_ptr diagram", f"unique_ptr at {_e(ptr_addr)} → NULL.",
+                          [src], dst, arrow_color=_NULL_COLOR)
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "unique_ptr diagram",
+                      f"unique_ptr at {_e(ptr_addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_shared(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    ptr2_addr = pd.get("ptr2_addr")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("val", "?")
-    use_count = pd.get("use_count", "?")
-    body = ""
+    ptr_addr, ptr2_addr = pd.get("ptr_addr", "?"), pd.get("ptr2_addr")
+    tgt, val, use_count = pd.get("target_addr", "?"), pd.get("val", "?"), pd.get("use_count", "?")
     if ptr2_addr:
-        body += (
-            _rect(10, 20, 170, 70)
-            + _text(20, 45, "sp1", size=14)
-            + _text(20, 62, str(ptr_addr), _DIM_COLOR, 11)
-            + _arrow(170, 45, 310, 81)
-            + _rect(10, 90, 170, 140)
-            + _text(20, 115, "sp2", size=14)
-            + _text(20, 132, str(ptr2_addr), _DIM_COLOR, 11)
-            + _arrow(170, 115, 310, 81)
-        )
+        sources = [
+            {"lines": [("sp1", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)], "stroke": _BOX_STROKE},
+            {"lines": [("sp2", _LABEL_COLOR), (str(ptr2_addr), _DIM_COLOR)], "stroke": _BOX_STROKE},
+        ]
     else:
-        body += (
-            _rect(10, 50, 170, 112)
-            + _text(20, 75, "shared_ptr", size=13)
-            + _text(20, 95, str(ptr_addr), _DIM_COLOR, 11)
-            + _arrow(170, 81, 310, 81)
-        )
-    body += (
-        _rect(310, 50, 480, 112)
-        + _text(320, 72, f"val={val}", size=15)
-        + _text(320, 90, str(tgt), _DIM_COLOR, 11)
-        + _text(320, 108, f"use_count={use_count}", _SHARED_COUNT_COLOR, 11)
-    )
-    return _wrap_svg(p, "shared_ptr diagram",
-                     f"shared_ptr at {_e(ptr_addr)} → val={_e(val)}, use_count={_e(use_count)}.", body)
+        sources = [{"lines": [("shared_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)],
+                    "stroke": _BOX_STROKE}]
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR),
+                     (f"use_count={use_count}", _SHARED_COUNT_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "shared_ptr diagram",
+                      f"shared_ptr at {_e(ptr_addr)} → val={_e(val)}, use_count={_e(use_count)}.",
+                      sources, dst)
 
 
 def _svg_weak(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    expired = pd.get("expired", "?")
-    use_count = pd.get("use_count", "?")
-    body = (
-        _rect(10, 30, 490, 130)
-        + _text(25, 60, "weak_ptr", size=15)
-        + _text(25, 80, str(ptr_addr), _DIM_COLOR, 12)
-        + _text(25, 100, f"expired={expired}", _LABEL_COLOR, 13)
-        + _text(25, 118, f"use_count={use_count}", _SHARED_COUNT_COLOR, 13)
-    )
-    return _wrap_svg(p, "weak_ptr diagram",
-                     f"weak_ptr at {_e(ptr_addr)}, expired={_e(expired)}, use_count={_e(use_count)}.", body)
+    ptr_addr, expired, use_count = pd.get("ptr_addr", "?"), pd.get("expired", "?"), pd.get("use_count", "?")
+    src = {"lines": [("weak_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR),
+                     (f"expired={expired}", _LABEL_COLOR),
+                     (f"use_count={use_count}", _SHARED_COUNT_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "weak_ptr diagram",
+                      f"weak_ptr at {_e(ptr_addr)}, expired={_e(expired)}, use_count={_e(use_count)}.",
+                      [src], None)
 
 
 def _svg_unknown(pd: dict, p: str) -> str:
     ptype = pd.get("type", "?") if pd else "?"
-    return _wrap_svg(p, f"diagram ({_e(ptype)})", "No diagram available.",
-                     _text(20, 80, f"type={_e(ptype)} — no diagram", _DIM_COLOR, 13))
+    body = _text(16, 40, f"type={_e(ptype)} — no diagram", _DIM_COLOR, 13)
+    return _wrap_svg(p, f"diagram ({_e(ptype)})", "No diagram available.", body,
+                     vb_w=220, vb_h=80)
 
 
 # ---------------------------------------------------------------------------
