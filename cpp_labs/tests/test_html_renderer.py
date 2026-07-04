@@ -581,7 +581,6 @@ class TestStackSvg:
     def test_single_source_is_vertical_viewbox(self):
         out = self._one()
         assert "<svg" in out and 'role="img"' in out
-        import re
         m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
         w, h = int(m.group(1)), int(m.group(2))
         assert h > w
@@ -607,3 +606,10 @@ class TestStackSvg:
         out = _stack_svg("t", "weak", "desc",
                          [_box([("weak_ptr", "#1a1a1a"), ("exp", "#555")])], None)
         assert out.count("<line") == 0 and "url(#" not in out
+
+    def test_three_sources_no_target_no_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("a", "#000")]), _box([("b", "#000")]),
+                          _box([("c", "#000")])], None)
+        assert out.count("<path") == 0
+        assert "url(#" not in out

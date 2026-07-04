@@ -52,6 +52,7 @@ _SRC_W1 = 160        # source/target box width when a single source
 _SRC_W2 = 120        # source box width when two sources sit side-by-side
 _ARROW_GAP = 60      # vertical gap reserved for the arrow between rows
 _STACK_RM = 34       # right margin channel for >=3 stacked-source arrows
+_BOX_GAP = 12  # inter-box vertical gap in the stacked column
 
 
 def _e(s: Any) -> str:
@@ -154,19 +155,20 @@ def _stack_svg(p: str, title: str, desc: str,
             svg, h = _vbox(x, y, ws, s["lines"], s["stroke"])
             body += svg
             right_edges.append((x + ws, y + h // 2))
-            y += h + 12
+            y += h + _BOX_GAP
         chan = x + ws + _STACK_RM // 2
-        ty = y - 12 + _ARROW_GAP
+        ty = y - _BOX_GAP + _ARROW_GAP
         tsvg, th = _vbox(x, ty, ws, target["lines"], target["stroke"]) if target else ("", 0)
         body += tsvg
-        for ex, ey in right_edges:
-            body += (
-                f'<path d="M{ex} {ey} H{chan} V{ty + th // 2} H{x + ws}" '
-                f'fill="none" stroke="{arrow_color}" stroke-width="3" '
-                f'marker-end="url(#{marker_id})"/>'
-            )
+        if target is not None:
+            for ex, ey in right_edges:
+                body += (
+                    f'<path d="M{ex} {ey} H{chan} V{ty + th // 2} H{x + ws}" '
+                    f'fill="none" stroke="{arrow_color}" stroke-width="3" '
+                    f'marker-end="url(#{marker_id})"/>'
+                )
         vb_w = ws + 2 * _PAD + _STACK_RM
-        vb_h = ty + th + _PAD if target else y - 12 + _PAD
+        vb_h = ty + th + _PAD if target else y - _BOX_GAP + _PAD
         return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
 
     # n <= 2: converge. Sources in a top row, target centered below.
@@ -197,8 +199,9 @@ def _stack_svg(p: str, title: str, desc: str,
     for bx, by in bottoms:
         body += _arrow_v(bx, by, tip_x, tgt_y, arrow_color, marker_id)
     if n == 1:
+        _, src_bottom = bottoms[0]
         body += (
-            f'<text x="{tip_x + 8}" y="{(by + tgt_y) // 2}" font-size="11" '
+            f'<text x="{tip_x + 8}" y="{(src_bottom + tgt_y) // 2}" font-size="11" '
             f'fill="{_DIM_COLOR}">points to</text>'
         )
     vb_h = tgt_y + th + _PAD
