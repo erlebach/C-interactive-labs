@@ -659,11 +659,11 @@ class TestCodeDiagramPanel:
         frag = self._frag()
         assert "code here" in frag and "diagram" in frag
 
-    def test_code_gets_two_thirds(self):
-        # Code column is wider than the diagram (2fr:1fr), and no fixed-height
-        # cap boxes it (code soft-wraps and flows at natural height instead).
+    def test_code_gets_three_quarters(self):
+        # With the diagram now slim + vertical, the code column widens to 3fr:1fr,
+        # and no fixed-height cap boxes it (code soft-wraps at natural height).
         frag = self._frag()
-        assert "minmax(0,2fr) minmax(0,1fr)" in frag
+        assert "minmax(0,3fr) minmax(0,1fr)" in frag
         assert "max-height" not in frag
 
     def test_reflow_breakpoint(self):
