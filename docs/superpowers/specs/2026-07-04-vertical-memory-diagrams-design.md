@@ -39,6 +39,22 @@ white. Accessibility (`role="img"` + `<title>`/`<desc>`) and all data (addresses
    the code panel (`14px/1.5 ui-monospace, monospace`) — replacing the current 11/12/16/18 mix,
    for both label and address lines.
 5. **Grid ratio:** `code_diagram_panel` widens `2fr:1fr` → **`3fr:1fr`** (tunable in-browser).
+6. **`hover_link_diagram` refactor:** the interactive `components.hover_link_diagram` currently
+   carries its **own duplicated** horizontal inline SVG. Re-point it at the shared vertical
+   `_stack_svg` primitive and layer its hover/focus highlight CSS on top — removing the duplicated
+   geometry so both diagram kinds stay consistent. (It is dispatchable + in the catalog but used
+   by no current YAML page.)
+
+## Renderer topology (verified)
+
+- `components.memory_diagram(comp_id, ptrdata)` **delegates to `html_renderer.svg_renderer`** —
+  it is not a second geometry source. So the authored `memory_diagram:` block and every static
+  diagram funnel through `svg_renderer`; re-orienting `html_renderer.py` covers them all at once.
+- `components.hover_link_diagram` is the one genuine duplicate (its own inline horizontal SVG +
+  hover CSS) — reconciled by decision 6 above.
+- `byte_grid` is a *different diagram family* (not a pointer graph) and is **out of scope** here;
+  it is noted only as evidence that "one primitive vocabulary, many families" is already the
+  codebase pattern (informs the skill framing in Roadmap).
 
 ## Architecture
 
@@ -97,9 +113,15 @@ target, call `_stack_svg`. The six renderers stop owning geometry (data-over-cod
 
 Three-level skill hierarchy, to be built **leaf-first, each against working code**:
 
-1. **Diagram-generation skill** (leaf) — box/arrow/marker primitives, the source-count rule, the
-   14px-matches-code + `max-width` ADA convention, the `_wrap_svg` accessibility contract.
-   Authored immediately *after* this implementation is proven.
+1. **Diagram-authoring skill** (leaf, **general — not pointer-specific**) — the shared primitive
+   vocabulary (accessible `_wrap_svg` shell, box/text/marker-arrow helpers), the source-count
+   layout rule, the 14px-matches-code + `max-width` ADA convention, the `_wrap_svg` accessibility
+   contract. It documents **multiple diagram families** — pointer graphs, **stack frames**, byte
+   grids — as instances built from the same primitives (a new family adds a thin layout helper in
+   code, e.g. a future `_frame_svg`, **not** a new skill). No dedicated SVG skill exists in the
+   installed set; the Mermaid MCP is unsuitable (generic styling, can't guarantee the
+   `role="img"`/`<title>`/`<desc>` + 14px parity, adds runtime non-determinism). Authored
+   immediately *after* this implementation is proven.
 2. **Demonstration skill** (composite) — construct a whole demonstration HTML file for a new
    subject (e.g. `stackframes`): generate its glossary(ies), concepts, demos, topics, and
    diagrams. Composes the diagram skill.
