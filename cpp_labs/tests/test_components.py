@@ -420,6 +420,20 @@ class TestCompileStatusBadge:
     def test_has_border_cue(self):
         assert "border" in C.compile_status_badge("b", False).lower()
 
+    def test_runtime_kind_says_runtime_not_compile(self):
+        # A crash at run time is a different failure than a compile error and
+        # must be labelled as such (clear compile-vs-runtime differentiation).
+        frag = C.compile_status_badge("b", False, kind="runtime")
+        assert "runtime" in frag.lower()
+        assert "compile" not in frag.lower()
+
+    def test_runtime_kind_distinct_color_from_compile(self):
+        compile_b = C.compile_status_badge("b", False, kind="compile")
+        runtime_b = C.compile_status_badge("b", False, kind="runtime")
+        assert "var(--c-err)" in compile_b          # compile = red
+        assert "var(--c-const)" in runtime_b         # runtime = amber
+        assert "var(--c-err)" not in runtime_b
+
 
 class TestOutputConsole:
     def test_monospaced_block(self):
@@ -445,6 +459,59 @@ class TestOutputConsole:
         frag = C.output_console("o", "PTRDATA: type=raw\nMEMBYTES: 18")
         assert re.search(r"<pre[^>]*>\s*<samp>", frag) and "</samp></pre>" in frag
         assert not re.search(r"<pre\b[^>]*>(?!\s*<(?:code|samp)\b)", frag)
+
+    def test_runtime_kind_distinct_from_compile(self):
+        # error=True defaults to a compile error; kind="runtime" must differ
+        # in both heading and border colour.
+        compile_c = C.output_console("o", "boom", error=True, kind="compile")
+        runtime_c = C.output_console("o", "boom", error=True, kind="runtime")
+        assert "runtime" in runtime_c.lower()
+        assert "var(--c-const)" in runtime_c and "var(--c-err)" not in runtime_c
+        assert "var(--c-err)" in compile_c
+        assert compile_c != runtime_c
+
+    def test_short_output_not_truncated(self):
+        frag = C.output_console("o", "line1\nline2\nline3")
+        assert "<details" not in frag
+
+    def test_long_output_collapses_overflow_into_details(self):
+        text = "\n".join(f"line{i}" for i in range(1, 31))   # 30 lines
+        frag = C.output_console("o", text)
+        assert "<details" in frag and "<summary" in frag
+        assert "line1" in frag.split("<details", 1)[0]        # head shown inline
+        assert "line30" in frag.split("<details", 1)[1]        # tail hidden in details
+        # the disclosure tells the reader how much more there is
+        assert re.search(r"more line", frag.lower())
+        # every <pre> (head and tail) still wraps a <samp> — no bare <pre>
+        assert not re.search(r"<pre\b[^>]*>(?!\s*<(?:code|samp)\b)", frag)
+
+
+class TestVariantBodyErrorKind:
+    """_demo_variant_body must surface compile vs runtime failures distinctly."""
+
+    def _v(self, **over):
+        v = {
+            "code_html": "<pre><code>x</code></pre>",
+            "ptrdata": None, "bytes": [],
+            "stdout": "", "stderr": "",
+            "ok": False, "failed": True, "error_kind": "compile",
+        }
+        v.update(over)
+        return v
+
+    def test_compile_failure_shows_compile_error(self):
+        out = C._demo_variant_body("t", self._v(stderr="error: bad", error_kind="compile"),
+                                   "cap", diagram=False)
+        assert "error: bad" in out
+        assert "var(--c-err)" in out
+
+    def test_runtime_failure_shows_runtime_error(self):
+        out = C._demo_variant_body(
+            "t", self._v(stderr="AddressSanitizer: heap-use-after-free", error_kind="runtime"),
+            "cap", diagram=False)
+        assert "runtime" in out.lower()
+        assert "AddressSanitizer" in out
+        assert "var(--c-const)" in out
 
 
 # ---------------------------------------------------------------------------

@@ -385,6 +385,22 @@ pre {
 .out--err { border: 2px solid #c20000; background: #fff5f5; }
 details { margin-top: .5rem; }
 summary { cursor: pointer; font-weight: 600; min-height: 44px; padding: .3rem 0; }
+/* per-example Concept: a button-like chip with a rotating caret so it clearly
+   reads as pressable. Native details/summary — zero-JS, keyboard + SR. */
+details.concept > summary {
+  display: inline-flex; align-items: center; gap: .5rem; width: fit-content;
+  min-height: 44px; padding: .3rem .9rem;
+  border: 2px solid var(--accent); border-radius: 8px;
+  background: var(--panel-bg); color: var(--accent); font-weight: 700;
+  cursor: pointer; list-style: none;
+}
+details.concept > summary::-webkit-details-marker { display: none; }
+details.concept > summary:hover { background: #e2e9f5; }
+details.concept > summary .caret { font-size: .96em; transition: transform .15s ease; }
+details.concept[open] > summary .caret { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) {
+  details.concept > summary .caret { transition: none; }
+}
 figure { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 figcaption { color: var(--fg-dim); font-size: .85rem; margin-top: .3rem; flex-shrink: 0; }
 """

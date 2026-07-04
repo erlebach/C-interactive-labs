@@ -83,6 +83,7 @@ def _bake_program(v: dict[str, Any], language: str | None = None) -> dict[str, A
         "stderr": v.get("stderr", ""),
         "ok": not v.get("failed", False),
         "failed": v.get("failed", False),
+        "error_kind": v.get("error_kind"),
         "bytes": mem.split() if mem and mem != "n/a" else [],
         "target_val": (v.get("ptrdata") or {}).get("target_val", "?"),
     }

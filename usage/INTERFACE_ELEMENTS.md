@@ -30,8 +30,8 @@ Use these as single-key entries in a demo's or page's `blocks:` list, e.g.
 | `hover_link_diagram` | cpp-memory | `hover_link_diagram()` | ptrdata | Hovering/focusing the pointer lights its target + arrow (CSS only). |
 | `before_after_toggle` | generic | `before_after_toggle()` | before_svg, after_svg, labels, caption | Switch one diagram between two pre-baked states via a 2-option radio. |
 | `predict_reveal_quiz` | generic | `predict_reveal_quiz()` | question, options, correct_index, explanation | Radio answers reveal baked correct/incorrect feedback via `:checked`. |
-| `compile_status_badge` | code | `compile_status_badge()` | ok, label | Compile pass/fail shown by text + icon + border in addition to color. |
-| `output_console` | generic | `output_console()` | text, error, title | Monospaced output block; the error variant is marked by text + border. |
+| `compile_status_badge` | code | `compile_status_badge()` | ok, label, kind | Build/run verdict shown by text + icon + border in addition to colour. |
+| `output_console` | generic | `output_console()` | text, error, title, kind | Monospaced output block; the error variant is marked by text + border. |
 | `byte_grid` | cpp-memory | `byte_grid()` | byte_values, caption | Render a byte sequence as a labelled, captioned grid (little-endian). |
 | `code_line_link` | code | `code_line_link()` | lines, ptrdata | Hovering/focusing a linked source line highlights its diagram box. |
 | `variant_tabs` | generic | `variant_tabs()` | panels, selected | Switch between N labelled panels with native radios + `:checked ~`. |

@@ -126,7 +126,12 @@ def _compile_one(
 ) -> dict[str, Any]:
     """Compile+run a single program and return its render-data dict (no label)."""
     source = generate_source(topic, control_state, extra_subs)
-    result = compile_and_run(source)
+    # Topics flagged ``sanitize`` are gotchas whose point is a runtime fault
+    # (double-free, use-after-move, null deref). Compile them with
+    # AddressSanitizer so the crash yields a precise diagnostic on stderr rather
+    # than a bare signal; ``-g`` keeps the report's function names readable.
+    extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else None
+    result = compile_and_run(source, extra_flags=extra_flags)
 
     if result.status == "compile-failed":
         return {
@@ -136,7 +141,26 @@ def _compile_one(
             "stdout": "",
             "membytes": "n/a",
             "failed": True,
+            "error_kind": "compile",
             "stderr": result.compiler_stderr,
+        }
+
+    if result.status in ("execution-error", "execution-timeout"):
+        # Compiled cleanly but the program crashed (segfault, ASan, abort,
+        # non-zero exit) or timed out.  This is a *runtime* failure — surface it
+        # as such, showing the crash diagnostic (stderr) rather than reporting a
+        # green success with the discarded report.
+        report = result.stderr or result.stdout or "(program crashed with no diagnostic output)"
+        ptrdata = result.ptrdata
+        return {
+            "source": source,
+            "ptrdata": ptrdata,
+            "svg": svg_renderer(ptrdata),
+            "stdout": result.stdout,
+            "membytes": result.memory_bytes or parse_membytes(result.stdout) or "n/a",
+            "failed": True,
+            "error_kind": "runtime",
+            "stderr": report,
         }
 
     ptrdata = result.ptrdata
@@ -149,6 +173,7 @@ def _compile_one(
         "stdout": result.stdout,
         "membytes": membytes,
         "failed": False,
+        "error_kind": None,
         "stderr": "",
     }
 

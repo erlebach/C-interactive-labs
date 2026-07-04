@@ -138,6 +138,61 @@ _FAKE_RESULT_FAIL.memory_bytes = "n/a"
 _FAKE_RESULT_FAIL.ptrdata = None
 
 
+_FAKE_RESULT_RUNTIME = mock.MagicMock()
+_FAKE_RESULT_RUNTIME.status = "execution-error"
+_FAKE_RESULT_RUNTIME.stdout = "copy ctor: deep-copied 3 ints\n"
+_FAKE_RESULT_RUNTIME.stderr = (
+    "==12345==ERROR: AddressSanitizer: attempting double-free\n"
+    "    #0 operator delete[]\n"
+)
+_FAKE_RESULT_RUNTIME.compiler_stderr = ""
+_FAKE_RESULT_RUNTIME.memory_bytes = "n/a"
+_FAKE_RESULT_RUNTIME.ptrdata = None
+
+
+class TestSanitizeWiring:
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_OK)
+    def test_sanitize_topic_compiles_with_asan(self, mock_run):
+        # A topic marked sanitize=True must be compiled with AddressSanitizer so a
+        # runtime gotcha (double-free, use-after-move, null deref) yields a real
+        # diagnostic instead of a bare crash.
+        capture_variant(_make_topic(sanitize=True), {})
+        flags = mock_run.call_args.kwargs.get("extra_flags") or []
+        assert any("fsanitize=address" in f for f in flags)
+
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_OK)
+    def test_plain_topic_has_no_asan(self, mock_run):
+        capture_variant(_make_topic(sanitize=False), {})
+        flags = mock_run.call_args.kwargs.get("extra_flags") or []
+        assert not any("fsanitize=address" in f for f in flags)
+
+
+class TestCaptureVariantErrorKind:
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_OK)
+    def test_success_has_no_error_kind(self, mock_run):
+        result = capture_variant(_make_topic(), {})
+        assert result["error_kind"] is None
+
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_FAIL)
+    def test_compile_failure_kind_is_compile(self, mock_run):
+        result = capture_variant(_make_topic(), {})
+        assert result["failed"] is True
+        assert result["error_kind"] == "compile"
+
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_RUNTIME)
+    def test_runtime_crash_is_a_failure(self, mock_run):
+        # A program that compiles but crashes at run time must be flagged failed,
+        # not silently shown as a green "success".
+        result = capture_variant(_make_topic(), {})
+        assert result["failed"] is True
+        assert result["error_kind"] == "runtime"
+
+    @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_RUNTIME)
+    def test_runtime_crash_surfaces_stderr(self, mock_run):
+        result = capture_variant(_make_topic(), {})
+        assert "AddressSanitizer" in result["stderr"]
+
+
 class TestCaptureVariantSuccess:
     @mock.patch("cpp_labs.build_html.compile_and_run", return_value=_FAKE_RESULT_OK)
     def test_returns_dict(self, mock_run):

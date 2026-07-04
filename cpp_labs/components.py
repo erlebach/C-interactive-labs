@@ -95,6 +95,17 @@ COMPONENT_CSS = """
 .console { border: 2px solid var(--border); border-radius: 8px; padding: .6rem .9rem;
   font: 14px/1.5 ui-monospace, monospace; white-space: pre-wrap; background: var(--panel-bg); }
 .console-label { display: block; font-weight: 700; margin-bottom: .3rem; }
+/* long-output disclosure: a caret toggle to reveal the folded overflow lines */
+.console-more { margin-top: .4rem; }
+.console-more > summary { cursor: pointer; font-weight: 700; min-height: 44px;
+  display: inline-flex; align-items: center; gap: .4rem; list-style: none;
+  color: var(--accent); }
+.console-more > summary::-webkit-details-marker { display: none; }
+.console-more > summary .caret { font-size: .9em; transition: transform .15s ease; }
+.console-more[open] > summary .caret { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) {
+  .console-more > summary .caret { transition: none; }
+}
 .byte-grid { border-collapse: collapse; }
 .byte-grid caption { text-align: left; font-weight: 700; margin-bottom: .3rem; }
 .byte-grid td, .byte-grid th { border: 1px solid var(--border); padding: .35rem .6rem;
@@ -216,10 +227,13 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
                  open_: bool = False) -> str:
     """Show one example's Concept as a fold-away note.
 
-    The note starts folded, showing just a single "Concept" line. Clicking that
-    line (or pressing Enter on it) opens it to reveal the text; clicking again
-    folds it back. It works with the keyboard and with screen readers, and needs
-    no scripting. Use it for the short note that says why one example is here.
+    The note starts folded, showing just a "Concept" toggle styled as a
+    button-like chip with a ``>`` caret that rotates down when opened, so it
+    clearly reads as pressable. Clicking it (or pressing Enter/Space) opens it
+    to reveal the text; clicking again folds it back. It works with the keyboard
+    and with screen readers (the caret is decorative/``aria-hidden``; the native
+    ``<details>`` announces its expanded state), and needs no scripting. Use it
+    for the short note that says why one example is here.
 
     Args:
         comp_id: A short unique name for this note, used to build its HTML ids.
@@ -235,8 +249,8 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
     op = " open" if open_ else ""
     return (
         f'<details id="{p}" class="concept"{op} style="margin:.4rem 0">\n'
-        f'<summary style="cursor:pointer;font-weight:700;min-height:44px;'
-        f'display:flex;align-items:center">{_e(label)}</summary>\n'
+        f'<summary class="concept-toggle">'
+        f'<span class="caret" aria-hidden="true">▸</span>{_e(label)}</summary>\n'
         f"{body}"
         f"</details>\n"
     )
@@ -422,11 +436,19 @@ def predict_reveal_quiz(
 # ---------------------------------------------------------------------------
 
 
-def compile_status_badge(comp_id: str, ok: bool, *, label: str | None = None) -> str:
-    """Compile pass/fail shown by text + icon + border in addition to color."""
+def compile_status_badge(comp_id: str, ok: bool, *, label: str | None = None,
+                         kind: str = "compile") -> str:
+    """Build/run verdict shown by text + icon + border in addition to colour.
+
+    ``kind`` distinguishes the two ways a program can fail so they never look
+    alike: ``"compile"`` (red ``✗ Compile failed``) versus ``"runtime"`` (amber
+    ``⚠ Runtime error`` — the program compiled but crashed). Ignored when *ok*.
+    """
     p = _safe(comp_id)
     if ok:
         icon, txt, color = "✓", label or "Compiled", "var(--c-val)"
+    elif kind == "runtime":
+        icon, txt, color = "⚠", label or "Runtime error", "var(--c-const)"
     else:
         icon, txt, color = "✗", label or "Compile failed", "var(--c-err)"
     return (
@@ -436,21 +458,61 @@ def compile_status_badge(comp_id: str, ok: bool, *, label: str | None = None) ->
     )
 
 
-def output_console(comp_id: str, text: str, *, error: bool = False, title: str | None = None) -> str:
-    """Monospaced output block; the error variant is marked by text + border."""
+_OUTPUT_LINE_LIMIT = 12  # long output beyond this many lines folds into <details>
+
+
+def _samp_pre(text: str) -> str:
+    """Wrap sample output as a semantic ``<pre><samp>`` (never a bare ``<pre>``)."""
+    return (f'<pre style="margin:0;background:none;color:inherit;padding:0">'
+            f"<samp>{_e(text)}</samp></pre>")
+
+
+def output_console(comp_id: str, text: str, *, error: bool = False,
+                   title: str | None = None, kind: str = "compile") -> str:
+    """Monospaced output block; the error variant is marked by text + border.
+
+    On an error, ``kind`` picks the failure styling so a compile error and a
+    runtime crash are unmistakably different: ``"compile"`` (red border,
+    *Compiler error*) versus ``"runtime"`` (amber border, *Runtime error*).
+
+    Very long output (compiler template/STL walls, ASan reports) is shortened:
+    the first :data:`_OUTPUT_LINE_LIMIT` lines show inline and the remainder
+    folds into a native ``<details>`` disclosure, keeping the panel readable.
+    """
     p = _safe(comp_id)
-    if error:
-        heading = title or "Error output"
+    if error and kind == "runtime":
+        heading = title or "Runtime error"
+        border = "var(--c-const)"
+        cls = "console console--runtime"
+    elif error:
+        heading = title or "Compiler error"
         border = "var(--c-err)"
         cls = "console console--err"
     else:
         heading = title or "Program output"
         border = "var(--border)"
         cls = "console"
+
+    lines = text.split("\n")
+    if len(lines) > _OUTPUT_LINE_LIMIT:
+        head = "\n".join(lines[:_OUTPUT_LINE_LIMIT])
+        rest = "\n".join(lines[_OUTPUT_LINE_LIMIT:])
+        more = len(lines) - _OUTPUT_LINE_LIMIT
+        body = (
+            _samp_pre(head)
+            + f'<details class="console-more"><summary>'
+            + f'<span class="caret" aria-hidden="true">▸</span>'
+            + f"Show {more} more line{'s' if more != 1 else ''}</summary>\n"
+            + _samp_pre(rest)
+            + "</details>\n"
+        )
+    else:
+        body = _samp_pre(text)
+
     return (
         f'<div class="{cls}" id="{p}" style="border:2px solid {border}">'
         f'<span class="console-label">{_e(heading)}</span>'
-        f"<pre style=\"margin:0;background:none;color:inherit;padding:0\"><samp>{_e(text)}</samp></pre>"
+        f"{body}"
         f"</div>\n"
     )
 
@@ -758,10 +820,10 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
     body = (
         code_block
         + '<div style="margin-top:.8rem">'
-        + compile_status_badge(f"{pid}-badge", v["ok"])
+        + compile_status_badge(f"{pid}-badge", v["ok"], kind=v.get("error_kind") or "compile")
         + "</div>"
         + output_console(f"{pid}-out", v["stdout"] if v["ok"] else v["stderr"],
-                         error=v["failed"])
+                         error=v["failed"], kind=v.get("error_kind") or "compile")
     )
     if v["bytes"]:
         body += (
