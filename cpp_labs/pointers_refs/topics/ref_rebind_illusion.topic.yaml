@@ -1,0 +1,25 @@
+id: ref_rebind_illusion
+name: "Ref: Rebind Illusion"
+group: Refs
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+target_var: a
+explanation: >-
+  Invariant 3: a reference cannot be rebound after initialization. r = b does
+  NOT rebind r to b — it assigns b's value through r to a. Contrary to pointers
+  (p = &b rebinds the pointer), references are permanently bound to their
+  initial target. &r == &a remains true after the assignment.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      int a = 10;
+      int b = 20;
+      int& r = a;
+      r = b;  // assigns b's value to a, does NOT rebind r
+      printf("&r == &a: %s\n", (&r == &a ? "true" : "false"));
+      printf("a=%d, b=%d, r=%d\n", a, b, r);
+      printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+             (void*)&r, (void*)&a, a);
+      <<HARNESS>>
+  }
+controls: []

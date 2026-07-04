@@ -12,7 +12,7 @@ A page spec is a flat list of *blocks*:
 
 Each block is a single-key mapping ``{component_name: {args}}``.  The translator
 pops ``id`` and forwards the rest as keyword args to the matching component in
-:mod:`cpp_ptr_lab.components` — so the YAML key names *are* the component
+:mod:`cpp_labs.components` — so the YAML key names *are* the component
 parameters and the same component can appear any number of times (each instance
 namespaced by its own ``id``).  ``${a.b.c}`` references resolve against the baked
 data.  Two "smart" builders compose multiple components: ``topic`` (a variant_tabs
@@ -22,9 +22,9 @@ cluster over a baked topic) and ``heading``/``html`` (chrome).
 
 This module is the subject-agnostic engine: it dispatches any page spec to the
 component library and bakes any topic in the registry.  Per-subject page specs
-live in their own packages (e.g. ``cpp_ptr_lab/basic_ptr/basic_ptr.page.yaml``).
+live in their own packages (e.g. ``cpp_labs/basic_ptr/basic_ptr.page.yaml``).
 
-Entry point: ``python -m cpp_ptr_lab.yaml_engine.render_page <page.yaml> [dist]``
+Entry point: ``python -m cpp_labs.yaml_engine.render_page <page.yaml> [dist]``
 """
 
 from __future__ import annotations
@@ -53,17 +53,13 @@ _REF_RE = re.compile(r"\$\{([^}]+)\}")
 
 
 def _topic_registry() -> dict[str, Any]:
-    from ..pointers_refs.topics import (
-        basic_ptr, const_taxonomy, dangling_ptr, null_deref, ref_const,
-        ref_must_bind, ref_no_null, ref_rebind_illusion,
-    )
-    from ..smart_ptrs.topics import TOPICS as SMART
-    from ..function_args.topics import TOPICS as FUNC_ARGS
-    from ..op_overload.topics import TOPICS as OP_OVERLOAD
-    topics = [basic_ptr, const_taxonomy, ref_must_bind, ref_no_null,
-              ref_rebind_illusion, ref_const, null_deref, dangling_ptr,
-              *SMART, *FUNC_ARGS, *OP_OVERLOAD]
-    return {t.id: t for t in topics}
+    """Every subject's topics, auto-discovered from ``cpp_labs/*/topics``.
+
+    No subject is named here: dropping in a new subject folder (a ``topics/``
+    dir of YAML plus a layout) is enough for the engine to bake and render it.
+    """
+    from ..topic_yaml import discover_topics
+    return discover_topics(Path(__file__).resolve().parents[1])
 
 
 # ---------------------------------------------------------------------------
@@ -445,11 +441,11 @@ def main() -> None:
               file=sys.stderr)
         sys.exit(1)
     if len(sys.argv) < 2:
-        print("usage: python -m cpp_ptr_lab.yaml_engine.render_page "
+        print("usage: python -m cpp_labs.yaml_engine.render_page "
               "<page.yaml> [dist_dir]", file=sys.stderr)
         sys.exit(2)
     spec_path = Path(sys.argv[1])
-    dist = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[2] / "dist"
+    dist = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parents[2] / "dist_labs"
     spec_probe = load_spec(spec_path)
     out = build_layout(spec_path, dist) if "demos" in spec_probe else build_page(spec_path, dist)
     print(f"Wrote {out}")

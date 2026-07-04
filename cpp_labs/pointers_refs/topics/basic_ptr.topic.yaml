@@ -1,0 +1,31 @@
+id: basic_ptr
+name: Basic Pointer
+group: Raw
+doc_url: https://en.cppreference.com/w/cpp/language/pointer
+target_var: ptr
+explanation: >-
+  A raw pointer holds the memory address of another variable. Dereferencing it
+  (*ptr) accesses the value at that address. The pointer variable itself
+  occupies sizeof(void*) bytes on the stack.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      <<type>> val = (<<type>>)<<value>>;
+      <<type>>* ptr = &val;
+      printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%g\n",
+             (void*)&ptr, (void*)ptr, (double)val);
+      <<HARNESS>>
+  }
+controls:
+  - id: type
+    label: Type
+    kind: dropdown
+    options: [int, double, float]
+    default: int
+    placeholder: <<type>>
+  - id: value
+    label: Value
+    kind: text
+    default: "42"
+    placeholder: <<value>>

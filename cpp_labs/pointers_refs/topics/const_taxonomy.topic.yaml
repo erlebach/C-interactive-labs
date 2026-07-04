@@ -1,0 +1,46 @@
+id: const_taxonomy
+name: const Taxonomy
+group: Raw
+doc_url: https://en.cppreference.com/w/cpp/language/cv
+target_var: val
+explanation: |-
+  - const has two independent axes — read the declaration right-to-left:
+  - const int* = pointer to const int → can't write *ptr (the pointee is const);
+  - int* const = const pointer to int → can't rebind ptr (the pointer is const);
+  - const int* const = both are const → neither operation is allowed.
+  - Each type below attempts BOTH operations as separate compilations: write through the pointer (*ptr = 99) and rebind it (ptr = &other). The forbidden one genuinely fails to compile — read the error.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  int main() {
+      int val = 42;
+      int other = 7;
+      <<decl>>
+      <<op>>
+      printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%d\n",
+             (void*)&ptr, (void*)ptr, *ptr);
+      <<HARNESS>>
+  }
+controls:
+  - id: variant
+    label: Pointer type
+    kind: dropdown
+    options:
+      - "int* (pointer and value both mutable)"
+      - "const int* (value immutable, pointer mutable)"
+      - "int* const (pointer immutable, value mutable)"
+      - "const int* const (both immutable)"
+    default: "int* (pointer and value both mutable)"
+    placeholder: <<decl>>
+    value_map:
+      "int* (pointer and value both mutable)": "int* ptr = &val;"
+      "const int* (value immutable, pointer mutable)": "const int* ptr = &val;"
+      "int* const (pointer immutable, value mutable)": "int* const ptr = &val;"
+      "const int* const (both immutable)": "const int* const ptr = &val;"
+cases:
+  - label: "Write through pointer:  *ptr = 99;"
+    subs:
+      "<<op>>": "*ptr = 99;  // write through the pointer"
+  - label: "Rebind pointer:  ptr = &other;"
+    subs:
+      "<<op>>": "ptr = &other;  // repoint to another int"

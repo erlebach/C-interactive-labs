@@ -1,0 +1,34 @@
+id: op_stream
+name: "operator<< (stream)"
+group: Operators
+doc_url: https://en.cppreference.com/w/cpp/language/operators
+has_ptrdata: false
+explanation: >-
+  Stream insertion std::cout << v must be a non-member: the left operand is
+  std::ostream, not your type, so it cannot be a member of Vec2. The two cases
+  below compile independently — the correct non-member version prints, and the
+  common mistake (writing operator<< as a member) genuinely fails to compile.
+template: |
+  #include <iostream>
+  struct Vec2 {
+      double x, y;
+      <<member_op>>
+  };
+  <<free_op>>
+  int main() {
+      Vec2 a{1.0, 2.0};
+      std::cout << "a = " << a << "\n";
+  }
+cases:
+  - label: "Correct: non-member operator<<"
+    subs:
+      "<<member_op>>": ""
+      "<<free_op>>": |-
+        std::ostream& operator<<(std::ostream& os, const Vec2& v) {
+            return os << "(" << v.x << ", " << v.y << ")";
+        }
+  - label: "Mistake: operator<< as a member  (compile error)"
+    subs:
+      "<<member_op>>": |-
+        std::ostream& operator<<(std::ostream& os) { return os << "(" << x << ", " << y << ")"; }
+      "<<free_op>>": ""

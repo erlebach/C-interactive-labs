@@ -1,0 +1,21 @@
+id: op_plus
+name: "operator+ (member)"
+group: Operators
+doc_url: https://en.cppreference.com/w/cpp/language/operators
+has_ptrdata: false
+explanation: >-
+  A member operator's left operand is the object itself: a + b calls
+  a.operator+(b). Arithmetic operators return a new value (not a reference),
+  so the operands are left unchanged.
+template: |
+  #include <iostream>
+  struct Vec2 {
+      double x, y;
+      Vec2 operator+(const Vec2& o) const { return Vec2{x + o.x, y + o.y}; }
+  };
+  int main() {
+      Vec2 a{1.0, 2.0};
+      Vec2 b{3.0, 4.0};
+      Vec2 c = a + b;
+      std::cout << "a + b = (" << c.x << ", " << c.y << ")\n";
+  }

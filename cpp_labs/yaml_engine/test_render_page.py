@@ -1,4 +1,4 @@
-"""Tests for the subject-agnostic YAML page engine (cpp_ptr_lab.yaml_engine).
+"""Tests for the subject-agnostic YAML page engine (cpp_labs.yaml_engine).
 
 A page is a flat YAML `blocks:` list; each block names a component (or a smart
 builder like `topic`) plus its inputs and an id. `render_page` translates the
@@ -14,12 +14,31 @@ from __future__ import annotations
 
 import re
 import shutil
+from pathlib import Path
 
 import pytest
 
-from cpp_ptr_lab.yaml_engine import render_page as R
+import cpp_labs
+from cpp_labs.topic_yaml import discover_topics
+from cpp_labs.yaml_engine import render_page as R
 
 HAS_GPP = shutil.which("g++") is not None
+_ROOT = Path(cpp_labs.__file__).parent
+
+
+class TestTopicDiscovery:
+    """The registry auto-discovers every subject's ``topics/`` dir, so a new
+    subject needs no Python — just a folder of YAML. No per-subject import."""
+
+    def test_discover_merges_all_subjects(self):
+        reg = discover_topics(_ROOT)
+        # ids from several independent subjects are all present, keyed by id
+        assert "const_taxonomy" in reg   # pointers_refs
+        assert "op_plus" in reg          # op_overload
+        assert "unique_basics" in reg    # smart_ptrs
+
+    def test_registry_equals_discovery(self):
+        assert set(R._topic_registry()) == set(discover_topics(_ROOT))
 
 
 # Pre-baked data so the pure renderer can be tested without invoking g++.
@@ -281,7 +300,7 @@ class TestRegistry:
 
 class TestDemoPanel:
     def test_demo_panel_variant_tabs_and_details_bytes(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.demo_panel("dp", FAKE["bp"])
         assert "vt-tabs" in html                 # int/double variant tabs
         assert "<details" in html                # byte grid collapsed
@@ -293,7 +312,7 @@ class TestDemoPanel:
         # The byte box is data-driven: render it only when byte data exists.
         # A variant with no bytes (e.g. a failed compile -> no MEMBYTES) must NOT
         # emit an empty byte-grid (which collapses and wraps its caption).
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         entry = {
             "explanation": "e", "variants": ["default"],
             "default": {
@@ -308,7 +327,7 @@ class TestDemoPanel:
         assert "console--err" in html           # the error output is still shown
 
     def test_demo_panel_cases_topic_stacks_subcases(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.demo_panel("dp", FAKE_CASES["ct"])
         assert html.count('class="ssc"') == 2    # one per decl-type tab
         assert "console--err" in html            # the failing sub-case
@@ -316,7 +335,7 @@ class TestDemoPanel:
     def test_single_variant_demo_has_no_default_tab(self):
         # A single-variant topic (no categorical controls) has nothing to switch
         # between: the lone "default" tab is noise. Render the body, no tab chrome.
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         entry = {
             "explanation": "e", "variants": ["default"],
             "default": {
@@ -334,7 +353,7 @@ class TestDemoPanel:
 
 class TestGlossary:
     def test_glossary_renders_dl_with_terms(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.glossary("g1", "Pointers", [("dereference (*)", "reads the pointee")])
         assert "<dl" in html and "</dl>" in html
         assert "<dt" in html and "dereference (*)" in html
@@ -353,7 +372,7 @@ class TestGlossary:
 
 class TestLeftRailLayout:
     def test_left_rail_one_panel_per_item_first_checked(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("Basic", "<p>a</p>"), ("const", "<p>b</p>")])
         assert html.count('class="lr-panel') == 2      # two panel divs
         assert "lr-panel-lab" in html                  # classes are id-namespaced
@@ -366,7 +385,7 @@ class TestLeftRailLayout:
 
     def test_left_rail_no_external_script(self):
         # The mobile-menu enhancement adds an INLINE script; nothing external/networked.
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         assert "<script src" not in html and "src=" not in html and "https://" not in html
 
@@ -376,7 +395,7 @@ class TestLeftRailGlossaryNav:
     demos), while a demo — not the glossary — stays the panel shown on load."""
 
     def _html(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         return C.left_rail_layout(
             "lab", [("Vocabulary", "<p>g</p>"), ("Basic", "<p>d</p>")],
             italic_count=1, selected=1)
@@ -392,14 +411,14 @@ class TestLeftRailGlossaryNav:
         assert not re.search(r'id="lab-r0"[^>]*checked', html)   # glossary not auto-shown
 
     def test_no_italic_by_default(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
         assert "font-style:italic" not in html
 
 
 class TestVariantTabsNesting:
     def test_classes_are_id_namespaced(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.variant_tabs("outer", [("A", "x"), ("B", "y")])
         # every structural class carries the component id — nothing shared across instances
         assert "vt-panels-outer" in html
@@ -409,7 +428,7 @@ class TestVariantTabsNesting:
     def test_single_panel_renders_body_without_tab_chrome(self):
         # One panel has nothing to switch: emit just the body in its bordered
         # container, with no radios and no tab labels.
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.variant_tabs("solo", [("default", "<p>only</p>")])
         assert "<p>only</p>" in html
         assert 'type="radio"' not in html
@@ -418,7 +437,7 @@ class TestVariantTabsNesting:
         assert "vt-panels-solo" in html          # still framed like a panel
 
     def test_nested_variant_tabs_isolated_and_no_dup_ids(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         inner = C.variant_tabs("inner", [("i0", "a"), ("i1", "b")])
         outer = C.variant_tabs("outer", [("o0", inner), ("o1", "z")])
         # inner and outer use disjoint namespaced classes → no selector collision
@@ -475,13 +494,13 @@ class TestMobileOverflow:
     line scrolls inside its box instead of blowing the page wider than the phone."""
 
     def test_code_diagram_panel_columns_shrinkable(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.code_diagram_panel("cdp", "<pre>x</pre>", "<svg></svg>")
         assert "minmax(0" in html          # 1fr -> minmax(0,1fr)
         assert "min-width:0" in html        # .cdp-code can shrink; overflow:auto engages
 
     def test_left_rail_columns_shrinkable(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         assert "minmax(0" in html
         assert "min-width:0" in html
@@ -492,7 +511,7 @@ class TestLeftRailMobileMenu:
     on the zero-JS radio baseline so it degrades gracefully with JS disabled."""
 
     def test_menu_toggle_and_progressive_script_present(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
         assert "<button" in html and "aria-expanded" in html   # accessible toggle
         assert "<script" in html                               # progressive enhancement
@@ -500,7 +519,7 @@ class TestLeftRailMobileMenu:
         assert "lr-open" in html                               # open/closed state hook
 
     def test_baseline_still_works_without_js(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>"), ("B", "<p>b</p>")])
         # radios + rail present regardless of JS (graceful degradation)
         assert html.count("<input") == 2
@@ -508,7 +527,7 @@ class TestLeftRailMobileMenu:
         assert "checked" in html
 
     def test_no_external_script_or_network(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.left_rail_layout("lab", [("A", "<p>a</p>")])
         # inline JS is allowed now, but nothing external / networked
         assert "<script src" not in html and "https://" not in html and "src=" not in html
@@ -539,7 +558,7 @@ class TestOptionalDiagram:
 
 class TestConceptBlock:
     def test_concept_block_renders_disclosure_with_resolved_text(self):
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         spec = {"blocks": [
             {"concept": {"id": "n1", "text": "${x.explanation}"}},
         ]}
@@ -550,7 +569,7 @@ class TestConceptBlock:
         assert "A reference is an alias." in html
 
     def test_concept_block_open_flag(self):
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         spec = {"blocks": [{"concept": {"id": "n2", "text": "hi", "open": True}}]}
         html = R.render_fragment(spec, {})
         assert "class=\"concept\" open" in html
@@ -560,19 +579,19 @@ class TestNavShell:
     ITEMS = [("A", "<p>a</p>"), ("B", "<p>b</p>"), ("C", "<p>c</p>")]
 
     def test_left_rail_is_byte_identical_to_left_rail_layout(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         got = C.nav_shell("lab", self.ITEMS, style="left_rail", leading=1, selected=1)
         want = C.left_rail_layout("lab", self.ITEMS, italic_count=1, selected=1)
         assert got == want
 
     def test_stacked_ignores_leading_and_selected(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.nav_shell("lab", self.ITEMS, style="stacked", leading=2, selected=2)
         assert "<p>a</p>" in html and "<p>b</p>" in html and "<p>c</p>" in html
         assert "type=\"radio\"" not in html and "font-style:italic" not in html
 
     def test_top_tabs_honors_selected(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         html = C.nav_shell("lab", self.ITEMS, style="top_tabs", selected=2)
         # the third tab's radio is the checked one
         assert 'id="lab-t2" style=' in html and 'id="lab-t2"' in html
@@ -581,7 +600,7 @@ class TestNavShell:
         assert checked and checked.group(1) == "2"
 
     def test_unknown_style_raises(self):
-        from cpp_ptr_lab import components as C
+        from cpp_labs import components as C
         import pytest
         with pytest.raises(ValueError, match="unknown nav style"):
             C.nav_shell("lab", self.ITEMS, style="carousel")
@@ -590,14 +609,14 @@ class TestNavShell:
 class TestBuildLayoutNav:
     def test_layouts_dict_and_stacked_layout_are_gone(self):
         # The leaky per-style dispatch is removed; nav_shell is the single seam.
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         assert not hasattr(R, "_LAYOUTS")
         assert not hasattr(R, "_stacked_layout")
 
 
 class TestSidebar:
     def test_mixed_glossary_and_concept_entries_in_order(self, tmp_path):
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         g = tmp_path / "v.glossary.yaml"
         g.write_text("title: Vocab\nterms:\n  - {term: ptr, def: an address}\n", encoding="utf-8")
         sidebar = [
@@ -610,13 +629,13 @@ class TestSidebar:
         assert "an address" in items[1][1]
 
     def test_unknown_sidebar_entry_raises(self, tmp_path):
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         import pytest
         with pytest.raises(KeyError, match="unknown sidebar entry"):
             R._build_sidebar([{"legend": {"id": "x"}}], tmp_path)
 
     def test_multi_key_sidebar_entry_raises(self, tmp_path):
-        from cpp_ptr_lab.yaml_engine import render_page as R
+        from cpp_labs.yaml_engine import render_page as R
         import pytest
         with pytest.raises(ValueError, match="exactly one key"):
             R._build_sidebar([{"glossary": {"id": "g"}, "concept": {"id": "c"}}], tmp_path)

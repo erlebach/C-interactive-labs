@@ -1,0 +1,105 @@
+# Combined page spec for the Pointers & References lab (Lab 1).
+#
+# One self-contained page stacking every demo in the lab; each `topic` block is
+# a variant_tabs cluster over that topic's baked variants (basic_ptr → int/double/
+# float; const_taxonomy → the 4 declaration types, each a 2x2 stacked sub-case;
+# the reference invariants and the null-deref gotcha). This is the new-engine
+# equivalent of the old dist/lab_pointers_refs.html. Rendered by the shared engine
+# (cpp_labs/yaml_engine/render_page.py); builds to dist/pointers_refs/pointers_refs.html.
+title: "Pointers & References — Lab 1"
+
+language: cpp
+bake:
+  bp: basic_ptr
+  ct: const_taxonomy
+  rmb: ref_must_bind
+  rnn: ref_no_null
+  rri: ref_rebind_illusion
+  rc: ref_const
+  nd: null_deref
+
+blocks:
+  - heading:
+      level: 1
+      text: "Pointers & References"
+  - html:
+      content: "<p>Each demo below compiles and runs real C++; the code, memory diagram, compiler verdict, program output, and raw bytes are all baked from that run. Where a demo has variants, use its tabs to switch between them.</p>"
+  - color_legend:
+      id: legend
+
+  # --- 1. Basic pointer (int / double / float) -----------------------------
+  - heading:
+      text: "Basic Pointer"
+  - callout_note:
+      id: bp-note
+      label: Concept
+      text: "${bp.explanation}"
+  - topic:
+      id: t-basic-ptr
+      source: bp
+
+  # --- 2. const taxonomy (4 decl types x write/rebind = the 2x2) ------------
+  - heading:
+      text: "const Taxonomy"
+  - callout_note:
+      id: ct-note
+      label: Concept
+      text: "${ct.explanation}"
+  - topic:
+      id: t-const-taxonomy
+      source: ct
+
+  # --- 3. Reference invariant: must bind at declaration --------------------
+  - heading:
+      text: "Ref: Must Bind"
+  - callout_note:
+      id: rmb-note
+      label: Concept
+      text: "${rmb.explanation}"
+  - topic:
+      id: t-ref-must-bind
+      source: rmb
+
+  # --- 4. Reference invariant: no null reference ---------------------------
+  - heading:
+      text: "Ref: No Null"
+  - callout_note:
+      id: rnn-note
+      label: Concept
+      text: "${rnn.explanation}"
+  - topic:
+      id: t-ref-no-null
+      source: rnn
+
+  # --- 5. Reference invariant: assignment is not rebinding -----------------
+  - heading:
+      text: "Ref: Rebind Illusion"
+  - callout_note:
+      id: rri-note
+      label: Concept
+      text: "${rri.explanation}"
+  - topic:
+      id: t-ref-rebind-illusion
+      source: rri
+
+  # --- 6. const reference (read-only view) ---------------------------------
+  - heading:
+      text: "Ref: const Ref"
+  - callout_note:
+      id: rc-note
+      label: Concept
+      text: "${rc.explanation}"
+  - topic:
+      id: t-ref-const
+      source: rc
+
+  # --- 7. Gotcha: null dereference (ASan) ----------------------------------
+  - heading:
+      text: "Gotcha: Null Deref"
+  - callout_note:
+      id: nd-note
+      label: Concept
+      text: "${nd.explanation}"
+  - topic:
+      id: t-null-deref
+      source: nd

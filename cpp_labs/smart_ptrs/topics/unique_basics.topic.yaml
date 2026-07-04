@@ -1,0 +1,24 @@
+id: unique_basics
+name: 'unique_ptr: Basics'
+group: unique_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr
+target_var: ptr
+explanation: std::unique_ptr<T> is a move-only smart pointer that owns its object. make_unique<T>(args) allocates on the heap and returns a unique_ptr. .get() returns the raw pointer; *ptr dereferences it; .reset() releases. When the unique_ptr goes out of scope, the heap object is automatically freed.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  #include <memory>
+  int main() {
+      auto ptr = std::make_unique<int>(<<value>>);
+      printf("PTRDATA: type=unique ptr_addr=%p target_addr=%p val=%d is_null=0\n",
+             (void*)&ptr, (void*)ptr.get(), *ptr);
+      std::cout << "val=" << *ptr << std::endl;
+      std::cout << "addr=" << ptr.get() << std::endl;
+      <<HARNESS>>
+  }
+controls:
+- id: value
+  label: Value
+  kind: text
+  default: '42'
+  placeholder: <<value>>

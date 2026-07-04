@@ -1,0 +1,52 @@
+# Page spec for the Function Arguments subject, assembled from the component
+# library through the YAML engine (cpp_labs.yaml_engine.render_page).
+# A flat list of blocks; each is {component_or_builder: {args}}. ${a.b.c} pulls
+# in data baked from the `bake:` topics. Same engine as basic_ptr.page.yaml —
+# this is the "new subject" proof: a new topic module + a page spec, no new
+# diagram components (memory_diagram is reused for the pointer/reference tabs).
+title: "Function Arguments — value, pointer, reference"
+
+language: cpp
+bake:
+  fa: function_args        # compile this topic; expose its variants as ${fa.*}
+
+blocks:
+  - callout_note:
+      id: intro
+      label: Concept
+      text: "${fa.explanation}"
+
+  - color_legend:
+      id: legend
+
+  - heading:
+      text: "Pass the same variable three ways"
+  - html:
+      content: "<p>Each tab passes <code>val = 42</code> to <code>modify()</code> a different way, then prints <code>val</code> after the call. Watch two things: does the caller's <code>val</code> change, and does the parameter link back to it in the diagram?</p>"
+  - topic:                 # reusable cluster: variant_tabs over fa's baked variants
+      id: modes
+      source: fa
+
+  - heading:
+      text: "The rule"
+  - progressive_steps:
+      id: steps
+      steps:
+        - summary: "By value — a copy"
+          content: "<p><code>void modify(int x)</code> receives a <em>copy</em>. Writing <code>x = 99</code> changes only the copy; <code>val</code> stays 42. No arrow: nothing links the parameter back to the caller.</p>"
+        - summary: "By pointer — an address"
+          content: "<p><code>void modify(int* x)</code> receives a copy of <code>&amp;val</code>. <code>*x = 99</code> writes THROUGH that address into <code>val</code>. The diagram shows the parameter pointing back to <code>val</code>.</p>"
+        - summary: "By reference — an alias"
+          content: "<p><code>void modify(int&amp; x)</code> makes <code>x</code> another name for <code>val</code> — the same address — so <code>x = 99</code> changes <code>val</code> directly.</p>"
+
+  - heading:
+      text: "Check yourself"
+  - predict_reveal_quiz:
+      id: quiz
+      question: "After modify(val) with signature void modify(int x), what is val in main()?"
+      options:
+        - "99"
+        - "42"
+        - "undefined behaviour"
+      correct_index: 1
+      explanation: "Pass-by-value copies the argument; the function mutates its own copy, so the caller's val is unchanged — still 42."

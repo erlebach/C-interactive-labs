@@ -1,0 +1,6 @@
+title: "Ref: No Null"
+language: cpp
+bake: { rnn: ref_no_null }
+blocks:
+  - concept: { id: rnn-note, text: "${rnn.explanation}" }
+  - topic: { id: rnn, source: rnn }

@@ -1,0 +1,18 @@
+id: op_scale
+name: "operator* (non-member)"
+group: Operators
+doc_url: https://en.cppreference.com/w/cpp/language/operators
+has_ptrdata: false
+explanation: >-
+  When the left operand is not your type, the operator cannot be a member. For
+  2.0 * a the left operand is a double, so operator* must be a non-member (free)
+  function taking the scalar and the vector.
+template: |
+  #include <iostream>
+  struct Vec2 { double x, y; };
+  Vec2 operator*(double s, const Vec2& v) { return Vec2{s * v.x, s * v.y}; }
+  int main() {
+      Vec2 a{1.0, 2.0};
+      Vec2 c = 2.0 * a;
+      std::cout << "2 * a = (" << c.x << ", " << c.y << ")\n";
+  }

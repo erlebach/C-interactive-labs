@@ -1,0 +1,6 @@
+title: "Ref: const Ref"
+language: cpp
+bake: { rc: ref_const }
+blocks:
+  - concept: { id: rc-note, text: "${rc.explanation}" }
+  - topic: { id: rc, source: rc }

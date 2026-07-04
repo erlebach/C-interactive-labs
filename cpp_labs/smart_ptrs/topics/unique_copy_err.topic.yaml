@@ -1,0 +1,15 @@
+id: unique_copy_err
+name: 'unique_ptr: Copy Error'
+group: unique_ptr
+doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr
+target_var: p
+has_ptrdata: false
+explanation: 'unique_ptr''s copy constructor is deleted — it cannot be copied. auto q = p; is a compile error: ''call to deleted function''. Use std::move(p) to transfer ownership instead. This guarantees that only one owner exists at any point.'
+template: |
+  #include <iostream>
+  #include <memory>
+  int main() {
+      auto p = std::make_unique<int>(42);
+      auto q = p;  // compile error: copy constructor is deleted
+      (void)q;
+  }

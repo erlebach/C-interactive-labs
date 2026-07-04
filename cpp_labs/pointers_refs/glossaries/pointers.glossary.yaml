@@ -1,0 +1,9 @@
+title: "Vocabulary — Pointers & References"
+terms:
+  - { term: "address-of (&)", def: "operator that yields the memory address of an object" }
+  - { term: "dereference (*)", def: "operator that accesses the object a pointer points to" }
+  - { term: "pointee", def: "the object a pointer refers to" }
+  - { term: "null pointer", def: "a pointer that points to nothing (nullptr); dereferencing it is undefined behaviour" }
+  - { term: "reference", def: "an alias for an existing object; must bind at declaration and cannot be rebound" }
+  - { term: "dangling pointer", def: "a pointer to memory that has been freed or gone out of scope; using it is undefined behaviour" }
+  - { term: "const pointer vs pointer to const", def: "int* const fixes the pointer; const int* fixes the pointee (read declarations right-to-left)" }

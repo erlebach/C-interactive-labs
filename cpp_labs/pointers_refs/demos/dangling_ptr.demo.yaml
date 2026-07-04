@@ -1,0 +1,6 @@
+title: "Gotcha: Dangling Ptr"
+language: cpp
+bake: { dp: dangling_ptr }
+blocks:
+  - concept: { id: dp-note, text: "${dp.explanation}" }
+  - topic: { id: dp, source: dp }
