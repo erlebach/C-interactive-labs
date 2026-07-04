@@ -42,6 +42,16 @@ _LABEL_COLOR = "#1a1a1a"
 _DIM_COLOR = "#555555"
 _SHARED_COUNT_COLOR = "#4a7c20"
 
+# Vertical-layout geometry (tall + narrow). Box text is 14px to match the code panel.
+_FONT = 14           # px, == code panel font-size (ui-monospace)
+_LH = 22             # text line height within a box
+_BOX_TOP_PAD = 20    # box top padding to first text baseline
+_PAD = 16            # outer padding / gap between boxes
+_SRC_W1 = 160        # source/target box width when a single source
+_SRC_W2 = 120        # source box width when two sources sit side-by-side
+_ARROW_GAP = 60      # vertical gap reserved for the arrow between rows
+_STACK_RM = 34       # right margin channel for >=3 stacked-source arrows
+
 
 def _e(s: Any) -> str:
     """HTML-escape a value; return '?' for None/missing."""
@@ -80,6 +90,45 @@ def _arrow(x1: int, y1: int, x2: int, y2: int, color: str = _ARROW_COLOR) -> str
         f'fill="{color}"/>'
         f'<text x="{x1 + 6}" y="{mid_y - 6}" font-size="11" fill="{_DIM_COLOR}">points to</text>'
     )
+
+
+def _marker_defs(marker_id: str, color: str) -> str:
+    """A reusable arrowhead <marker>. `orient="auto-start-reverse"` rotates it to
+    the line direction, so vertical / diagonal / curved arrows all get a correct
+    head. Fill is fixed per-diagram (one arrow color per diagram)."""
+    return (
+        f'<defs><marker id="{marker_id}" viewBox="0 0 10 10" refX="9" refY="5" '
+        f'markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+        f'<path d="M0,0 L10,5 L0,10 z" fill="{color}"/></marker></defs>'
+    )
+
+
+def _arrow_v(x1: int, y1: int, x2: int, y2: int, color: str, marker_id: str) -> str:
+    """A straight arrow from (x1,y1) to (x2,y2) with a marker arrowhead. Unlike the
+    old `_arrow`, the endpoints are honored as given (no forced horizontal)."""
+    return (
+        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
+        f'stroke-width="3" marker-end="url(#{marker_id})"/>'
+    )
+
+
+def _vbox(x: int, y: int, w: int, lines: list[tuple[str, str]], stroke: str) -> tuple[str, int]:
+    """Draw a rounded box at (x,y) with stacked text `lines` (each a
+    (text, color) pair). Height scales with the number of lines. Text is 14px
+    monospace to match the code panel. Returns (svg, height)."""
+    h = _BOX_TOP_PAD + len(lines) * _LH
+    parts = [
+        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" '
+        f'fill="{_BOX_FILL}" stroke="{stroke}" stroke-width="2"/>'
+    ]
+    ty = y + _BOX_TOP_PAD + 4
+    for txt, color in lines:
+        parts.append(
+            f'<text x="{x + 14}" y="{ty}" font-size="{_FONT}" '
+            f'font-family="ui-monospace,monospace" fill="{color}">{_e(txt)}</text>'
+        )
+        ty += _LH
+    return "".join(parts), h
 
 
 def _wrap_svg(p: str, title_text: str, desc_text: str, body: str) -> str:
