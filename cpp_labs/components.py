@@ -788,6 +788,49 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     )
 
 
+def code_concept_panel(comp_id: str, main_html: str, concept_text: str,
+                       *, title: str = "Concept") -> str:
+    """Two-column split: the demo on the left, a titled Concept aside on the right.
+
+    Used on subjects with no memory diagram so the otherwise-empty right column
+    carries the per-example Concept instead. The aside is capped to the left
+    column's height and scrolls internally (``overflow-y:auto``) so a long
+    concept never stretches the panel; it is absolutely positioned so the row
+    height is driven by the code, not the concept. On narrow screens it reflows
+    below the code and shows in full.
+
+    Args:
+        comp_id: A short unique name, used to build CSS-safe element ids.
+        main_html: The left column's content (the code/tabs cluster).
+        concept_text: The Concept prose shown in the right aside.
+        title: The bold heading on the aside; defaults to "Concept".
+
+    Returns:
+        The two-column panel as a piece of HTML.
+    """
+    p = _safe(comp_id)
+    style = (
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} .ccp-main {{ min-width: 0; }}\n"
+        f"#{p} .ccp-aside {{ position: relative; min-width: 0; min-height: 0; }}\n"
+        f"#{p} .ccp-inner {{ position: absolute; inset: 0; overflow-y: auto;"
+        f" border-left: 4px solid var(--accent); background: var(--panel-bg);"
+        f" border-radius: 0 6px 6px 0; padding: .5rem .8rem; }}\n"
+        f"#{p} .ccp-title {{ display: block; font-weight: 700; margin-bottom: .3rem; }}\n"
+        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }}"
+        f" #{p} .ccp-aside {{ position: static; }} #{p} .ccp-inner {{ position: static; }} }}"
+    )
+    return (
+        f'<div id="{p}" class="ccp">\n<style>\n{style}\n</style>\n'
+        f'<div class="ccp-main">{main_html}</div>\n'
+        f'<div class="ccp-aside"><div class="ccp-inner">'
+        f'<b class="ccp-title">{_e(title)}</b>'
+        f'<p style="margin:0">{_e(concept_text)}</p>'
+        f"</div></div>\n"
+        f"</div>\n"
+    )
+
+
 def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
     """Stack independent sub-cases inside one vertically scrollable panel."""
     p = _safe(comp_id)
@@ -835,14 +878,19 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
     return body
 
 
-def demo_panel(comp_id: str, entry: dict, diagram: bool = True) -> str:
+def demo_panel(comp_id: str, entry: dict, diagram: bool = True,
+               *, concept: str | None = None, concept_title: str = "Concept") -> str:
     """One demo's inner content: a variant_tabs cluster over a topic's baked data.
 
     A cases-topic variant carries a ``cases`` list; its sub-cases are stacked
     (each with its own compile verdict) inside the tab. Layout-agnostic.
 
     ``diagram=False`` suppresses the per-program memory diagram (see
-    :func:`_demo_variant_body`).
+    :func:`_demo_variant_body`).  When ``concept`` is given *and* there is no
+    diagram, the whole cluster is placed in the left column and the concept fills
+    the otherwise-empty right column as a titled aside (see
+    :func:`code_concept_panel`); with a diagram, the concept is left to the
+    demo's own ``concept`` block and this argument is ignored.
     """
     cid = _safe(comp_id)
     panels = []
@@ -861,7 +909,10 @@ def demo_panel(comp_id: str, entry: dict, diagram: bool = True) -> str:
             body = _demo_variant_body(pid, v, f"Raw bytes of ptr for {label} (little-endian)",
                                       diagram=diagram)
         panels.append((label, body))
-    return variant_tabs(cid, panels)
+    tabs = variant_tabs(cid, panels)
+    if concept and not diagram:
+        return code_concept_panel(f"{cid}-ccp", tabs, concept, title=concept_title)
+    return tabs
 
 
 def progressive_steps(comp_id: str, steps: Sequence[tuple[str, str]]) -> str:

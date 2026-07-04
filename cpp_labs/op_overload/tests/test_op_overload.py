@@ -89,3 +89,11 @@ def test_scale_entry_pairs_correct_and_mistake(html):
 def test_vocabulary_glossary_present(html):
     assert "Vocabulary — Operator Overloading" in html
     assert "non-member operator" in html
+
+
+def test_concept_shown_in_right_panel(html):
+    # On a diagram:false page the per-example Concept fills the right column as a
+    # titled, scrollable aside (option 3) — not a collapsed <details> toggle.
+    assert "ccp-title" in html                          # right-panel Concept title
+    assert "left operand is the object itself" in html  # op_plus concept text
+    assert 'class="concept"' not in html                # the old toggle is gone

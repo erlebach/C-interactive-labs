@@ -486,6 +486,21 @@ class TestOutputConsole:
         assert not re.search(r"<pre\b[^>]*>(?!\s*<(?:code|samp)\b)", frag)
 
 
+class TestCodeConceptPanel:
+    def test_titled_scrollable_aside(self):
+        html = C.code_concept_panel("cc", "<pre><code>x</code></pre>",
+                                     "A pointer stores an address.")
+        assert "<pre><code>x</code></pre>" in html          # left column = content
+        assert "Concept</b>" in html                        # bold title on the aside
+        assert "A pointer stores an address." in html       # concept text
+        assert "overflow-y: auto" in html                   # capped height → scrollbar
+
+    def test_custom_title_and_escaping(self):
+        html = C.code_concept_panel("cc", "<x/>", "1 < 2 & true", title="Why")
+        assert "Why</b>" in html
+        assert "1 &lt; 2 &amp; true" in html
+
+
 class TestVariantBodyErrorKind:
     """_demo_variant_body must surface compile vs runtime failures distinctly."""
 

@@ -215,7 +215,9 @@ def _build_topic(args: dict, data: dict) -> str:
     memory-model picture (operator overloading, classes, templates); default on.
     """
     return C.demo_panel(args["id"], data[args["source"]],
-                        diagram=args.get("diagram", True))
+                        diagram=args.get("diagram", True),
+                        concept=args.get("concept"),
+                        concept_title=args.get("concept_title", "Concept"))
 
 
 def _build_concept(args: dict, data: dict) -> str:

@@ -2,5 +2,4 @@ title: "operator<<  (stream)"
 language: cpp
 bake: { st: op_stream }
 blocks:
-  - concept: { id: st-note, text: "${st.explanation}" }
-  - topic: { id: st, source: st, diagram: false }
+  - topic: { id: st, source: st, diagram: false, concept: "${st.explanation}" }

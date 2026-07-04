@@ -2,5 +2,4 @@ title: "Copy Constructor"
 language: cpp
 bake: { cc: cls_copy_ctor }
 blocks:
-  - concept: { id: cc-note, text: "${cc.explanation}" }
-  - topic: { id: cc, source: cc, diagram: false }
+  - topic: { id: cc, source: cc, diagram: false, concept: "${cc.explanation}" }
