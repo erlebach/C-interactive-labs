@@ -5,30 +5,35 @@ doc_url: https://en.cppreference.com/w/cpp/language/operators
 has_ptrdata: false
 explanation: >-
   Stream insertion std::cout << v must be a non-member: the left operand is
-  std::ostream, not your type, so it cannot be a member of Vec2. The two cases
-  below compile independently — the correct non-member version prints, and the
-  common mistake (writing operator<< as a member) genuinely fails to compile.
+  std::ostream, not your type, so it cannot be a member of Vec2. Because Vec2 is
+  a class (its data is private), that non-member operator<< must be declared a
+  friend to read x_ and y_ — friend grants access but keeps it a non-member. The
+  two cases below compile independently — the correct friend version prints, and
+  the common mistake (writing operator<< as a member) genuinely fails to compile.
 template: |
   #include <iostream>
-  struct Vec2 {
-      double x, y;
+  class Vec2 {
+  public:
+      Vec2(double x, double y) : x_(x), y_(y) {}
       <<member_op>>
+  private:
+      double x_, y_;
   };
   <<free_op>>
   int main() {
-      Vec2 a{1.0, 2.0};
+      Vec2 a(1.0, 2.0);
       std::cout << "a = " << a << "\n";
   }
 cases:
-  - label: "Correct: non-member operator<<"
+  - label: "Correct: friend non-member operator<<"
     subs:
-      "<<member_op>>": ""
+      "<<member_op>>": "friend std::ostream& operator<<(std::ostream& os, const Vec2& v);"
       "<<free_op>>": |-
         std::ostream& operator<<(std::ostream& os, const Vec2& v) {
-            return os << "(" << v.x << ", " << v.y << ")";
+            return os << "(" << v.x_ << ", " << v.y_ << ")";
         }
   - label: "Mistake: operator<< as a member  (compile error)"
     subs:
       "<<member_op>>": |-
-        std::ostream& operator<<(std::ostream& os) { return os << "(" << x << ", " << y << ")"; }
+        std::ostream& operator<<(std::ostream& os) { return os << "(" << x_ << ", " << y_ << ")"; }
       "<<free_op>>": ""

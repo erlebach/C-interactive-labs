@@ -6,15 +6,20 @@ has_ptrdata: false
 explanation: >-
   operator== compares two objects and returns bool. As a member, a == b calls
   a.operator==(b); mark it const because comparison must not modify either
-  operand. (std::boolalpha prints true/false instead of 1/0.)
+  operand. Vec2 is a class with private data, but a member may read another
+  Vec2's private fields, so no friend is needed here. (std::boolalpha prints
+  true/false instead of 1/0.)
 template: |
   #include <iostream>
-  struct Vec2 {
-      double x, y;
-      bool operator==(const Vec2& o) const { return x == o.x && y == o.y; }
+  class Vec2 {
+  public:
+      Vec2(double x, double y) : x_(x), y_(y) {}
+      bool operator==(const Vec2& o) const { return x_ == o.x_ && y_ == o.y_; }
+  private:
+      double x_, y_;
   };
   int main() {
-      Vec2 a{1.0, 2.0};
-      Vec2 b{3.0, 4.0};
+      Vec2 a(1.0, 2.0);
+      Vec2 b(3.0, 4.0);
       std::cout << std::boolalpha << "a == b: " << (a == b) << "\n";
   }

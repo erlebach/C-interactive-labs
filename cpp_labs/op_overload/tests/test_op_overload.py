@@ -46,6 +46,21 @@ def test_real_output_is_baked(html):
     assert "a = (1, 2)" in html          # operator<< (non-member)
 
 
+def test_examples_use_class_not_struct(html):
+    # Locked course convention (project memory 2026-07-04): every example models
+    # encapsulation with `class` (private by default), never `struct`.
+    assert "class Vec2" in html
+    assert "struct Vec2" not in html
+
+
+def test_non_member_operators_use_friend(html):
+    # With private members, the non-member operator<< must be declared a `friend`
+    # to read them — the concept the class switch is meant to teach. (Assert the
+    # specific declaration, not the bare word "friend" which the bundled
+    # highlight.js keyword list would satisfy trivially.)
+    assert "friend std::ostream" in html
+
+
 def test_member_stream_gotcha_fails_to_compile(html):
     # the member-<< case must surface a real compiler-error box, not fake text
     assert "out--err" in html
@@ -59,9 +74,16 @@ def test_four_rail_entries_present(html):
 
 
 def test_stream_entry_pairs_correct_and_mistake(html):
-    # the << entry stacks the correct non-member version + the member mistake
-    assert "Correct: non-member operator&lt;&lt;" in html
+    # the << entry stacks the correct friend non-member version + the member mistake
+    assert "Correct: friend non-member operator&lt;&lt;" in html
     assert "Mistake: operator&lt;&lt; as a member" in html
+
+
+def test_scale_entry_pairs_correct_and_mistake(html):
+    # the * entry stacks the correct friend non-member version + the member mistake
+    # (a member operator* cannot be commutative: 2.0 * a fails to compile).
+    assert "Correct: friend non-member operator*" in html
+    assert "Mistake: operator* as a member" in html
 
 
 def test_vocabulary_glossary_present(html):
