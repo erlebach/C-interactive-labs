@@ -80,7 +80,7 @@ def _e(s: Any) -> str:
 
 # Extra CSS used by demo pages (page_shell).  No external/network reference.
 COMPONENT_CSS = """
-.demo-wrap { max-width: 70rem; margin: 0 auto; padding: 1rem 1.2rem; }
+.demo-wrap { max-width: 100rem; margin: 0 auto; padding: 1rem 1.2rem; }
 .demo-wrap h2 { font-size: 1.1rem; }
 .legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
 .legend li { display: inline-flex; align-items: center; gap: .4rem;
@@ -775,8 +775,9 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
     style = (
-        f"#{p} {{ display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }}\n"
-        f"#{p} .cdp-code {{ overflow: auto; max-height: 28rem; min-width:0; }}\n"
+        # Code gets ~two-thirds; the (currently wide) SVG scales to fit the rest.
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} .cdp-code {{ min-width:0; }}\n"
         f"#{p} .cdp-diagram {{ min-width:0; }}\n"
         f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
     )
@@ -810,31 +811,39 @@ def code_concept_panel(comp_id: str, main_html: str, concept_text: str,
     """
     p = _safe(comp_id)
     style = (
-        f"#{p} {{ display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1rem; }}\n"
+        # Code gets ~two-thirds; the prose Concept wraps comfortably in the rest.
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr);"
+        f" gap: 1rem; align-items: start; }}\n"
         f"#{p} .ccp-main {{ min-width: 0; }}\n"
-        f"#{p} .ccp-aside {{ position: relative; min-width: 0; min-height: 0; }}\n"
-        f"#{p} .ccp-inner {{ position: absolute; inset: 0; overflow-y: auto;"
+        # Top-aligned aside sized to its own content (no forced stretch, so a
+        # short concept never leaves a tall empty box); capped to the viewport
+        # and scrolls internally so a long concept never stretches the page.
+        f"#{p} .ccp-aside {{ min-width: 0; max-height: calc(100vh - 4rem); overflow-y: auto;"
         f" border-left: 4px solid var(--accent); background: var(--panel-bg);"
         f" border-radius: 0 6px 6px 0; padding: .5rem .8rem; }}\n"
         f"#{p} .ccp-title {{ display: block; font-weight: 700; margin-bottom: .3rem; }}\n"
-        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }}"
-        f" #{p} .ccp-aside {{ position: static; }} #{p} .ccp-inner {{ position: static; }} }}"
+        f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
     )
     return (
         f'<div id="{p}" class="ccp">\n<style>\n{style}\n</style>\n'
         f'<div class="ccp-main">{main_html}</div>\n'
-        f'<div class="ccp-aside"><div class="ccp-inner">'
+        f'<aside class="ccp-aside">'
         f'<b class="ccp-title">{_e(title)}</b>'
         f'<p style="margin:0">{_e(concept_text)}</p>'
-        f"</div></div>\n"
+        f"</aside>\n"
         f"</div>\n"
     )
 
 
 def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
-    """Stack independent sub-cases inside one vertically scrollable panel."""
+    """Stack independent sub-cases at natural height (the page scrolls).
+
+    An earlier fixed ``max-height`` boxed the stacked cases into a small
+    scroll-region that floated in empty space on tall screens; letting them flow
+    fills that space and shows every case's code in full.
+    """
     p = _safe(comp_id)
-    style = f"#{p} {{ max-height: 32rem; overflow-y: auto; }}"
+    style = f"#{p} {{ min-width: 0; }}"
     cases = ""
     for label, body in subcases:
         cases += (

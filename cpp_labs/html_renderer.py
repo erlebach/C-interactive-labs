@@ -372,7 +372,10 @@ header h1 { margin: 0; font-size: 1.2rem; }
 h3 { font-size: .95rem; margin: 0 0 .3rem; }
 pre {
   background: var(--code-bg); color: var(--code-fg);
-  padding: .7rem .9rem; border-radius: 8px; overflow-x: auto;
+  padding: .7rem .9rem; border-radius: 8px;
+  /* soft-wrap long lines so the full code is always visible (no horizontal
+     scroll); preserves indentation via pre-wrap. */
+  white-space: pre-wrap; overflow-wrap: anywhere;
   font: 14px/1.5 ui-monospace, "SF Mono", Menlo, monospace; margin: 0;
 }
 .out {

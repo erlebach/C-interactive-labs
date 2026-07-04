@@ -650,8 +650,12 @@ class TestCodeDiagramPanel:
         frag = self._frag()
         assert "code here" in frag and "diagram" in frag
 
-    def test_code_column_scrolls(self):
-        assert "overflow" in self._frag()
+    def test_code_gets_two_thirds(self):
+        # Code column is wider than the diagram (2fr:1fr), and no fixed-height
+        # cap boxes it (code soft-wraps and flows at natural height instead).
+        frag = self._frag()
+        assert "minmax(0,2fr) minmax(0,1fr)" in frag
+        assert "max-height" not in frag
 
     def test_reflow_breakpoint(self):
         assert "@media" in self._frag()
@@ -666,8 +670,10 @@ class TestStackedSubcases:
         assert "Case A" in frag and "Case B" in frag
         assert "<p>a</p>" in frag and "<p>b</p>" in frag
 
-    def test_panel_scrolls(self):
-        assert "overflow" in self._frag()
+    def test_cases_flow_at_natural_height(self):
+        # Stacked cases are no longer boxed into a fixed-height scroll region
+        # (that left wasted space on tall screens); they flow at full height.
+        assert "max-height: 32rem" not in self._frag()
 
 
 class TestProgressiveSteps:
