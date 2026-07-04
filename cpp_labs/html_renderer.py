@@ -31,7 +31,7 @@ SEMANTIC_PALETTE: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# SVG constants — mirror the 500×160 DPG coordinate space
+# SVG geometry constants — vertical layout (tall + narrow); box font matches code panel
 # ---------------------------------------------------------------------------
 
 _BOX_FILL = "#e8f0ff"
@@ -279,6 +279,7 @@ def _svg_weak(pd: dict, p: str) -> str:
 
 
 def _svg_unknown(pd: dict, p: str) -> str:
+    # No box structure to stack; use _wrap_svg directly with a minimal fallback label.
     ptype = pd.get("type", "?") if pd else "?"
     body = _text(16, 40, f"type={_e(ptype)} — no diagram", _DIM_COLOR, 13)
     return _wrap_svg(p, f"diagram ({_e(ptype)})", "No diagram available.", body,

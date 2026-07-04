@@ -90,7 +90,6 @@ class TestSvgRendererRaw:
         assert 'role="img"' in out
 
     def test_has_vertical_viewbox(self):
-        import re
         out = svg_renderer(_raw_pd())
         m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
         assert m, "no viewBox"
