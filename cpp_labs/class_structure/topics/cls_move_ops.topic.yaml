@@ -18,11 +18,14 @@ template: |
   class Buffer {
   public:
       Buffer(int n) : data_(new int[n]{}), n_(n) {}
-      Buffer(Buffer&& o) noexcept : data_(o.data_), n_(o.n_) {   // move ctor: steal
-          o.data_ = nullptr; o.n_ = 0;                           // leave source empty
+      // move ctor: steal the source's pointer instead of copying
+      Buffer(Buffer&& o) noexcept : data_(o.data_), n_(o.n_) {
+          // leave the moved-from source empty but valid to destroy
+          o.data_ = nullptr; o.n_ = 0;
           std::cout << "move ctor: stole buffer\n";
       }
-      Buffer& operator=(Buffer&& o) noexcept {                   // move assignment
+      // move assignment: release our buffer, then steal the source's
+      Buffer& operator=(Buffer&& o) noexcept {
           if (this == &o) return *this;
           delete[] data_;
           data_ = o.data_; n_ = o.n_;
@@ -39,8 +42,10 @@ template: |
   };
   int main() {
       Buffer a(3);
-      Buffer b = std::move(a);      // move constructor
-      std::cout << "after move: a.size()=" << a.size() << "  b.size()=" << b.size() << "\n";
+      // move constructor: b steals a's buffer, leaving a empty
+      Buffer b = std::move(a);
+      std::cout << "after move: a.size()=" << a.size()
+                << "  b.size()=" << b.size() << "\n";
       <<use_moved>>
   }
 cases:
@@ -48,9 +53,13 @@ cases:
     subs:
       "<<use_moved>>": |-
         Buffer c(1);
-        c = std::move(b);           // move assignment
-        std::cout << "after move assign: b.size()=" << b.size() << "  c.size()=" << c.size() << "\n";
+        // move assignment: c releases its buffer, then steals b's
+        c = std::move(b);
+        std::cout << "after move assign: b.size()=" << b.size()
+                  << "  c.size()=" << c.size() << "\n";
   - label: "Mistake: read a moved-from buffer  (null deref at runtime)"
     subs:
       "<<use_moved>>": |-
-        std::cout << "a[0] after move = " << a[0] << "\n";   // UB: a is empty
+        // UB: a is empty (moved-from), so reading a[0] dereferences nullptr
+        std::cout << "a[0] after move = "
+                  << a[0] << "\n";

@@ -30,7 +30,9 @@ cases:
       "<<member_op>>": "friend std::ostream& operator<<(std::ostream& os, const Vec2& v);"
       "<<free_op>>": |-
         std::ostream& operator<<(std::ostream& os, const Vec2& v) {
-            return os << "(" << v.x_ << ", " << v.y_ << ")";
+            return os << "("
+                      << v.x_ << ", " << v.y_
+                      << ")";
         }
   - label: "Mistake: operator<< as a member  (compile error)"
     subs:

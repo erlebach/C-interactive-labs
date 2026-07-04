@@ -16,14 +16,19 @@ template: |
       Buffer(const Buffer& o) : data_(new int[o.n_]), n_(o.n_) {
           for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
       }
-      Buffer& operator=(const Buffer& o) {      // copy assignment
-          if (this == &o) return *this;         // self-assignment guard
-          delete[] data_;                       // release old resource
+      // copy assignment: assign to an object that already exists
+      Buffer& operator=(const Buffer& o) {
+          // guard against self-assignment (a = a)
+          if (this == &o) return *this;
+          // release the old resource before taking the new one
+          delete[] data_;
           n_ = o.n_;
           data_ = new int[n_];
           for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
-          std::cout << "copy assign: replaced contents (" << n_ << " ints)\n";
-          return *this;                         // enables chaining
+          std::cout << "copy assign: replaced contents ("
+                    << n_ << " ints)\n";
+          // return *this so assignments chain: a = b = c
+          return *this;
       }
       ~Buffer() { delete[] data_; }
       int size() const { return n_; }
@@ -33,6 +38,8 @@ template: |
   };
   int main() {
       Buffer a(3), b(1);
-      b = a;                 // copy assignment (b already exists)
-      std::cout << "b now holds " << b.size() << " ints\n";
+      // copy assignment: b already exists, so its old buffer is released first
+      b = a;
+      std::cout << "b now holds "
+                << b.size() << " ints\n";
   }

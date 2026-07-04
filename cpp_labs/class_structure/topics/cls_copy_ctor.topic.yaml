@@ -29,17 +29,22 @@ template: |
   };
   int main() {
       Buffer a(3);
-      Buffer b = a;          // copy constructor
-      b[0] = 99;             // write through b
-      std::cout << "a[0]=" << a[0] << "  b[0]=" << b[0] << "\n";
+      // copy constructor: build a new object from an existing one
+      Buffer b = a;
+      // write through b; a deep copy leaves a unchanged
+      b[0] = 99;
+      std::cout << "a[0]=" << a[0]
+                << "  b[0]=" << b[0] << "\n";
   }
 cases:
   - label: "Correct: deep copy"
     subs:
       "<<copy_ctor>>": |-
-        Buffer(const Buffer& o) : data_(new int[o.n_]), n_(o.n_) {   // deep copy
+        // deep copy: give the new object its own independent storage
+        Buffer(const Buffer& o) : data_(new int[o.n_]), n_(o.n_) {
             for (int i = 0; i < n_; ++i) data_[i] = o.data_[i];
-            std::cout << "copy ctor: deep-copied " << n_ << " ints\n";
+            std::cout << "copy ctor: deep-copied "
+                      << n_ << " ints\n";
         }
   - label: "Mistake: default shallow copy  (double free at runtime)"
     subs:

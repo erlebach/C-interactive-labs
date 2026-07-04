@@ -18,7 +18,8 @@ template: |
           : data_(new int[init.size()]), n_(static_cast<int>(init.size())) {
           int i = 0;
           for (int v : init) data_[i++] = v;
-          std::cout << "init-list ctor: " << n_ << " ints\n";
+          std::cout << "init-list ctor: "
+                    << n_ << " ints\n";
       }
       ~Buffer() { delete[] data_; }
       int size() const { return n_; }
@@ -28,8 +29,12 @@ template: |
       int  n_;
   };
   int main() {
-      Buffer b{10, 20, 30, 40};      // brace list selects the initializer_list ctor
+      // a brace list selects the initializer_list ctor over Buffer(int)
+      Buffer b{10, 20, 30, 40};
       std::cout << "b = {";
-      for (int i = 0; i < b.size(); ++i) std::cout << b[i] << (i + 1 < b.size() ? ", " : "");
+      for (int i = 0; i < b.size(); ++i) {
+          std::cout << b[i]
+                    << (i + 1 < b.size() ? ", " : "");
+      }
       std::cout << "}\n";
   }

@@ -17,8 +17,11 @@ template: |
   public:
       Vec2(double x, double y) : x_(x), y_(y) {}
       <<member_op>>
+      // the non-member operator<< is a friend so it can read private x_, y_
       friend std::ostream& operator<<(std::ostream& os, const Vec2& v) {
-          return os << "(" << v.x_ << ", " << v.y_ << ")";
+          return os << "("
+                    << v.x_ << ", " << v.y_
+                    << ")";
       }
   private:
       double x_, y_;
@@ -26,7 +29,8 @@ template: |
   <<free_op>>
   int main() {
       Vec2 a(1.0, 2.0);
-      std::cout << "2 * a = " << (2.0 * a) << "\n";
+      std::cout << "2 * a = "
+                << (2.0 * a) << "\n";
   }
 cases:
   - label: "Correct: friend non-member operator*"

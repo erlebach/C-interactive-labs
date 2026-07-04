@@ -14,8 +14,10 @@ template: |
   #include <iostream>
   class Point {
   public:
-      Point(int x, int y) : x_(x), y_(y) {   // member initializer list
-          std::cout << "ctor: Point(" << x_ << ", " << y_ << ")\n";
+      // ": x_(x), y_(y)" is the member initializer list; it runs before the body
+      Point(int x, int y) : x_(x), y_(y) {
+          std::cout << "ctor: Point("
+                    << x_ << ", " << y_ << ")\n";
       }
       int x() const { return x_; }
       int y() const { return y_; }
@@ -24,5 +26,6 @@ template: |
   };
   int main() {
       Point p(3, 4);
-      std::cout << "p = (" << p.x() << ", " << p.y() << ")\n";
+      std::cout << "p = ("
+                << p.x() << ", " << p.y() << ")\n";
   }
