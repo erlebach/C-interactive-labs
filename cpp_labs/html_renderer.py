@@ -287,6 +287,124 @@ def _svg_unknown(pd: dict, p: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Stack-frame diagram family (type=frames) and process memory map (type=memmap)
+# ---------------------------------------------------------------------------
+
+_FRAME_STROKES = ["#cc6666", "#9966cc", "#6699cc", "#22aa88", "#cc8844", "#6688aa"]
+_ADDR_AXIS = "#2a8a5a"      # green: addresses increase upward
+_STACK_AXIS = "#cc6600"     # orange: stack grows downward
+_SCHEM_COLOR = "#999999"    # grey: schematic (computed, not measured)
+
+
+def _parse_frames(pd: dict) -> "tuple[int, list[dict]]":
+    """Parse a frames ptrdata dict into (ptrbytes, frames). Each frame is
+    ``{name, addr, local, bytes, pbytes}`` outermost->innermost. Missing pieces
+    degrade to ``"?"`` / ``0`` (never raises)."""
+    try:
+        ptrbytes = int(pd.get("ptrbytes", "8"))
+    except (TypeError, ValueError):
+        ptrbytes = 8
+    frames = []
+    for entry in (pd.get("live", "") or "").split(","):
+        if not entry:
+            continue
+        parts = entry.split(":")
+
+        def _get(i):
+            return parts[i] if i < len(parts) else "?"
+
+        def _int(i):
+            try:
+                return int(parts[i])
+            except (IndexError, ValueError):
+                return 0
+
+        frames.append({"name": _get(0), "addr": _get(1), "local": _get(2),
+                       "bytes": _int(3), "pbytes": _int(4)})
+    return ptrbytes, frames
+
+
+def _frames_core(frames: list, p: str, *, solid: "int | None" = None) -> str:
+    """Vertical stack of call frames. Outermost (e.g. main) on top at the
+    highest address; each deeper call a box below at a lower address; SP marker
+    on the innermost *solid* frame. Frames at index >= ``solid`` are drawn ghost
+    (dashed) -- used by the stepper to show a reclaimed frame after a return.
+    Dual axis: addresses increase upward (green), stack grows downward
+    (orange)."""
+    if solid is None:
+        solid = len(frames)
+    box_w, box_h, gap, pad, left = 210, 54, 10, 12, 58
+    n = len(frames)
+    vb_w = left + box_w + pad + 44
+    vb_h = pad + n * (box_h + gap) + pad + 4
+    parts = []
+    # address axis (up, green) on the far left
+    axis_top, axis_bot = pad + 6, vb_h - pad
+    parts.append(
+        f'<line x1="{left - 40}" y1="{axis_bot}" x2="{left - 40}" y2="{axis_top}" '
+        f'stroke="{_ADDR_AXIS}" stroke-width="2"/>'
+        f'<path d="M{left - 44} {axis_top + 8} L{left - 40} {axis_top} '
+        f'L{left - 36} {axis_top + 8} z" fill="{_ADDR_AXIS}"/>'
+        f'<text x="{left - 48}" y="{(axis_top + axis_bot) // 2}" font-size="11" '
+        f'fill="{_ADDR_AXIS}" text-anchor="middle" '
+        f'transform="rotate(-90 {left - 48} {(axis_top + axis_bot) // 2})">'
+        f'addresses increase</text>'
+    )
+    # stack-growth axis (down, orange) on the far right
+    rx = vb_w - 12
+    parts.append(
+        f'<line x1="{rx}" y1="{axis_top}" x2="{rx}" y2="{axis_bot}" '
+        f'stroke="{_STACK_AXIS}" stroke-width="2"/>'
+        f'<path d="M{rx - 4} {axis_bot - 8} L{rx} {axis_bot} L{rx + 4} '
+        f'{axis_bot - 8} z" fill="{_STACK_AXIS}"/>'
+        f'<text x="{rx + 4}" y="{(axis_top + axis_bot) // 2}" font-size="11" '
+        f'fill="{_STACK_AXIS}" text-anchor="middle" '
+        f'transform="rotate(90 {rx + 4} {(axis_top + axis_bot) // 2})">'
+        f'stack grows</text>'
+    )
+    y = pad
+    for i, f in enumerate(frames):
+        ghost = i >= solid
+        stroke = _SCHEM_COLOR if ghost else _FRAME_STROKES[i % len(_FRAME_STROKES)]
+        dash = ' stroke-dasharray="5 4"' if ghost else ""
+        fill = "#f7f7f7" if ghost else "#ffffff"
+        parts.append(
+            f'<rect x="{left}" y="{y}" width="{box_w}" height="{box_h}" rx="8" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="2"{dash}/>'
+        )
+        is_sp = (not ghost) and (i == solid - 1)
+        title = f'{_e(f["name"])}()' + ("  &#8592; SP" if is_sp else "")
+        if ghost:
+            parts.append(
+                f'<text x="{left + 14}" y="{y + 31}" font-size="12" '
+                f'font-family="ui-monospace,monospace" fill="{_SCHEM_COLOR}">'
+                f'{_e(f["name"])}() reclaimed on return</text>'
+            )
+        else:
+            parts.append(
+                f'<text x="{left + 14}" y="{y + 22}" font-size="13" '
+                f'font-family="system-ui" font-weight="600" fill="#1a1a1a">'
+                f'{title}</text>'
+                f'<text x="{left + 14}" y="{y + 42}" font-size="12" '
+                f'font-family="ui-monospace,monospace" fill="#b00000">'
+                f'&amp;{_e(f["local"])} = {_e(f["addr"])}</text>'
+            )
+        y += box_h + gap
+    body = "".join(parts)
+    return _wrap_svg(
+        p, "call stack frames",
+        "Stack frames, main on top at the highest address; deeper calls at "
+        "lower addresses. Addresses increase upward; the stack grows downward.",
+        body, vb_w=vb_w, vb_h=vb_h)
+
+
+def _svg_frames(pd: dict, p: str) -> str:
+    """Single-snapshot dispatch entry for ``type=frames``."""
+    _pb, frames = _parse_frames(pd)
+    return _frames_core(frames, p)
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -312,6 +430,7 @@ def svg_renderer(ptrdata: dict[str, Any] | None, svg_id: str = "d") -> str:
         "unique": _svg_unique,
         "shared": _svg_shared,
         "weak": _svg_weak,
+        "frames": _svg_frames,
     }
     fn = dispatch.get(ptr_type)
     if fn:
