@@ -35,7 +35,7 @@ Use these as single-key entries in a demo's or page's `blocks:` list, e.g.
 | `byte_grid` | cpp-memory | `byte_grid()` | byte_values, caption | Render a byte sequence as a labelled, captioned grid (little-endian). |
 | `code_line_link` | code | `code_line_link()` | lines, ptrdata | Hovering/focusing a linked source line highlights its diagram box. |
 | `variant_tabs` | generic | `variant_tabs()` | panels, selected | Switch between N labelled panels with native radios + `:checked ~`. |
-| `code_diagram_panel` | generic | `code_diagram_panel()` | code_html, diagram_html | Two-column code/diagram split; code scrolls; reflows to one column. |
+| `code_diagram_panel` | generic | `code_diagram_panel()` | code_html, diagram_html, ratio | Two-column code/diagram split; code scrolls; reflows to one column. |
 | `stacked_subcases` | generic | `stacked_subcases()` | subcases | Stack independent sub-cases at natural height (the page scrolls). |
 | `progressive_steps` | generic | `progressive_steps()` | steps | Ordered student-paced reveals using native `<details>/<summary>`. |
 | `glossary` | generic | `glossary()` | title, terms | A reusable term/definition list (prose vocabulary), rendered as a <dl>. |
@@ -43,6 +43,7 @@ Use these as single-key entries in a demo's or page's `blocks:` list, e.g.
 | `html` | generic | (raw passthrough) | content | Author-supplied HTML inserted verbatim. |
 | `topic` | code | demo_panel | source, diagram | A compiled topic: code + real g++ output, with an optional memory diagram (diagram: false to suppress). |
 | `concept` | generic | concept_note | text, label, open | One example's fold-away Concept note (native <details>). |
+| `glossary_note` | generic | glossary_note | terms, label, open | One example's fold-away glossary chip (a term list, styled like the Concept chip; sits inline beside it). |
 
 ## Sidebar entries
 
