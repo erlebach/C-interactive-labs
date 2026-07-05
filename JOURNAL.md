@@ -2,6 +2,17 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 17:33 — stackframes-ux merged (PR #5); branch cleaned
+
+Closes out the stackframes UX + accessibility work. Final tweak before merge: aligned the header
+Keyboard/Monochrome chips (reset `details.kbd-help{margin:0}` — the global `details{margin-top:.5rem}`
+had nudged the `<details>`-based chip down vs the `<label>`) and bumped both chips to 16px (+23%). Full
+`cpp_labs` suite **522 passed** (a final run caught 3 stale `yaml_engine/test_render_page.py` assertions
+from the label rename + the always-on keyboard-help `<details>` — updated). **PR #5 merged** into `main`
+(`eb60c2b`); `feat/stackframes-ux` deleted local + remote. Supersedes the prior entry's "not merged"
+note. Stackframes is done for now. Handoff: `handoffs/HANDOFF_2026-07-05_17h18mEST.md`.
+
+
 ## 2026-07-05 14:10 — Accessibility pass: contrast, monochrome toggle, focus, keyboard help, labels
 
 Series of a11y improvements on `feat/stackframes-ux` (browser-verified with Playwright), prompted by
