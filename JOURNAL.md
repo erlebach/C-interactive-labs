@@ -2,6 +2,19 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 12:38 — zoom simplified: scale the whole right panel as one unit (CSS `zoom`)
+
+Karpathy pass on user feedback: the enlarge overlay had been resizing each SVG by height, which changed
+the frame↔anatomy relationship and caused per-step shifts. Replaced all of that with the simplest thing
+that works — a single CSS `zoom:N` on the whole `.zoom-content` panel (the entire right panel, already
+one wrapper). Levels are now plain multipliers 0.5× / 0.75× / 1× / 1.5× / 2× (default 1.5×); the panel
+scales as one unit so every internal relationship and the Image-5 layout are preserved. Net **removed**
+~5 CSS rules (per-SVG height `!important`, block-centering, sf-steps centering). **Playwright-verified
+(1400×900):** frame/anatomy width ratio identical at 1× and 2× (1.07), 2× is exactly 2× on both,
+switching steps at 2× shifts 0px. Engine suite 367 green. Branch `feat/stackframes-ux` (kept). Note:
+uses the CSS `zoom` property (Chrome/Safari always; Firefox 126+, fine in 2026).
+
+
 ## 2026-07-05 12:24 — fix: no per-step horizontal shift in the zoom overlay
 
 User saw the stack-frame diagram + anatomy jump horizontally when clicking step radios in enlarged
