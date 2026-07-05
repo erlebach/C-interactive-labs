@@ -363,9 +363,13 @@ Append to `cpp_labs/tests/test_build_html.py`:
 
 ```python
 class TestStandardsCapture:
-    SB = (
-        "#include <utility>\n"
-        "int main(){ auto [a, b] = std::make_pair(1, 2); (void)a; (void)b; }\n"
+    # std::optional is a C++17 LIBRARY feature: <optional>/std::optional are
+    # unavailable under -std=c++11, so it hard-ERRORS there (unlike structured
+    # bindings, which Apple clang only *warns* about under c++11 — that would
+    # show green and defeat the demo). Verified in Task 1's compiler tests.
+    OPT = (
+        "#include <optional>\n"
+        "int main(){ std::optional<int> x = 5; (void)x; }\n"
     )
 
     def _topic(self, template):
@@ -382,7 +386,7 @@ class TestStandardsCapture:
 
     @pytest.mark.skipif(shutil.which("g++") is None, reason="needs g++")
     def test_cpp11_fails_cpp17_ok(self):
-        topic = self._topic(self.SB)
+        topic = self._topic(self.OPT)
         v11 = capture_variant(topic, {"__std__": "11"})
         v17 = capture_variant(topic, {"__std__": "17"})
         assert v11["failed"] is True and v11["error_kind"] == "compile"
@@ -429,50 +433,59 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Task 5: Demonstration subject (structured bindings) + integration test
+## Task 5: Demonstration subject (`std::optional`) + integration test
+
+**Why `std::optional` and not structured bindings:** Apple clang only *warns* on
+structured bindings under `-std=c++11` (a clang extension), so they'd compile
+green — defeating the demo. `std::optional` is a C++17 *library* feature that is
+genuinely absent under c++11, so it hard-errors (red) there and compiles (green)
+under c++17/20. This was verified empirically in Task 1's compiler tests.
 
 **Files:**
-- Create: `cpp_labs/std_variants/topics/structured_bindings.topic.yaml`
-- Create: `cpp_labs/std_variants/demos/structured_bindings.demo.yaml`
+- Create: `cpp_labs/std_variants/topics/optional_type.topic.yaml`
+- Create: `cpp_labs/std_variants/demos/optional_type.demo.yaml`
 - Create: `cpp_labs/std_variants/layouts/std_variants.rail.yaml`
 - Create: `cpp_labs/std_variants/tests/__init__.py`
 - Create: `cpp_labs/std_variants/tests/test_std_variants.py`
 
 - [ ] **Step 1: Write the topic, demo, and layout YAML**
 
-`cpp_labs/std_variants/topics/structured_bindings.topic.yaml`:
+`cpp_labs/std_variants/topics/optional_type.topic.yaml`:
 
 ```yaml
-id: structured_bindings
-name: "Structured Bindings"
+id: optional_type
+name: "std::optional"
 group: "Standards"
 has_ptrdata: false
-doc_url: https://en.cppreference.com/w/cpp/language/structured_binding
+doc_url: https://en.cppreference.com/w/cpp/utility/optional
 standards: [11, 17, 20]
 explanation: >-
-  Structured bindings — auto [a, b] = ... — unpack a pair, tuple, or struct into
-  named variables. They arrived in C++17, so the SAME source fails to compile
-  under -std=c++11 and compiles under -std=c++17 and -std=c++20. Switch the tabs
-  to watch the compiler's verdict change with the language standard alone.
+  std::optional<T> holds either a value or nothing, without a sentinel or a bare
+  pointer. It is a C++17 LIBRARY feature: the <optional> header provides no
+  std::optional under -std=c++11, so the SAME source fails to compile there and
+  compiles under -std=c++17 and -std=c++20. Switch the tabs to watch the
+  compiler's verdict change with the language standard alone.
 template: |
   #include <iostream>
-  #include <utility>
+  #include <optional>
   int main() {
-      // structured bindings unpack the pair — a C++17 feature.
-      // make_pair itself is C++11, so the standard is the only variable here.
-      auto [a, b] = std::make_pair(1, 2);
-      std::cout << a << " " << b << "\n";
+      // std::optional holds "a value, or nothing" — a C++17 library feature.
+      std::optional<int> maybe = 42;
+      // operator bool reports whether a value is present.
+      if (maybe) {
+          std::cout << "value: " << *maybe << "\n";
+      }
   }
 ```
 
-`cpp_labs/std_variants/demos/structured_bindings.demo.yaml`:
+`cpp_labs/std_variants/demos/optional_type.demo.yaml`:
 
 ```yaml
-title: "Structured Bindings (C++17)"
+title: "std::optional (C++17)"
 language: cpp
-bake: { sb: structured_bindings }
+bake: { opt: optional_type }
 blocks:
-  - topic: { id: sb, source: sb, diagram: false, concept: "${sb.explanation}" }
+  - topic: { id: opt, source: opt, diagram: false, concept: "${opt.explanation}" }
 ```
 
 `cpp_labs/std_variants/layouts/std_variants.rail.yaml`:
@@ -483,7 +496,7 @@ style: left_rail
 header:
   - heading: { text: "C++ Standard Selector" }
 demos:
-  - ../demos/structured_bindings.demo.yaml
+  - ../demos/optional_type.demo.yaml
 ```
 
 - [ ] **Step 2: Write the integration test (and package init)**
@@ -522,8 +535,8 @@ def test_cpp11_shows_compile_failure(html):
 
 
 def test_modern_standard_shows_output(html):
-    # C++17 / C++20 compile and print "1 2".
-    assert "1 2" in html
+    # C++17 / C++20 compile and print "value: 42".
+    assert "value: 42" in html
 
 
 def test_self_contained(html):
@@ -546,7 +559,7 @@ Run:
 ./build_labs.sh std_variants
 python3 -m http.server -d dist_labs 8000
 ```
-Open `http://localhost:8000/std_variants_rail.html`. Confirm: three tabs `C++11 / C++17 / C++20`; the `C++11` tab shows a red compile-error badge; `C++17`/`C++20` show green with output `1 2`.
+Open `http://localhost:8000/std_variants_rail.html`. Confirm: three tabs `C++11 / C++17 / C++20`; the `C++11` tab shows a red compile-error badge; `C++17`/`C++20` show green with output `value: 42`.
 
 - [ ] **Step 5: Run the full engine suite (catch drift)**
 
