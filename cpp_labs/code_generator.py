@@ -68,6 +68,7 @@ class TopicTemplate:
     doc_url: str = ""
     cases: list[CaseDef] | None = None
     extra_compile_flags: list[str] = field(default_factory=list)
+    standards: list[int] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
