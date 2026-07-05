@@ -2,6 +2,42 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 09:08 — stackframes subject shipped (2 SVG families + zero-JS stepper)
+
+Executed the approved 14-task TDD plan **subagent-driven** (fresh subagent per task, controller-reviewed
+each diff for scope — no contamination). New pure-YAML `stackframes` demonstration on the `left_rail`
+layout with **two new SVG families** (`type=frames` stacked call-stack + anatomy table, `type=memmap`
+process map) and a **zero-JS CSS-radio push/pop stepper** driven by real g++ output baked at build time.
+6 rail examples (`sf_single_call`, `sf_nested`, `sf_locals` 2-tab, `sf_recursion`, `sf_dangling_local`
+gotcha, `sf_memmap`) share an inlined frame-tracer printing deterministic enter/leave traces + one
+PTRDATA snapshot per call/return (addresses drawn, never asserted). Engine additions are all additive —
+the six pointer renderers are untouched. **Verification:** full `cpp_labs` suite **500 passed** (prior
+476 + 24 new); all 8 pages rebuild (`built 8, failed 0`); built page = 36 stepper radios, 5 anatomy
+disclosures, svg==role 32/32 (WCAG), self-contained. Branch `feat/stackframes`.
+Handoff: `handoffs/HANDOFF_2026-07-05_09h08mEST.md`.
+
+### Details
+
+**Phase 1 (engine, 5 commits):** `parse_ptrdata_all` reads EVERY `PTRDATA:` line (additive; first-line
+`parse_ptrdata` untouched). `html_renderer`: `_svg_frames`/`_frames_core` (vertical stack, main on top at
+highest address, SP marker on innermost, **dual axis — addresses increase upward / stack grows downward**,
+`solid=` prefix count ghosts reclaimed frames), `_svg_frames_anatomy` (per-frame slot·address·size table,
+measured local red, schematic param/retaddr/saved-FP grey), `_svg_memmap` (text→stack). `components.py`:
+`stepped_frames` CSS-radio stepper + `frames_anatomy_details` `<details>`; `_demo_variant_body` branches
+frames/steps, pointer subjects (no `ptrdata_steps`) keep the old path. `ptrdata_steps` baked through
+`build_html._compile_one` (all 3 return branches) + `render_page._bake_program`. New additive
+`TopicTemplate.extra_compile_flags` threaded via `topic_yaml` → `_compile_one`.
+
+**Phase 2 (pure YAML, 8 commits):** the 6 topics/demos + glossary + rail layout.
+
+**Host notes (Apple clang aliased as g++):** dangling gotcha compiles with `-Werror=return-local-addr` →
+real red compile-error box; the host diagnostic reads `reference to stack memory associated with local
+variable` (the subject test asserts that OR the GNU `return-local-addr`/`reference to local` spellings).
+`sf_memmap` loads the five addresses into `uintptr_t` locals before comparing to dodge the
+`<`-parsed-as-template-bracket error; all four ordering booleans (`text<data<bss<heap<stack`) print `1`.
+Interface-catalog regen produced no diff (`stepped_frames`/`frames_anatomy_details` are internal, not
+`_DISPATCH` block keywords).
+
 ## 2026-07-04 23:59 — stackframes: brainstorm → spec → plan (design only, no code)
 
 Design session for a new `stackframes` demonstration on the **left_rail** layout. Brainstormed
