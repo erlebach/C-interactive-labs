@@ -466,6 +466,60 @@ def _svg_frames_anatomy(pd: dict, p: str) -> str:
                      "".join(parts), vb_w=vb_w, vb_h=vb_h)
 
 
+_MEMMAP_ORDER = ["stack", "heap", "bss", "data", "text"]   # high -> low address
+_MEMMAP_LABEL = {
+    "stack": "params, auto variables",
+    "heap": "dynamic variables",
+    "bss": "uninitialized global/static",
+    "data": "initialized global/static",
+    "text": "machine instructions",
+}
+_MEMMAP_FILL = {
+    "stack": "#d6e8f5", "heap": "#e7e0f2", "bss": "#f0e6d0",
+    "data": "#e0e8d0", "text": "#f5d6d6",
+}
+
+
+def _svg_memmap(pd: dict, p: str) -> str:
+    """Whole-process memory map: text (low) -> stack (high), heap grows up and
+    stack grows down toward each other. One real address per region."""
+    regions = {}
+    for entry in (pd.get("regions", "") or "").split(","):
+        if not entry:
+            continue
+        parts = entry.split(":")
+        key = parts[0]
+        regions[key] = {"addr": parts[1] if len(parts) > 1 else "?",
+                        "label": parts[2] if len(parts) > 2 else ""}
+    box_w, box_h, gap, pad, left = 210, 46, 8, 26, 30
+    vb_w = left + box_w + 130
+    vb_h = pad + len(_MEMMAP_ORDER) * (box_h + gap) + pad
+    parts = [f'<text x="{left + box_w // 2}" y="14" font-size="11" fill="#555" '
+             f'text-anchor="middle">high memory</text>']
+    y = pad
+    for key in _MEMMAP_ORDER:
+        r = regions.get(key, {"addr": "?", "label": _MEMMAP_LABEL.get(key, "")})
+        fill = _MEMMAP_FILL.get(key, "#ffffff")
+        parts.append(
+            f'<rect x="{left}" y="{y}" width="{box_w}" height="{box_h}" rx="6" '
+            f'fill="{fill}" stroke="#888" stroke-width="1.5"/>'
+            f'<text x="{left + 12}" y="{y + 20}" font-size="12" font-weight="600" '
+            f'fill="#1a1a1a">{_e(key)}</text>'
+            f'<text x="{left + 12}" y="{y + 38}" font-size="10" '
+            f'font-family="ui-monospace,monospace" fill="#b00000">'
+            f'{_e(r["addr"])}</text>'
+            f'<text x="{left + box_w + 8}" y="{y + 26}" font-size="10" '
+            f'fill="#666">{_e(_MEMMAP_LABEL.get(key, ""))}</text>'
+        )
+        y += box_h + gap
+    parts.append(f'<text x="{left + box_w // 2}" y="{vb_h - 8}" font-size="11" '
+                 f'fill="#555" text-anchor="middle">low memory</text>')
+    return _wrap_svg(p, "process memory map",
+                     "Process regions from text (low) to stack (high); heap "
+                     "grows up and the stack grows down.",
+                     "".join(parts), vb_w=vb_w, vb_h=vb_h)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -493,6 +547,7 @@ def svg_renderer(ptrdata: dict[str, Any] | None, svg_id: str = "d") -> str:
         "shared": _svg_shared,
         "weak": _svg_weak,
         "frames": _svg_frames,
+        "memmap": _svg_memmap,
     }
     fn = dispatch.get(ptr_type)
     if fn:
