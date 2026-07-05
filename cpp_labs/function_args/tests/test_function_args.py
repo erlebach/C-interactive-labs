@@ -22,7 +22,8 @@ from cpp_labs.topic_yaml import load_topics
 
 HAS_GPP = shutil.which("g++") is not None
 FA_SPEC = Path(__file__).parents[1] / "function_args.page.yaml"
-function_args = load_topics(Path(__file__).parents[1] / "topics")["function_args"]
+_TOPICS = load_topics(Path(__file__).parents[1] / "topics")
+function_args = _TOPICS["function_args"]
 
 
 def _ids(html):
@@ -66,6 +67,13 @@ _VARIANT = {
     "stdout": "before: val = 42\nafter:  val = 99",
     "stderr": "", "ok": True, "failed": False, "bytes": ["63", "00"],
 }
+# A minimal single-variant stub so the four added topic blocks render from FAKE
+# data (their real content is exercised by the g++-baked integration tests below).
+_STUB = {
+    "explanation": "stub.",
+    "variants": ["only"],
+    "only": {**_VARIANT, "ptrdata": None, "target_val": "?"},
+}
 FAKE = {
     "fa": {
         "explanation": "Passing an argument by value, pointer, or reference.",
@@ -75,7 +83,8 @@ FAKE = {
                        "target_addr": "0x2", "target_val": "99"}, "target_val": "99"},
         "by reference": {**_VARIANT, "ptrdata": {"type": "ref", "ref_addr": "0x2",
                          "target_addr": "0x2", "target_val": "99"}, "target_val": "99"},
-    }
+    },
+    "cr": _STUB, "sw": _STUB, "op": _STUB, "cc": _STUB,
 }
 
 
@@ -136,3 +145,78 @@ class TestBuild:
         ids = _ids(html)
         dups = sorted({i for i in ids if ids.count(i) > 1})
         assert not dups, f"duplicate ids: {dups}"
+
+
+# ---------------------------------------------------------------------------
+# Cycle 3a — the four added examples (pure; no g++)
+# ---------------------------------------------------------------------------
+
+
+class TestAddedTopicDefinitions:
+    def test_const_ref_pairs_correct_and_mistake(self):
+        t = _TOPICS["fa_const_ref"]
+        assert [c.label for c in t.cases] == [
+            "Correct: read through a const reference",
+            "Mistake: assign through it  (compile error)",
+        ]
+        assert "PTRDATA: type=ref" in t.cases[0].subs["<<body>>"]
+        # the mistake writes through a const reference — this must not compile
+        mistake = t.cases[1].subs["<<body>>"]
+        assert "const int& x" in mistake and "x = 99" in mistake
+
+    def test_swap_pairs_works_and_noop(self):
+        t = _TOPICS["fa_swap"]
+        assert [c.label for c in t.cases] == [
+            "Works: pass by reference",
+            "Silent no-op: pass by value",
+        ]
+        assert "void swap_vals(int& a, int& b)" in t.cases[0].subs["<<body>>"]
+        assert "void swap_vals(int a, int b)" in t.cases[1].subs["<<body>>"]
+
+    def test_out_param_is_a_single_pointer_program(self):
+        t = _TOPICS["fa_out_param"]
+        assert t.cases is None and not t.controls
+        assert "int* q, int* r" in t.template
+        assert "PTRDATA: type=raw" in t.template
+
+    def test_copy_cost_swaps_value_vs_const_ref(self):
+        t = _TOPICS["fa_copy_cost"]
+        (mode,) = [c for c in t.controls if c.kind == "dropdown"]
+        assert mode.options == ["by value", "by const reference"]
+        assert "void use(Big b)" in mode.value_map["by value"]
+        assert "const Big& b" in mode.value_map["by const reference"]
+        # locked style: examples model encapsulation with `class`, not `struct`
+        assert "class Big" in t.template and "struct Big" not in t.template
+
+
+# ---------------------------------------------------------------------------
+# Cycle 3b — the four added examples baked end-to-end (real g++)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(not HAS_GPP, reason="g++ required to bake real output")
+class TestAddedExamplesBuild:
+    def test_all_four_examples_bake_real_output(self, tmp_path):
+        html = R.build_page(FA_SPEC, tmp_path).read_text(encoding="utf-8")
+        # const reference — read-only use + a real compile-error gotcha
+        assert "show sees 42 (read-only)" in html
+        assert "Correct: read through a const reference" in html
+        assert "Mistake: assign through it" in html
+        assert "cannot assign to" in html   # genuine g++ error text
+        assert "out--err" in html           # the compile-error console box
+        assert "reference diagram" in html  # the Correct case draws the alias
+        # swap — works vs silent no-op
+        assert "after:  x=2 y=1" in html
+        assert "(unchanged!)" in html
+        # output parameters — one pointer links back to the caller's quotient
+        assert "17 / 5 = 3 remainder 2" in html
+        assert "raw pointer diagram" in html
+        # copy cost — by value copies once, const& copies zero times
+        assert "copies made: 1" in html
+        assert "copies made: 0" in html
+
+    def test_no_leaked_no_diagram_placeholder(self, tmp_path):
+        html = R.build_page(FA_SPEC, tmp_path).read_text(encoding="utf-8")
+        assert "no diagram" not in html and "type=?" not in html
+        # WCAG: every inline svg is an accessible role="img"
+        assert html.count("<svg") == html.count('role="img"')

@@ -1,0 +1,63 @@
+id: fa_copy_cost
+name: "Copy Cost: value vs const&"
+group: Functions
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+explanation: >-
+  Passing a large object by value copies the whole thing — the copy constructor runs every
+  call. Passing it by const reference hands over a cheap alias and copies nothing, while still
+  forbidding modification. A copy-counter makes the difference visible: by value reports one
+  copy, by const reference reports zero. This is why const& is the default for read-only
+  parameters that are not cheap to copy.
+template: |
+  #include <iostream>
+
+  class Big {
+  public:
+      static int copies;
+      Big() { for (int i = 0; i < 256; ++i) data_[i] = i; }
+      // copy constructor: counts every deep copy the compiler makes
+      Big(const Big& other) {
+          ++copies;
+          for (int i = 0; i < 256; ++i) data_[i] = other.data_[i];
+      }
+      int first() const { return data_[0]; }
+  private:
+      int data_[256];
+  };
+  int Big::copies = 0;
+
+  <<mode>>
+controls:
+  - id: mode
+    label: Passing convention
+    kind: dropdown
+    options:
+      - by value
+      - by const reference
+    default: by value
+    placeholder: <<mode>>
+    value_map:
+      by value: |
+        // by value: the parameter is a full COPY — the copy constructor runs
+        void use(Big b) {
+            std::cout << "inside use(): first element = " << b.first() << std::endl;
+        }
+
+        int main() {
+            Big::copies = 0;
+            Big obj;
+            use(obj);
+            std::cout << "copies made: " << Big::copies << std::endl;
+        }
+      by const reference: |
+        // by const reference: the parameter is a cheap alias — no copy is made
+        void use(const Big& b) {
+            std::cout << "inside use(): first element = " << b.first() << std::endl;
+        }
+
+        int main() {
+            Big::copies = 0;
+            Big obj;
+            use(obj);
+            std::cout << "copies made: " << Big::copies << std::endl;
+        }

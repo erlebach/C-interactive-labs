@@ -9,6 +9,10 @@ title: "Function Arguments — value, pointer, reference"
 language: cpp
 bake:
   fa: function_args        # compile this topic; expose its variants as ${fa.*}
+  cr: fa_const_ref         # const reference: read-only alias (+ compile-error gotcha)
+  sw: fa_swap              # swap: why references matter (works vs silent no-op)
+  op: fa_out_param         # output parameters through pointers
+  cc: fa_copy_cost         # copy cost: by value vs const&
 
 blocks:
   - callout_note:
@@ -26,6 +30,36 @@ blocks:
   - topic:                 # reusable cluster: variant_tabs over fa's baked variants
       id: modes
       source: fa
+
+  - heading:
+      text: "const reference — read without copying"
+  - topic:                 # diagram:true — the Correct case shows the alias; the Mistake case has no diagram
+      id: cr
+      source: cr
+      concept: "${cr.explanation}"
+
+  - heading:
+      text: "Why references matter: swap"
+  - topic:                 # no memory picture — full-width code, concept in the right column
+      id: sw
+      source: sw
+      diagram: false
+      concept: "${sw.explanation}"
+
+  - heading:
+      text: "Output parameters — many results through pointers"
+  - topic:                 # diagram:true — one output pointer links back to the caller's quotient
+      id: op
+      source: op
+      concept: "${op.explanation}"
+
+  - heading:
+      text: "Copy cost — by value vs const&"
+  - topic:                 # no memory picture — full-width code, concept in the right column
+      id: cc
+      source: cc
+      diagram: false
+      concept: "${cc.explanation}"
 
   - heading:
       text: "The rule"
