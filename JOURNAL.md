@@ -2,6 +2,17 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 12:12 — zoom: 5 levels (0.5×–2×), Fit=40% base, mobile-verified
+
+Per user follow-up on the zoomable lightbox: added 0.5×/0.75× levels, changed Fit to **40% of window
+height** (was 60%), and verified mobile. Zoom levels are now 0.5× / 0.75× / **Fit** / 1.5× / 2× =
+20/30/40/60/80 vh — all multiples of the fixed 40vh Fit base (never compounding off an enlarged state).
+Toolbar `flex-wrap`s with 44px touch targets; refactored to a `levels` list. **Playwright-verified on a
+390×844 phone:** no horizontal overflow (scrollWidth == viewport), code/diagram panel reflows to one
+column, Fit=338px (40% of 844), 0.5×=169 / 2×=675, all buttons ≥44px, toolbar within viewport, stepper
+works in the overlay, backdrop closes. Engine suite 367 green. Branch `feat/stackframes-ux` (kept).
+
+
 ## 2026-07-05 11:51 — zoomable fix: actually enlarges (fill-to-fit + 1.5×/2×), stepper works in overlay
 
 Follow-up on user feedback that the ⤢ Enlarge lightbox opened but the diagram **didn't grow** and the
