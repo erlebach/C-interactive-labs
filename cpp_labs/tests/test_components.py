@@ -538,6 +538,38 @@ class TestVariantBodyErrorKind:
         assert "var(--c-const)" in out
 
 
+class TestVariantBodyDiagramGating:
+    """A diagram:true variant with no ptrdata (compile-error gotcha, value-pass tab)
+    renders an EMPTY right cell — never the '_svg_unknown' debug placeholder — while
+    keeping the two-column grid so the code column's width never changes."""
+
+    def _v(self, **over):
+        v = {
+            "code_html": "<pre><code>x</code></pre>",
+            "ptrdata": None, "bytes": [],
+            "stdout": "", "stderr": "",
+            "ok": False, "failed": True, "error_kind": "compile",
+        }
+        v.update(over)
+        return v
+
+    def test_no_ptrdata_omits_placeholder_but_keeps_grid(self):
+        out = C._demo_variant_body("t", self._v(ptrdata=None), "cap", diagram=True)
+        # no developer-facing placeholder text
+        assert "no diagram" not in out
+        assert "type=?" not in out
+        # code column width unchanged (two-column grid still present, empty right cell)
+        assert "minmax(0,3fr) minmax(0,1fr)" in out
+        assert 'class="cdp-diagram"' in out
+
+    def test_with_ptrdata_still_renders_diagram(self):
+        pd = {"type": "raw", "ptr_addr": "0xa", "target_addr": "0xb", "target_val": "42"}
+        out = C._demo_variant_body("t", self._v(ptrdata=pd, ok=True, failed=False),
+                                   "cap", diagram=True)
+        assert 'role="img"' in out
+        assert "no diagram" not in out
+
+
 # ---------------------------------------------------------------------------
 # 7.x — secondary diagram interactions
 # ---------------------------------------------------------------------------

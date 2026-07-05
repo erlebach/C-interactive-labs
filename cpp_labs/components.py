@@ -839,12 +839,18 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
 
     ``diagram=False`` drops the memory diagram (and the two-column split),
     showing the code full-width — for subjects with no memory-model picture.
+
+    When ``diagram=True`` but this variant has no ``ptrdata`` (a compile-error
+    gotcha or a value-pass tab), the two-column grid is KEPT — so the code
+    column's width never changes between variants — but the right cell is left
+    empty rather than rendering the ``_svg_unknown`` "no diagram" placeholder.
     """
-    code_block = (
-        code_diagram_panel(f"{pid}-cdp", v["code_html"],
-                           memory_diagram(f"{pid}-md", v["ptrdata"]))
-        if diagram else v["code_html"]
-    )
+    if diagram:
+        pd = v.get("ptrdata")
+        diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
+        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"], diagram_html)
+    else:
+        code_block = v["code_html"]
     body = (
         code_block
         + '<div style="margin-top:.8rem">'
