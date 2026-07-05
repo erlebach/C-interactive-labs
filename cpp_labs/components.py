@@ -814,12 +814,16 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
     The enlarged content sits in ``.zoom-content`` stacked ABOVE the full-area
     ``.zoom-backdrop`` (so clicks on the diagram/stepper land on it; only clicks
     in the surrounding backdrop, or the ✕, close it). Three zoom-level radios —
-    Fit / 1.5× / 2× — scale the diagram; Fit (the default) fills the viewport
-    height. The size rules use ``!important`` to beat the wrapped SVG's inline
+    Fit / 1.5× / 2× — scale the diagram to 60% / 90% / 120% of the window height
+    (measured from a fixed 60%-height base, so 2× is a predictable 120vh, not 2×
+    of an already-enlarged state). Fit is the default. The size rules use
+    ``!important`` to beat the wrapped SVG's inline
     ``max-width`` cap (without it the diagram never actually grows). No ESC (a
     native <dialog> would need scripting)."""
     p = _safe(comp_id)
-    fit = "calc(100vh - 7rem)"
+    # Zoom heights measured from a fixed 60%-viewport base (NOT from an already
+    # enlarged state), so 2x is a predictable 120vh rather than exploding.
+    zh = {"zl0": "60vh", "zl1": "90vh", "zl2": "120vh"}
     style = (
         # hidden-but-focusable controls
         f"#{p} .zoom-cb, #{p} .zl {{ position:absolute; width:1px; height:1px;"
@@ -858,11 +862,11 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto !important;"
         f" max-width:none !important; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl0:checked ~ .zoom-content svg"
-        f" {{ height:{fit} !important; }}\n"
+        f" {{ height:{zh['zl0']} !important; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl1:checked ~ .zoom-content svg"
-        f" {{ height:calc({fit} * 1.5) !important; }}\n"
+        f" {{ height:{zh['zl1']} !important; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl2:checked ~ .zoom-content svg"
-        f" {{ height:calc({fit} * 2) !important; }}\n"
+        f" {{ height:{zh['zl2']} !important; }}\n"
     )
     return (
         f'<div id="{p}" class="zoomwrap"><style>{style}</style>'

@@ -30,4 +30,5 @@ def test_zoomable_enlarges_svg_beating_inline_cap():
     # the wrapped SVG's inline max-width cap is overridden so it actually grows
     html = zoomable("z", "<svg></svg>")
     assert "max-width:none !important" in html
-    assert "height:calc(100vh - 7rem) !important" in html   # Fit fills the viewport
+    assert "height:60vh !important" in html      # Fit = 60% of window height (base)
+    assert "height:120vh !important" in html     # 2x = 2 x the 60vh base
