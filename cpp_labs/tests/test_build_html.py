@@ -372,3 +372,39 @@ class TestStandardsExpansion:
         ctrl = ControlDef(id="v", label="V", kind="text", default="7")
         states = expand_variants(self._topic(standards=[17], controls=[ctrl]))
         assert states == [{"v": "7", "__std__": "17"}]
+
+
+# ---------------------------------------------------------------------------
+# capture_variant — __std__ label + compile flag
+# ---------------------------------------------------------------------------
+
+
+class TestStandardsCapture:
+    # std::optional is a C++17 LIBRARY feature: <optional>/std::optional are
+    # unavailable under -std=c++11, so it hard-ERRORS there (unlike structured
+    # bindings, which Apple clang only *warns* about under c++11 — that would
+    # show green and defeat the demo). Verified in Task 1's compiler tests.
+    OPT = (
+        "#include <optional>\n"
+        "int main(){ std::optional<int> x = 5; (void)x; }\n"
+    )
+
+    def _topic(self, template):
+        return TopicTemplate(
+            id="t", name="T", template=template, controls=[],
+            explanation="e", group="g", has_ptrdata=False,
+            standards=[11, 17, 20],
+        )
+
+    @pytest.mark.skipif(shutil.which("g++") is None, reason="needs g++")
+    def test_label_is_cpp_version(self):
+        v = capture_variant(self._topic("int main(){}"), {"__std__": "17"})
+        assert v["label"] == "C++17"
+
+    @pytest.mark.skipif(shutil.which("g++") is None, reason="needs g++")
+    def test_cpp11_fails_cpp17_ok(self):
+        topic = self._topic(self.OPT)
+        v11 = capture_variant(topic, {"__std__": "11"})
+        v17 = capture_variant(topic, {"__std__": "17"})
+        assert v11["failed"] is True and v11["error_kind"] == "compile"
+        assert v17["failed"] is False

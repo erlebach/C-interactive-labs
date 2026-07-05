@@ -111,6 +111,8 @@ def capture_variant(topic: TopicTemplate, control_state: dict[str, str]) -> dict
         if ctrl.kind == "dropdown":
             label_parts.append(control_state.get(ctrl.id, ctrl.default))
     label = " / ".join(str(p) for p in label_parts) if label_parts else ""
+    if "__std__" in control_state:
+        label = f"C++{control_state['__std__']}"
 
     # Multi-case topics: compile one independent sub-case per CaseDef and
     # bundle them under this variant.  The variant itself carries only the
@@ -139,7 +141,9 @@ def _compile_one(
     # than a bare signal; ``-g`` keeps the report's function names readable.
     extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else []
     extra_flags = list(extra_flags) + list(getattr(topic, "extra_compile_flags", []) or [])
-    result = compile_and_run(source, extra_flags=extra_flags or None)
+    std = control_state.get("__std__")
+    std_kw = {"std": f"c++{std}"} if std else {}
+    result = compile_and_run(source, extra_flags=extra_flags or None, **std_kw)
 
     if result.status == "compile-failed":
         return {
