@@ -529,7 +529,7 @@ class TestCodeConceptPanel:
         html = C.code_concept_panel("cc", "<pre><code>x</code></pre>",
                                      "A pointer stores an address.")
         assert "<pre><code>x</code></pre>" in html          # left column = content
-        assert "Concept</b>" in html                        # bold title on the aside
+        assert "Key Idea</b>" in html                       # bold title on the aside
         assert "A pointer stores an address." in html       # concept text
         assert "overflow-y: auto" in html                   # capped height → scrollbar
 

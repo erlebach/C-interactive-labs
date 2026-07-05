@@ -980,8 +980,8 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
 
 
 def code_concept_panel(comp_id: str, main_html: str, concept_text: str,
-                       *, title: str = "Concept") -> str:
-    """Two-column split: the demo on the left, a titled Concept aside on the right.
+                       *, title: str = "Key Idea") -> str:
+    """Two-column split: the demo on the left, a titled Key Idea aside on the right.
 
     Used on subjects with no memory diagram so the otherwise-empty right column
     carries the per-example Concept instead. The aside is capped to the left
@@ -993,8 +993,8 @@ def code_concept_panel(comp_id: str, main_html: str, concept_text: str,
     Args:
         comp_id: A short unique name, used to build CSS-safe element ids.
         main_html: The left column's content (the code/tabs cluster).
-        concept_text: The Concept prose shown in the right aside.
-        title: The bold heading on the aside; defaults to "Concept".
+        concept_text: The Key Idea prose shown in the right aside.
+        title: The bold heading on the aside; defaults to "Key Idea".
 
     Returns:
         The two-column panel as a piece of HTML.
@@ -1184,7 +1184,7 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
 
 
 def demo_panel(comp_id: str, entry: dict, diagram: bool = True,
-               *, concept: str | None = None, concept_title: str = "Concept") -> str:
+               *, concept: str | None = None, concept_title: str = "Key Idea") -> str:
     """One demo's inner content: a variant_tabs cluster over a topic's baked data.
 
     A cases-topic variant carries a ``cases`` list; its sub-cases are stacked
