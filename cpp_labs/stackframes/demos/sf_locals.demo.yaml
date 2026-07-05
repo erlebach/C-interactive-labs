@@ -1,0 +1,6 @@
+title: "Locals in the Frame"
+language: cpp
+bake: { lo: sf_locals }
+blocks:
+  - concept: { id: lo-note, text: "${lo.explanation}" }
+  - topic:   { id: lo, source: lo }
