@@ -30,7 +30,14 @@ import html as _html
 from pathlib import Path
 from typing import Any, Sequence
 
-from .html_renderer import _CSS, SEMANTIC_PALETTE, svg_renderer
+from .html_renderer import (
+    _CSS,
+    SEMANTIC_PALETTE,
+    svg_renderer,
+    _svg_frames_anatomy,
+    _parse_frames,
+    _frames_core,
+)
 
 # Vendored highlight.js (common bundle incl. C++) + theme, inlined for
 # self-contained syntax highlighting. Loaded once at import; opt-in per page.
@@ -830,6 +837,59 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
     return f'<div id="{p}" class="ssc">\n<style>\n{style}\n</style>\n{cases}</div>\n'
 
 
+def frames_anatomy_details(comp_id: str, pd: dict) -> str:
+    """A native <details> disclosure wrapping the full per-frame anatomy SVG."""
+    p = _safe(comp_id)
+    return (
+        f'<details style="margin-top:.5rem;border:1px solid #ddd;border-radius:6px;'
+        f'padding:.3rem .6rem"><summary style="cursor:pointer;min-height:44px;'
+        f'font-weight:600">Show full frame anatomy</summary>\n'
+        + _svg_frames_anatomy(pd, f"{p}-an")
+        + "</details>\n"
+    )
+
+
+def stepped_frames(comp_id: str, steps) -> str:
+    """Zero-JS CSS-radio stepper over frame snapshots: one radio + one frame SVG
+    per step; selecting a step shows that snapshot. Frames present at a deeper
+    step but gone at the current one are drawn ghost (reclaimed). Defaults to
+    the deepest step. Assumes each step's frame list is a prefix of the deepest
+    (true for straight call chains and recursion)."""
+    p = _safe(comp_id)
+    ptrbytes, deepest = 8, []
+    parsed = []
+    for s in steps:
+        pb, frames = _parse_frames(s)
+        parsed.append(frames)
+        if len(frames) > len(deepest):
+            ptrbytes, deepest = pb, frames
+    default = max(range(len(parsed)), key=lambda i: len(parsed[i])) if parsed else 0
+
+    inputs, labels, views = [], [], []
+    css = [f"#{p} .sf-v {{ display:none; }}"]
+    for i, frames in enumerate(parsed):
+        checked = " checked" if i == default else ""
+        inputs.append(f'<input type="radio" name="{p}-step" id="{p}-s{i}"{checked} '
+                      f'style="position:absolute;opacity:0">')
+        labels.append(
+            f'<label for="{p}-s{i}" style="cursor:pointer;border:1px solid #bbb;'
+            f'border-radius:6px;padding:2px 9px;font:13px system-ui;'
+            f'min-height:44px;display:inline-flex;align-items:center">'
+            f'{i + 1}</label>')
+        svg = _frames_core(deepest, f"{p}-fr{i}", solid=len(frames))
+        views.append(f'<div class="sf-v sf-v{i}">{svg}</div>')
+        css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
+        css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
+                   f"{{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}")
+    return (
+        f'<div id="{p}"><style>{chr(10).join(css)}</style>'
+        + "".join(inputs)
+        + f'<div class="sf-steps" style="display:flex;gap:6px;margin-bottom:8px">'
+        + "".join(labels) + "</div>"
+        + f'<div class="sf-views">' + "".join(views) + "</div></div>"
+    )
+
+
 def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) -> str:
     """One compiled program: code+diagram split, badge, output, collapsed bytes.
 
@@ -847,7 +907,18 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
     """
     if diagram:
         pd = v.get("ptrdata")
-        diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
+        steps = v.get("ptrdata_steps") or []
+        ptype = (pd or {}).get("type")
+        frame_steps = [s for s in steps if s.get("type") == "frames"]
+        if len(frame_steps) > 1:
+            diagram_html = stepped_frames(f"{pid}-md", frame_steps)
+            diagram_html += frames_anatomy_details(
+                f"{pid}-fa", pd if pd else frame_steps[-1])
+        elif ptype == "frames":
+            diagram_html = memory_diagram(f"{pid}-md", pd) + \
+                frames_anatomy_details(f"{pid}-fa", pd)
+        else:
+            diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
         code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"], diagram_html)
     else:
         code_block = v["code_html"]

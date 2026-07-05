@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .code_generator import ControlDef, TopicTemplate, generate_source
-from .compiler_runner import compile_and_run, parse_membytes
+from .compiler_runner import compile_and_run, parse_membytes, parse_ptrdata_all
 from .html_renderer import assemble_page, render_fragment, svg_renderer
 
 
@@ -137,6 +137,7 @@ def _compile_one(
         return {
             "source": source,
             "ptrdata": None,
+            "ptrdata_steps": [],
             "svg": svg_renderer(None),
             "stdout": "",
             "membytes": "n/a",
@@ -155,6 +156,7 @@ def _compile_one(
         return {
             "source": source,
             "ptrdata": ptrdata,
+            "ptrdata_steps": parse_ptrdata_all(result.stdout),
             "svg": svg_renderer(ptrdata),
             "stdout": result.stdout,
             "membytes": result.memory_bytes or parse_membytes(result.stdout) or "n/a",
@@ -169,6 +171,7 @@ def _compile_one(
     return {
         "source": source,
         "ptrdata": ptrdata,
+        "ptrdata_steps": parse_ptrdata_all(result.stdout),
         "svg": svg_renderer(ptrdata),
         "stdout": result.stdout,
         "membytes": membytes,
