@@ -291,7 +291,7 @@ def _svg_unknown(pd: dict, p: str) -> str:
 # ---------------------------------------------------------------------------
 
 _FRAME_STROKES = ["#cc6666", "#9966cc", "#6699cc", "#22aa88", "#cc8844", "#6688aa"]
-_ADDR_AXIS = "#2a8a5a"      # green: addresses increase upward
+_ADDR_AXIS = "#2a7f54"      # green: addresses increase upward (AA: 4.9:1 vs white)
 _STACK_AXIS = "#cc6600"     # orange: stack grows downward
 _SCHEM_COLOR = "#999999"    # grey: schematic (computed, not measured)
 
@@ -691,6 +691,14 @@ details.concept > summary .caret { font-size: .96em; transition: transform .15s 
 details.concept[open] > summary .caret { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) {
   details.concept > summary .caret { transition: none; }
+}
+/* Two chips on one row: a Concept chip immediately followed by an inline
+   glossary chip both go inline-block; a lone Concept chip is unaffected. The
+   horizontal gap is set by the glossary chip's own inline left margin (an inline
+   style attribute outranks this stylesheet, so the gap can't live here). */
+details.concept.chip-inline,
+details.concept:has(+ details.concept.chip-inline) {
+  display: inline-block; vertical-align: top;
 }
 figure { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 figcaption { color: var(--fg-dim); font-size: .85rem; margin-top: .3rem; flex-shrink: 0; }

@@ -2,5 +2,15 @@ title: "Process Memory Map"
 language: cpp
 bake: { mm: sf_memmap }
 blocks:
-  - concept: { id: mm-note, text: "${mm.explanation}" }
-  - topic:   { id: mm, source: mm }
+  - concept:       { id: mm-note, text: "${mm.explanation}" }
+  - glossary_note:
+      id: mm-gloss
+      label: "Memory glossary"
+      terms:
+        - { term: "text",    def: "The program's machine code (instructions); read-only, at the lowest addresses." }
+        - { term: "data",    def: "Initialized global and static variables." }
+        - { term: "bss",     def: "Uninitialized global and static variables; zero-filled at program start." }
+        - { term: "heap",    def: "Dynamic allocations (new / malloc); grows toward higher addresses." }
+        - { term: "stack",   def: "Call frames holding parameters and local variables; grows toward lower addresses." }
+        - { term: "segment", def: "A named region of the process's address space." }
+  - topic:         { id: mm, source: mm }

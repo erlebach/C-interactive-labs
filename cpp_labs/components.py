@@ -49,6 +49,43 @@ _HLJS_CSS = (_VENDOR / "atom-one-dark.min.css").read_text(encoding="utf-8")
 # and stays muted (dimmer than the #abb2bf code text). Inlined AFTER the theme so it wins.
 _HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 
+# Zero-JS "Monochrome" toggle for the highlighted code. A visually-hidden
+# checkbox (placed just before <main>) drives a header-row label chip and, when
+# checked, forces every highlight.js token span to inherit the base code colour
+# — a single-colour ("monochrome") accessible view — without consuming any extra
+# vertical space (the chip lives in the existing header row). It does NOT remove
+# the SIA-R79 badge in colour mode (the spans stay in the DOM), but it provides
+# the accessible monochrome view as a best-practice accommodation.
+_MONO_TOGGLE_CSS = (
+    ".mono-cb{position:absolute;width:1px;height:1px;overflow:hidden;"
+    "clip:rect(0 0 0 0);white-space:nowrap}\n"
+    ".mono-toggle{display:inline-flex;align-items:center;min-height:40px;"
+    "padding:.2rem .8rem;border:1px solid var(--accent);border-radius:8px;"
+    "background:var(--panel-bg);color:var(--accent);font:600 16px system-ui;"
+    "cursor:pointer;white-space:nowrap}\n"
+    ".mono-cb:focus-visible ~ header .mono-toggle{outline:2px solid var(--accent);"
+    "outline-offset:2px}\n"
+    ".mono-cb:checked ~ header .mono-toggle{background:var(--accent);color:#fff}\n"
+    ".mono-cb:checked ~ main .hljs span{color:inherit !important}\n"
+)
+
+# A visible, zero-JS keyboard-navigation help (native <details>) shown on every
+# page in the header row. It benefits sighted keyboard users the most; screen
+# readers get the navigation model from the radio-group roles/names natively.
+_KBD_HELP_HTML = (
+    '<details class="kbd-help">'
+    '<summary><span aria-hidden="true">⌨</span> Keyboard</summary>'
+    '<div class="kbd-panel">'
+    '<dl>'
+    '<dt><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></dt>'
+    '<dd>Move between groups — topics, step numbers, zoom, and page controls.</dd>'
+    '<dt><kbd>←</kbd> <kbd>→</kbd> arrow keys</dt>'
+    '<dd>Move within a group — e.g. the step numbers or the topic list.</dd>'
+    '<dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>'
+    '<dd>Activate the control that has focus.</dd>'
+    '</dl></div></details>'
+)
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -89,6 +126,32 @@ def _e(s: Any) -> str:
 COMPONENT_CSS = """
 .demo-wrap { max-width: 100rem; margin: 0 auto; padding: 1rem 1.2rem; }
 .demo-wrap h2 { font-size: 1.1rem; }
+/* header row: title on the left, tool chips (keyboard help, monochrome) on the
+   right — collapsed tools add no vertical space. */
+header { display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; }
+.hdr-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+/* keyboard-navigation help: a compact chip whose panel floats (position:absolute)
+   so opening it costs no layout height. */
+/* margin:0 overrides the global `details { margin-top:.5rem }` so the Keyboard
+   chip lines up with the Monochrome label in the flex header row. */
+details.kbd-help { position: relative; margin: 0; }
+details.kbd-help > summary { display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 40px; padding: .2rem .8rem; border: 1px solid var(--accent);
+  border-radius: 8px; background: var(--panel-bg); color: var(--accent);
+  font: 600 16px system-ui; cursor: pointer; list-style: none; white-space: nowrap; }
+details.kbd-help > summary::-webkit-details-marker { display: none; }
+details.kbd-help[open] > summary { background: var(--accent); color: #fff; }
+.kbd-panel { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 50;
+  width: min(24rem, 92vw); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel-bg); box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  padding: .6rem .85rem; font: 13px/1.45 system-ui; text-align: left; }
+.kbd-panel dl { margin: 0; }
+.kbd-panel dt { font-weight: 700; margin-top: .4rem; }
+.kbd-panel dt:first-child { margin-top: 0; }
+.kbd-panel dd { margin: .1rem 0 0; }
+.kbd-panel kbd { border: 1px solid var(--border); border-radius: 4px;
+  padding: 0 .3rem; font: 12px ui-monospace, monospace; background: #fff; }
 .legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
 .legend li { display: inline-flex; align-items: center; gap: .4rem;
   border: 1px solid var(--border); border-radius: 6px; padding: .2rem .5rem; }
@@ -134,9 +197,19 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
     it degrades gracefully: with JS off the code shows as plain text.
     """
     t = _e(title)
-    hl_style = f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n</style>\n" if highlight else ""
+    hl_style = (f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n{_MONO_TOGGLE_CSS}\n</style>\n"
+                if highlight else "")
     hl_script = (f"<script>\n{_HLJS_JS}\nhljs.highlightAll();\n</script>\n"
                  if highlight else "")
+    # Zero-JS monochrome toggle (only meaningful when the code is highlighted).
+    # The checkbox sits just before <main> so `:checked ~ main` reaches the code;
+    # its label chip rides in the header row beside the title (no extra height).
+    mono_cb = ('<input type="checkbox" class="mono-cb" id="mono-code" '
+               'aria-label="Show code in a single colour (accessible monochrome view)">\n'
+               if highlight else "")
+    mono_label = ('<label for="mono-code" class="mono-toggle" '
+                  'title="Show code in a single colour (accessible view)">Monochrome</label>\n'
+                  if highlight else "")
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'
@@ -149,7 +222,10 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
         "</head>\n"
         "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
-        f"<header>\n<h1>{t}</h1>\n</header>\n"
+        f"{mono_cb}"
+        f"<header>\n<h1>{t}</h1>\n"
+        f'<div class="hdr-tools">{_KBD_HELP_HTML}{mono_label}</div>\n'
+        "</header>\n"
         '<main id="main">\n'
         f'<div class="demo-wrap">\n{body_html}\n</div>\n'
         "</main>\n"
@@ -230,11 +306,11 @@ def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
                       title=title, css_class="glossary")
 
 
-def concept_note(comp_id: str, text: str, *, label: str = "Concept",
+def concept_note(comp_id: str, text: str, *, label: str = "Key Idea",
                  open_: bool = False) -> str:
-    """Show one example's Concept as a fold-away note.
+    """Show one example's Key Idea as a fold-away note.
 
-    The note starts folded, showing just a "Concept" toggle styled as a
+    The note starts folded, showing just a "Key Idea" toggle styled as a
     button-like chip with a ``>`` caret that rotates down when opened, so it
     clearly reads as pressable. Clicking it (or pressing Enter/Space) opens it
     to reveal the text; clicking again folds it back. It works with the keyboard
@@ -245,7 +321,7 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
     Args:
         comp_id: A short unique name for this note, used to build its HTML ids.
         text: The note's wording, shown once the reader opens it.
-        label: The wording of the clickable line; defaults to "Concept".
+        label: The wording of the clickable line; defaults to "Key Idea".
         open_: Start already open instead of folded. Defaults to folded.
 
     Returns:
@@ -256,6 +332,30 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
     op = " open" if open_ else ""
     return (
         f'<details id="{p}" class="concept"{op} style="margin:.4rem 0">\n'
+        f'<summary class="concept-toggle">'
+        f'<span class="caret" aria-hidden="true">▸</span>{_e(label)}</summary>\n'
+        f"{body}"
+        f"</details>\n"
+    )
+
+
+def glossary_note(comp_id: str, terms, *, label: str = "Memory glossary",
+                  open_: bool = False) -> str:
+    """A per-example glossary as a fold-away chip, matching ``concept_note``.
+
+    Renders the same button-like ``<details class="concept">`` chip (rotating
+    caret, keyboard + screen-reader friendly, zero-JS) but its body is a term
+    list (``<dl>``) instead of prose. Carries the extra ``chip-inline`` class so
+    it can sit on one row beside the Concept chip. ``terms`` is a sequence of
+    ``(term, definition)`` pairs."""
+    p = _safe(comp_id)
+    rows = "".join(f"<dt>{_e(t)}</dt><dd>{_e(d)}</dd>\n" for t, d in terms)
+    body = _prose_box(f"{p}-box", f'<dl style="margin:0">\n{rows}</dl>',
+                      css_class="concept")
+    op = " open" if open_ else ""
+    return (
+        f'<details id="{p}" class="concept chip-inline"{op} '
+        f'style="margin:.4rem 0 .4rem .6rem">\n'
         f'<summary class="concept-toggle">'
         f'<span class="caret" aria-hidden="true">▸</span>{_e(label)}</summary>\n'
         f"{body}"
@@ -754,12 +854,18 @@ def nav_shell(comp_id: str, items: Sequence[tuple[str, str]], *,
         "['left_rail', 'stacked', 'top_tabs']")
 
 
-def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
-    """Two-column code/diagram split; code scrolls; reflows to one column."""
+def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str,
+                       *, ratio: tuple[int, int] = (3, 1)) -> str:
+    """Two-column code/diagram split; code scrolls; reflows to one column.
+
+    ``ratio`` is (code_fraction, diagram_fraction) for the CSS grid tracks;
+    the default (3, 1) gives the code three-quarters. Diagram-heavy subjects
+    (stack frames, memory map) pass (2, 1) so the taller diagram gets more room.
+    """
     p = _safe(comp_id)
+    cf, df = ratio
     style = (
-        # Code gets ~three-quarters; the slim vertical SVG fits the narrow rest.
-        f"#{p} {{ display: grid; grid-template-columns: minmax(0,3fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,{cf}fr) minmax(0,{df}fr); gap: 1rem; }}\n"
         f"#{p} .cdp-code {{ min-width:0; }}\n"
         f"#{p} .cdp-diagram {{ min-width:0; }}\n"
         f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
@@ -769,6 +875,107 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
         f'<div class="cdp-code">{code_html}</div>\n'
         f'<div class="cdp-diagram">{diagram_html}</div>\n'
         f"</div>\n"
+    )
+
+
+def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> str:
+    """Wrap HTML in a zero-JS click-to-fullscreen container with zoom levels.
+
+    A visually-hidden but keyboard-focusable checkbox drives the open state; the
+    visible ``label`` chip opens it. When checked, the SAME ``.zoom-body`` (which
+    contains ``inner_html`` verbatim — never duplicated, so any SVGs inside keep
+    their one-to-one ``role="img"`` AND stay interactive: a stepper's radios
+    still work in the overlay) is promoted to a fixed full-screen overlay.
+
+    The enlarged content sits in ``.zoom-content`` — the ENTIRE right panel
+    (``inner_html``: stepper + anatomy) as one unit — stacked ABOVE the full-area
+    ``.zoom-backdrop`` (so clicks on the diagram/stepper land on it; only clicks
+    in the surrounding backdrop, or the ✕, close it). Five zoom-level radios —
+    0.5× / 0.75× / 1× / 1.5× / 2× — apply a single CSS ``zoom`` to that whole
+    panel, so it scales as one unit and every internal relationship (frame
+    diagram ↔ anatomy, spacing, text) is preserved exactly — just bigger or
+    smaller. 1.5× is the default. The toolbar wraps and uses 44px touch targets
+    for mobile. No ESC (a native <dialog> would need scripting)."""
+    p = _safe(comp_id)
+    # (sid, label, aria, zoom-factor) — a plain multiplier on the whole panel.
+    levels = [
+        ("zl0", "0.5×", "half size", "0.5"),
+        ("zl1", "0.75×", "three-quarter size", "0.75"),
+        ("zl2", "1×", "actual size", "1"),
+        ("zl3", "1.5×", "1.5 times", "1.5"),
+        ("zl4", "2×", "2 times", "2"),
+    ]
+    default = "zl3"
+    active_sel = ", ".join(
+        f"#{p} #{p}-{sid}:checked ~ .zoom-bar label[for={p}-{sid}]"
+        for sid, _lab, _aria, _z in levels)
+    # Visible keyboard focus (WCAG 2.4.7) on the hidden zoom-level radios.
+    focus_sel = ", ".join(
+        f"#{p} #{p}-{sid}:focus-visible ~ .zoom-bar label[for={p}-{sid}]"
+        for sid, _lab, _aria, _z in levels)
+    zoom_css = "".join(
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-{sid}:checked ~ .zoom-content"
+        f" {{ zoom:{z}; }}\n"
+        for sid, _lab, _aria, z in levels)
+    style = (
+        # hidden-but-focusable controls
+        f"#{p} .zoom-cb, #{p} .zl {{ position:absolute; width:1px; height:1px;"
+        f" overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }}\n"
+        f"#{p} .zoom-open {{ display:inline-flex; align-items:center; min-height:44px;"
+        f" padding:.2rem .7rem; margin:.2rem 0 .4rem; border:1px solid var(--border,#bbb);"
+        f" border-radius:8px; background:var(--panel-bg,#fff); cursor:pointer;"
+        f" font:13px system-ui; width:fit-content; }}\n"
+        f"#{p} .zoom-cb:focus-visible ~ .zoom-open {{ outline:2px solid var(--accent,#2a6);"
+        f" outline-offset:2px; }}\n"
+        f"#{p} .zoom-bar, #{p} .zoom-close, #{p} .zoom-backdrop {{ display:none; }}\n"
+        # --- overlay open ---
+        f"#{p} .zoom-cb:checked ~ .zoom-body {{ position:fixed; inset:0; z-index:1000;"
+        f" background:#fff; overflow:auto; padding:1rem;"
+        f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
+        f" position:fixed; inset:0; z-index:1001; }}\n"
+        # The whole panel, at its natural size, centered; `zoom` (below) scales it
+        # as one unit — so nothing inside is re-laid-out and nothing shifts.
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content {{ position:relative;"
+        f" z-index:1002; width:fit-content; margin:0 auto; }}\n"
+        # toolbar: sticky so it never overlaps content even when it wraps on mobile
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; flex-wrap:wrap;"
+        f" gap:.4rem; align-items:center; position:sticky; top:0; z-index:1003;"
+        f" padding:.5rem; margin-bottom:1rem; background:#f4f6fb; border:1px solid #ccc;"
+        f" border-radius:8px; }}\n"
+        f"#{p} .zoom-bar .zlab {{ min-height:44px; display:inline-flex; align-items:center;"
+        f" padding:.2rem .7rem; border:1px solid #bbb; border-radius:6px; background:#fff;"
+        f" cursor:pointer; font:13px system-ui; }}\n"
+        f"{active_sel} {{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}\n"
+        f"{focus_sel} {{ outline:3px solid var(--accent); outline-offset:2px; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:inline-flex;"
+        f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
+        f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
+        f" cursor:pointer; font-size:20px; }}\n"
+        + zoom_css
+    )
+    radios = "".join(
+        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-{sid}"'
+        f'{" checked" if sid == default else ""} aria-label="{aria}">'
+        for sid, _lab, aria, _h in levels)
+    zlabs = "".join(
+        f'<label for="{p}-{sid}" class="zlab">{lab}</label>'
+        for sid, lab, _aria, _h in levels)
+    return (
+        f'<div id="{p}" class="zoomwrap"><style>{style}</style>'
+        f'<input type="checkbox" class="zoom-cb" id="{p}-zcb" '
+        f'aria-label="Enlarge diagram">'
+        f'<label for="{p}-zcb" class="zoom-open">{_e(label)}</label>'
+        f'<div class="zoom-body">'
+        + radios
+        + f'<div class="zoom-bar" role="group" aria-label="Zoom level">'
+        + zlabs
+        + f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
+        f'title="Close">✕</label>'
+        f'</div>'
+        f'<div class="zoom-content">{inner_html}</div>'
+        f'<label for="{p}-zcb" class="zoom-backdrop" aria-hidden="true"></label>'
+        f'</div></div>'
     )
 
 
@@ -849,12 +1056,17 @@ def frames_anatomy_details(comp_id: str, pd: dict) -> str:
     )
 
 
-def stepped_frames(comp_id: str, steps) -> str:
+def stepped_frames(comp_id: str, steps, *, with_anatomy: bool = False) -> str:
     """Zero-JS CSS-radio stepper over frame snapshots: one radio + one frame SVG
     per step; selecting a step shows that snapshot. Frames present at a deeper
     step but gone at the current one are drawn ghost (reclaimed). Defaults to
     the deepest step. Assumes each step's frame list is a prefix of the deepest
-    (true for straight call chains and recursion)."""
+    (true for straight call chains and recursion).
+
+    When ``with_anatomy`` is set, a <details> "Show full frame anatomy" is
+    emitted *inside the same container* holding one per-step anatomy table; the
+    same step radios drive it, so the anatomy always matches the selected step
+    (all frames live at that step, not just main)."""
     p = _safe(comp_id)
     ptrbytes, deepest = 8, []
     parsed = []
@@ -865,8 +1077,10 @@ def stepped_frames(comp_id: str, steps) -> str:
             ptrbytes, deepest = pb, frames
     default = max(range(len(parsed)), key=lambda i: len(parsed[i])) if parsed else 0
 
-    inputs, labels, views = [], [], []
+    inputs, labels, views, ans = [], [], [], []
     css = [f"#{p} .sf-v {{ display:none; }}"]
+    if with_anatomy:
+        css.append(f"#{p} .sf-an {{ display:none; }}")
     for i, frames in enumerate(parsed):
         checked = " checked" if i == default else ""
         inputs.append(f'<input type="radio" name="{p}-step" id="{p}-s{i}"{checked} '
@@ -880,13 +1094,33 @@ def stepped_frames(comp_id: str, steps) -> str:
         views.append(f'<div class="sf-v sf-v{i}">{svg}</div>')
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
-                   f"{{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}")
+                   f"{{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}")
+        # Visible keyboard focus (WCAG 2.4.7): the radio is hidden, so forward
+        # the focus ring to its step-number label.
+        css.append(f"#{p} #{p}-s{i}:focus-visible ~ .sf-steps label[for={p}-s{i}] "
+                   f"{{ outline:3px solid var(--accent); outline-offset:2px; }}")
+        if with_anatomy:
+            an_svg = _svg_frames_anatomy(steps[i], f"{p}-an{i}")
+            ans.append(f'<div class="sf-an sf-an{i}">{an_svg}</div>')
+            css.append(f"#{p} #{p}-s{i}:checked ~ .sf-anwrap .sf-an{i} "
+                       f"{{ display:block; }}")
+    anatomy = ""
+    if with_anatomy:
+        anatomy = (
+            f'<details class="sf-anwrap" style="margin-top:.5rem;border:1px solid #ddd;'
+            f'border-radius:6px;padding:.3rem .6rem"><summary style="cursor:pointer;'
+            f'min-height:44px;font-weight:600">Show full frame anatomy</summary>'
+            + "".join(ans) + "</details>"
+        )
     return (
         f'<div id="{p}"><style>{chr(10).join(css)}</style>'
         + "".join(inputs)
-        + f'<div class="sf-steps" style="display:flex;gap:6px;margin-bottom:8px">'
+        + f'<div class="sf-steps" role="group" aria-label="Step through the call stack" '
+        f'style="display:flex;gap:6px;margin-bottom:8px">'
         + "".join(labels) + "</div>"
-        + f'<div class="sf-views">' + "".join(views) + "</div></div>"
+        + f'<div class="sf-views">' + "".join(views) + "</div>"
+        + anatomy
+        + "</div>"
     )
 
 
@@ -910,16 +1144,25 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
         steps = v.get("ptrdata_steps") or []
         ptype = (pd or {}).get("type")
         frame_steps = [s for s in steps if s.get("type") == "frames"]
+        ratio = (3, 1)
         if len(frame_steps) > 1:
-            diagram_html = stepped_frames(f"{pid}-md", frame_steps)
-            diagram_html += frames_anatomy_details(
-                f"{pid}-fa", pd if pd else frame_steps[-1])
+            diagram_html = zoomable(
+                f"{pid}-zoom",
+                stepped_frames(f"{pid}-md", frame_steps, with_anatomy=True))
+            ratio = (2, 1)
         elif ptype == "frames":
-            diagram_html = memory_diagram(f"{pid}-md", pd) + \
-                frames_anatomy_details(f"{pid}-fa", pd)
+            diagram_html = zoomable(
+                f"{pid}-zoom",
+                memory_diagram(f"{pid}-md", pd)
+                + frames_anatomy_details(f"{pid}-fa", pd))
+            ratio = (2, 1)
+        elif ptype == "memmap":
+            diagram_html = zoomable(f"{pid}-zoom", memory_diagram(f"{pid}-md", pd))
+            ratio = (2, 1)
         else:
             diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
-        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"], diagram_html)
+        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"],
+                                        diagram_html, ratio=ratio)
     else:
         code_block = v["code_html"]
     body = (

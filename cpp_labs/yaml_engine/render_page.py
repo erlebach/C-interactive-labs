@@ -238,8 +238,19 @@ def _build_concept(args: dict, data: dict) -> str:
         The Concept note as a piece of HTML.
     """
     return C.concept_note(args["id"], args["text"],
-                          label=args.get("label", "Concept"),
+                          label=args.get("label", "Key Idea"),
                           open_=args.get("open", False))
+
+
+def _build_glossary_note(args: dict, data: dict) -> str:
+    """Build one example's fold-away glossary chip from its YAML block.
+
+    ``args["terms"]`` is a list of ``{term, def}`` maps (already ``${...}``-
+    resolved); converted to (term, definition) pairs for the component."""
+    terms = [(t["term"], t["def"]) for t in args["terms"]]
+    return C.glossary_note(args["id"], terms,
+                           label=args.get("label", "Memory glossary"),
+                           open_=args.get("open", False))
 
 
 _BUILDERS = {
@@ -247,6 +258,7 @@ _BUILDERS = {
     "html": _build_html,
     "topic": _build_topic,
     "concept": _build_concept,
+    "glossary_note": _build_glossary_note,
 }
 
 
@@ -390,7 +402,7 @@ def _build_sidebar(sidebar: list, base: Path) -> list:
             title, body = _glossary_from_source(a, base)
             label = a.get("label", title)
         elif kind == "concept":
-            label = a.get("label", "Concept")
+            label = a.get("label", "Main Takeaway")
             body = C.concept_panel(a.get("id", "concept"), a["text"], title=label)
         else:
             raise KeyError(f"unknown sidebar entry type: {kind!r}")

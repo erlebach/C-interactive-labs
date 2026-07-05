@@ -110,7 +110,8 @@ class TestPureRender:
             ]}},
         ]}
         html = R.render_page(spec, FAKE)
-        assert html.count("<details") == 2
+        # 2 progressive-step disclosures + the always-present header keyboard-help
+        assert html.count("<details") == 3
         assert "S1" in html and "<p>a</p>" in html
 
     def test_heading_and_html_builders(self):
@@ -565,7 +566,7 @@ class TestConceptBlock:
         data = {"x": {"explanation": "A reference is an alias."}}
         html = R.render_fragment(spec, data)
         assert "<details" in html and "class=\"concept\"" in html
-        assert ">Concept</summary>" in html
+        assert "Key Idea</summary>" in html
         assert "A reference is an alias." in html
 
     def test_concept_block_open_flag(self):
@@ -624,7 +625,7 @@ class TestSidebar:
             {"glossary": {"id": "g", "source": "v.glossary.yaml", "label": "Vocabulary"}},
         ]
         items = R._build_sidebar(sidebar, tmp_path)
-        assert [label for label, _ in items] == ["Concept", "Vocabulary"]
+        assert [label for label, _ in items] == ["Main Takeaway", "Vocabulary"]
         assert "What this teaches." in items[0][1] and "<details" not in items[0][1]
         assert "an address" in items[1][1]
 

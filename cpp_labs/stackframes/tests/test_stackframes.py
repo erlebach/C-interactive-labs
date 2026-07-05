@@ -82,3 +82,24 @@ def test_unique_dom_ids(html):
     ids = re.findall(r'id="([^"]+)"', html)
     dups = sorted({i for i in ids if ids.count(i) > 1})
     assert not dups, f"duplicate DOM ids: {dups}"
+
+
+def test_memory_glossary_present(html):
+    assert "Memory glossary" in html
+    assert "zero-filled at program start" in html      # the bss definition
+    assert "grows toward lower addresses" in html       # the stack definition
+
+
+def test_anatomy_is_step_synced(html):
+    # Before the fix the anatomy only ever showed main() (local: r). The
+    # recursion example's deepest step now renders countdown frames, whose
+    # local is n -> "local: n" appears only if per-step anatomy works.
+    assert "local: n" in html
+
+
+def test_enlarge_control_present(html):
+    assert "Enlarge" in html and "zoom-body" in html
+
+
+def test_wider_diagram_ratio(html):
+    assert "minmax(0,2fr) minmax(0,1fr)" in html

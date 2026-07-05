@@ -2,6 +2,115 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 14:10 — Accessibility pass: contrast, monochrome toggle, focus, keyboard help, labels
+
+Series of a11y improvements on `feat/stackframes-ux` (browser-verified with Playwright), prompted by
+SiteImprove/keyboard review. **(1) Contrast (real AA fix):** green `#2a8a5a`→`#2a7f54` (white-on-green
+4.3→4.9:1) for active step/zoom buttons + the diagram axis. **(2) Monochrome code toggle:** zero-JS
+header-row chip (`page_shell`, gated on highlight) that forces every hljs token to inherit the base
+colour — an accessible single-colour view (best-practice accommodation; the SIA-R79 badge itself is an
+Alfa over-eager heuristic on highlighted code, not a real failure — see MEMORY note). **(3) Focus
+visible (WCAG 2.4.7):** the stepper step buttons and zoom-level buttons hid their radios and weren't
+showing keyboard focus; added `:focus-visible ~ label` outlines (rail/tabs already had them). Verified
+by real Tab navigation. **(4) Keyboard help:** a visible zero-JS `<details>` "⌨ Keyboard" chip in the
+header (floats open → no vertical space) documenting Tab/arrows/Enter — for sighted keyboard users.
+**(5) Group semantics:** `role="group"`+`aria-label` on the stepper and zoom bars (the rail already had
+it) so screen readers announce the group purpose natively. **(6) Labels:** per-example concept chip
+"Concept"→**"Key Idea"**; sidebar demonstration concept "Concept"→**"Main Takeaway"**. Full suite 374
+passed; all 8 pages build. Branch kept (not merged).
+
+### Details
+
+Files: `components.py` (`page_shell` header tools + `_KBD_HELP_HTML` + `_MONO_TOGGLE_CSS` + COMPONENT_CSS
+header/kbd CSS; `stepped_frames` focus + `role=group`; `zoomable` focus + `role=group`; `concept_note`
+default label), `html_renderer.py` (`_ADDR_AXIS` colour), `render_page.py` (`_build_concept` +
+sidebar-concept label defaults). Design notes: keyboard-nav hints are for SIGHTED keyboard users (SR
+users get the model from roles/names), so the help is VISIBLE, not sr-only. The mono toggle does NOT
+clear SIA-R79 (spans persist) — it provides the accessible view. Zero-JS throughout except the existing
+highlight.js. All new controls: 3px accent focus ring, ≥36px targets, `:has()`/`~` CSS only.
+
+
+## 2026-07-05 12:38 — zoom simplified: scale the whole right panel as one unit (CSS `zoom`)
+
+Karpathy pass on user feedback: the enlarge overlay had been resizing each SVG by height, which changed
+the frame↔anatomy relationship and caused per-step shifts. Replaced all of that with the simplest thing
+that works — a single CSS `zoom:N` on the whole `.zoom-content` panel (the entire right panel, already
+one wrapper). Levels are now plain multipliers 0.5× / 0.75× / 1× / 1.5× / 2× (default 1.5×); the panel
+scales as one unit so every internal relationship and the Image-5 layout are preserved. Net **removed**
+~5 CSS rules (per-SVG height `!important`, block-centering, sf-steps centering). **Playwright-verified
+(1400×900):** frame/anatomy width ratio identical at 1× and 2× (1.07), 2× is exactly 2× on both,
+switching steps at 2× shifts 0px. Engine suite 367 green. Branch `feat/stackframes-ux` (kept). Note:
+uses the CSS `zoom` property (Chrome/Safari always; Firefox 126+, fine in 2026).
+
+
+## 2026-07-05 12:24 — fix: no per-step horizontal shift in the zoom overlay
+
+User saw the stack-frame diagram + anatomy jump horizontally when clicking step radios in enlarged
+mode (not in normal mode). Cause: the overlay forces SVG *height* with `width:auto`, so each step's
+per-step anatomy (different frame count → different viewBox aspect) got a different auto width; with
+`.zoom-content { width:fit-content; margin:0 auto }` that width change re-centered the whole block.
+Fix: stable `width:100%` content box + block-center each SVG (`margin-inline:auto`) and center
+`.sf-steps`, so all steps share one center axis. **Playwright-verified (1280×900):** frame diagram
+left/center identical across steps (267/640), anatomy center stable at 640 even as its width changes
+(1064→637px). Engine suite 367 green. Branch `feat/stackframes-ux` (kept).
+
+
+## 2026-07-05 12:12 — zoom: 5 levels (0.5×–2×), Fit=40% base, mobile-verified
+
+Per user follow-up on the zoomable lightbox: added 0.5×/0.75× levels, changed Fit to **40% of window
+height** (was 60%), and verified mobile. Zoom levels are now 0.5× / 0.75× / **Fit** / 1.5× / 2× =
+20/30/40/60/80 vh — all multiples of the fixed 40vh Fit base (never compounding off an enlarged state).
+Toolbar `flex-wrap`s with 44px touch targets; refactored to a `levels` list. **Playwright-verified on a
+390×844 phone:** no horizontal overflow (scrollWidth == viewport), code/diagram panel reflows to one
+column, Fit=338px (40% of 844), 0.5×=169 / 2×=675, all buttons ≥44px, toolbar within viewport, stepper
+works in the overlay, backdrop closes. Engine suite 367 green. Branch `feat/stackframes-ux` (kept).
+
+
+## 2026-07-05 11:51 — zoomable fix: actually enlarges (fill-to-fit + 1.5×/2×), stepper works in overlay
+
+Follow-up on user feedback that the ⤢ Enlarge lightbox opened but the diagram **didn't grow** and the
+stepper was **dead** in the overlay. Two real defects, both fixed: (1) every wrapped SVG carries an
+inline `max-width:{viewBox}px` cap that beat the overlay stylesheet, so the diagram never scaled — now
+overridden with `width:auto/max-width:none !important` and sized to the viewport; (2) the full-area
+`.zoom-backdrop` sat above the content, so every click closed the overlay — now the diagram lives in a
+`.zoom-content` stacked ABOVE the backdrop (z-index), so the stepper radios work and only clicks in the
+surrounding backdrop / the ✕ close it. Added zero-JS **Fit / 1.5× / 2×** zoom-level radios (Fit fills
+the viewport, default). **Verified in a real browser (Playwright, 1280×800):** frame diagram 155px →
+**688px** (Fit) → **1376px** (2×); clicking a step in the overlay switches the view and keeps it open;
+backdrop click closes. Engine suite 367 + stackframes subject 13 green. Branch `feat/stackframes-ux`
+(kept, not merged).
+
+
+## 2026-07-05 11:34 — stackframes UX: step-synced anatomy, memory glossary, zoom lightbox
+
+Three post-review improvements to the shipped `stackframes` demonstration, brainstorm → spec → plan →
+**subagent-driven** execution (Sonnet implementers, per-task diff review + a final holistic review
+subagent). **(1) Bug fix:** "Show full frame anatomy" only showed `main()` — it was fed the *first*
+PTRDATA snapshot. Now folded into `stepped_frames(..., with_anatomy=True)`: one anatomy table per step,
+gated by the same step radios, so it shows exactly the frames live at the selected step. **(2) Memory
+glossary:** new general `glossary_note` inline chip (same look as the Concept chip) + `glossary_note`
+YAML block; the memory-map demo defines text/data/bss/heap/stack/segment. **(3) Zoom + size:** new
+zero-JS `zoomable` CSS lightbox (checkbox promotes the *same* container to a fixed overlay — no DOM
+duplication, WCAG `svg==role` preserved; click/✕ to close, no ESC) and a wider `(2,1)` diagram column
+for frames/memmap via a new `code_diagram_panel(ratio=)` arg. **Verification:** full `cpp_labs` suite
+**512 passed**; all 8 pages build; built page svg==role 53/53, unique ids, chips gap correctly. Six
+pointer renderers unaffected (final `else` path, 3:1, no zoomable). Branch `feat/stackframes-ux`.
+Handoff: `handoffs/HANDOFF_2026-07-05_11h34mEST.md`.
+
+### Details
+
+**Files:** `components.py` (`code_diagram_panel` +`ratio`; `stepped_frames` +`with_anatomy`;
+`_demo_variant_body` rewire; new `glossary_note`, `zoomable`), `html_renderer.py` (chip-row `:has()`
+CSS, scoped so lone Concept chips are untouched), `render_page.py` (`_build_glossary_note` +`_BUILDERS`),
+`interface_catalog.py` (registered `glossary_note` in `_TIER` + `_BUILDER_INFO` — the drift guard caught
+the missing rows; `INTERFACE_ELEMENTS.md` regenerated), `sf_memmap.demo.yaml`. **Final-review finding
+fixed:** the chip-row gap (`margin-right` in the stylesheet) was defeated by the chips' inline
+`margin` shorthand; moved the gap to the glossary chip's inline left-margin (`.6rem`) and dropped the
+dead rule. Added a `_demo_variant_body` unit test locking the pointer path (3:1, no zoom-body).
+**Plan gap noted:** the plan didn't anticipate `_BUILDERS` additions requiring `interface_catalog`
+rows, and the per-task `cpp_labs/tests/` runs excluded the catalog test — caught at the Task 7
+full-suite gate; fixed with a dedicated commit.
+
 ## 2026-07-05 09:08 — stackframes subject shipped (2 SVG families + zero-JS stepper)
 
 Executed the approved 14-task TDD plan **subagent-driven** (fresh subagent per task, controller-reviewed

@@ -40,7 +40,7 @@ _TIER: dict[str, str] = {
     "variant_tabs": "generic", "code_diagram_panel": "generic",
     "stacked_subcases": "generic", "progressive_steps": "generic",
     "glossary": "generic", "heading": "generic", "html": "generic",
-    "concept": "generic",
+    "concept": "generic", "glossary_note": "generic",
     "compile_status_badge": "code", "code_line_link": "code", "topic": "code",
     "color_legend": "cpp-memory", "memory_diagram": "cpp-memory",
     "hover_link_diagram": "cpp-memory", "byte_grid": "cpp-memory",
@@ -62,6 +62,9 @@ _BUILDER_INFO: dict[str, tuple[str, str, str]] = {
               "memory diagram (diagram: false to suppress)."),
     "concept": ("concept_note", "text, label, open",
                 "One example's fold-away Concept note (native <details>)."),
+    "glossary_note": ("glossary_note", "terms, label, open",
+                      "One example's fold-away glossary chip (a term list, styled "
+                      "like the Concept chip; sits inline beside it)."),
 }
 
 # Sidebar entry kinds accepted by ``render_page._build_sidebar`` (a layout's

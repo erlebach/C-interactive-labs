@@ -266,6 +266,35 @@ class TestPageShell:
         assert "<script src" not in page             # inline only, no external script
         assert not re.search(r'src=|<link\b', page)  # no external resource load
 
+    def test_highlight_page_has_zero_js_monochrome_toggle(self):
+        # A zero-JS "Monochrome" toggle lives in the HEADER row (no extra vertical
+        # block): a visually-hidden checkbox precedes <main> so `:checked ~ main`
+        # can recolour the highlighted tokens to a single (base) colour.
+        page = C.page_shell("s", '<pre><code class="language-cpp">int x;</code></pre>',
+                            title="T", highlight=True)
+        assert 'class="mono-cb"' in page and 'type="checkbox"' in page
+        assert "Monochrome" in page
+        # checkbox must precede <main> (general-sibling combinator reaches the code)
+        assert page.index('class="mono-cb"') < page.index("<main")
+        # the label chip sits inside the header (beside the title), not a new row
+        assert re.search(r"<header>.*mono-toggle.*</header>", page, re.S)
+        # checked state forces tokens to inherit the base colour (monochrome)
+        assert re.search(r"\.mono-cb:checked ~ main .hljs span\s*\{\s*color:\s*inherit\s*!important", page)
+
+    def test_no_highlight_page_has_no_mono_toggle(self):
+        # No highlighting -> nothing to toggle; the control is not emitted.
+        page = C.page_shell("s", "<p>hi</p>", title="T", highlight=False)
+        assert "mono-cb" not in page
+
+    def test_header_has_visible_keyboard_help_on_every_page(self):
+        # A visible, zero-JS keyboard-navigation help chip lives in the header row
+        # on ALL pages (highlight or not) — sighted keyboard users see it too.
+        for hl in (True, False):
+            page = C.page_shell("s", "<p>x</p>", title="T", highlight=hl)
+            assert 'class="kbd-help"' in page and "<details" in page
+            assert "Keyboard" in page and "<kbd>Tab</kbd>" in page
+            assert re.search(r"<header>.*kbd-help.*</header>", page, re.S)
+
     def test_document_flow_no_viewport_lock(self):
         # Document pages must NOT opt into the legacy DPG viewport lock: the body
         # is plain document flow (no `lab-shell` class, no inline height/overflow
@@ -776,7 +805,7 @@ class TestConcept:
         html = C.concept_note("c1", "A pointer stores an address.")
         assert html.startswith("<details")
         assert " open" not in html.split(">", 1)[0]      # collapsed: no open attr on <details>
-        assert "<summary" in html and "Concept" in html
+        assert "<summary" in html and "Key Idea" in html
         assert "A pointer stores an address." in html
 
     def test_concept_note_open_and_custom_label_and_escaping(self):
