@@ -67,6 +67,7 @@ class TopicTemplate:
     has_ptrdata: bool = True
     doc_url: str = ""
     cases: list[CaseDef] | None = None
+    extra_compile_flags: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

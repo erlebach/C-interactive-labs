@@ -1,0 +1,6 @@
+title: "Dangling Reference (gotcha)"
+language: cpp
+bake: { dl: sf_dangling_local }
+blocks:
+  - concept: { id: dl-note, text: "${dl.explanation}" }
+  - topic:   { id: dl, source: dl }

@@ -130,8 +130,9 @@ def _compile_one(
     # (double-free, use-after-move, null deref). Compile them with
     # AddressSanitizer so the crash yields a precise diagnostic on stderr rather
     # than a bare signal; ``-g`` keeps the report's function names readable.
-    extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else None
-    result = compile_and_run(source, extra_flags=extra_flags)
+    extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else []
+    extra_flags = list(extra_flags) + list(getattr(topic, "extra_compile_flags", []) or [])
+    result = compile_and_run(source, extra_flags=extra_flags or None)
 
     if result.status == "compile-failed":
         return {

@@ -49,6 +49,7 @@ def _topic(d: dict) -> TopicTemplate:
         has_ptrdata=d.get("has_ptrdata", True),
         doc_url=d.get("doc_url", ""),
         cases=[_case(c) for c in cases] if cases else None,
+        extra_compile_flags=list(d.get("extra_compile_flags", [])),
     )
 
 
