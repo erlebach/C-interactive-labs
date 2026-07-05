@@ -49,6 +49,28 @@ _HLJS_CSS = (_VENDOR / "atom-one-dark.min.css").read_text(encoding="utf-8")
 # and stays muted (dimmer than the #abb2bf code text). Inlined AFTER the theme so it wins.
 _HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 
+# Zero-JS "Monochrome" toggle for the highlighted code. A visually-hidden
+# checkbox (placed just before <main>) drives a header-row label chip and, when
+# checked, forces every highlight.js token span to inherit the base code colour
+# — a single-colour ("monochrome") accessible view — without consuming any extra
+# vertical space (the chip lives in the existing header row). It does NOT remove
+# the SIA-R79 badge in colour mode (the spans stay in the DOM), but it provides
+# the accessible monochrome view as a best-practice accommodation.
+_MONO_TOGGLE_CSS = (
+    ".mono-cb{position:absolute;width:1px;height:1px;overflow:hidden;"
+    "clip:rect(0 0 0 0);white-space:nowrap}\n"
+    "header{display:flex;align-items:center;justify-content:space-between;"
+    "gap:.75rem;flex-wrap:wrap}\n"
+    ".mono-toggle{display:inline-flex;align-items:center;min-height:36px;"
+    "padding:.15rem .7rem;border:1px solid var(--accent);border-radius:8px;"
+    "background:var(--panel-bg);color:var(--accent);font:600 13px system-ui;"
+    "cursor:pointer;white-space:nowrap}\n"
+    ".mono-cb:focus-visible ~ header .mono-toggle{outline:2px solid var(--accent);"
+    "outline-offset:2px}\n"
+    ".mono-cb:checked ~ header .mono-toggle{background:var(--accent);color:#fff}\n"
+    ".mono-cb:checked ~ main .hljs span{color:inherit !important}\n"
+)
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -134,9 +156,19 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
     it degrades gracefully: with JS off the code shows as plain text.
     """
     t = _e(title)
-    hl_style = f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n</style>\n" if highlight else ""
+    hl_style = (f"<style>\n{_HLJS_CSS}\n{_HLJS_OVERRIDE_CSS}\n{_MONO_TOGGLE_CSS}\n</style>\n"
+                if highlight else "")
     hl_script = (f"<script>\n{_HLJS_JS}\nhljs.highlightAll();\n</script>\n"
                  if highlight else "")
+    # Zero-JS monochrome toggle (only meaningful when the code is highlighted).
+    # The checkbox sits just before <main> so `:checked ~ main` reaches the code;
+    # its label chip rides in the header row beside the title (no extra height).
+    mono_cb = ('<input type="checkbox" class="mono-cb" id="mono-code" '
+               'aria-label="Show code in a single colour (accessible monochrome view)">\n'
+               if highlight else "")
+    mono_label = ('<label for="mono-code" class="mono-toggle" '
+                  'title="Show code in a single colour (accessible view)">Monochrome</label>\n'
+                  if highlight else "")
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'
@@ -149,7 +181,8 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
         "</head>\n"
         "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
-        f"<header>\n<h1>{t}</h1>\n</header>\n"
+        f"{mono_cb}"
+        f"<header>\n<h1>{t}</h1>\n{mono_label}</header>\n"
         '<main id="main">\n'
         f'<div class="demo-wrap">\n{body_html}\n</div>\n'
         "</main>\n"
