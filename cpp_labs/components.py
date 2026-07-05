@@ -803,46 +803,88 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str,
 
 
 def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> str:
-    """Wrap HTML in a zero-JS click-to-fullscreen container.
+    """Wrap HTML in a zero-JS click-to-fullscreen container with zoom levels.
 
-    A visually-hidden but keyboard-focusable checkbox drives the state; the
+    A visually-hidden but keyboard-focusable checkbox drives the open state; the
     visible ``label`` chip opens it. When checked, the SAME ``.zoom-body`` (which
     contains ``inner_html`` verbatim — never duplicated, so any SVGs inside keep
-    their one-to-one ``role="img"`` and interactive state) is promoted to a fixed
-    full-screen overlay. A close glyph and a full-area backdrop label both toggle
-    the checkbox off. No ESC (a native <dialog> would need scripting)."""
+    their one-to-one ``role="img"`` AND stay interactive: a stepper's radios
+    still work in the overlay) is promoted to a fixed full-screen overlay.
+
+    The enlarged content sits in ``.zoom-content`` stacked ABOVE the full-area
+    ``.zoom-backdrop`` (so clicks on the diagram/stepper land on it; only clicks
+    in the surrounding backdrop, or the ✕, close it). Three zoom-level radios —
+    Fit / 1.5× / 2× — scale the diagram; Fit (the default) fills the viewport
+    height. The size rules use ``!important`` to beat the wrapped SVG's inline
+    ``max-width`` cap (without it the diagram never actually grows). No ESC (a
+    native <dialog> would need scripting)."""
     p = _safe(comp_id)
+    fit = "calc(100vh - 7rem)"
     style = (
-        f"#{p} .zoom-cb {{ position:absolute; width:1px; height:1px; overflow:hidden;"
-        f" clip:rect(0 0 0 0); white-space:nowrap; }}\n"
+        # hidden-but-focusable controls
+        f"#{p} .zoom-cb, #{p} .zl {{ position:absolute; width:1px; height:1px;"
+        f" overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }}\n"
         f"#{p} .zoom-open {{ display:inline-flex; align-items:center; min-height:44px;"
         f" padding:.2rem .7rem; margin:.2rem 0 .4rem; border:1px solid var(--border,#bbb);"
         f" border-radius:8px; background:var(--panel-bg,#fff); cursor:pointer;"
         f" font:13px system-ui; width:fit-content; }}\n"
         f"#{p} .zoom-cb:focus-visible ~ .zoom-open {{ outline:2px solid var(--accent,#2a6);"
         f" outline-offset:2px; }}\n"
-        f"#{p} .zoom-close, #{p} .zoom-backdrop {{ display:none; }}\n"
+        f"#{p} .zoom-bar, #{p} .zoom-close, #{p} .zoom-backdrop {{ display:none; }}\n"
+        # --- overlay open ---
         f"#{p} .zoom-cb:checked ~ .zoom-body {{ position:fixed; inset:0; z-index:1000;"
-        f" background:#fff; overflow:auto; padding:2.5rem 1.5rem 1.5rem;"
+        f" background:#fff; overflow:auto; padding:3.5rem 1rem 1.5rem;"
         f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:flex;"
-        f" position:fixed; top:.6rem; right:.9rem; z-index:1002; align-items:center;"
-        f" justify-content:center; width:44px; height:44px; border:1px solid #bbb;"
-        f" border-radius:8px; background:#fff; cursor:pointer; font-size:20px; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
         f" position:fixed; inset:0; z-index:1001; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto; max-width:100%;"
-        f" height:auto; max-height:calc(100vh - 5rem); }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content {{ position:relative;"
+        f" z-index:1002; width:fit-content; max-width:100%; margin:0 auto; }}\n"
+        # toolbar (Fit / 1.5x / 2x + close)
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; gap:.5rem;"
+        f" align-items:center; position:fixed; top:0; left:0; right:0; z-index:1003;"
+        f" padding:.4rem .8rem; background:#f4f6fb; border-bottom:1px solid #ccc; }}\n"
+        f"#{p} .zoom-bar .zlab {{ min-height:36px; display:inline-flex; align-items:center;"
+        f" padding:.2rem .7rem; border:1px solid #bbb; border-radius:6px; background:#fff;"
+        f" cursor:pointer; font:13px system-ui; }}\n"
+        f"#{p} #{p}-zl0:checked ~ .zoom-bar label[for={p}-zl0],"
+        f" #{p} #{p}-zl1:checked ~ .zoom-bar label[for={p}-zl1],"
+        f" #{p} #{p}-zl2:checked ~ .zoom-bar label[for={p}-zl2] {{ background:#2a8a5a;"
+        f" color:#fff; border-color:#2a8a5a; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:inline-flex;"
+        f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
+        f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
+        f" cursor:pointer; font-size:20px; }}\n"
+        # SVG sizing: beat the inline max-width cap, then set height per zoom level
+        f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto !important;"
+        f" max-width:none !important; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl0:checked ~ .zoom-content svg"
+        f" {{ height:{fit} !important; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl1:checked ~ .zoom-content svg"
+        f" {{ height:calc({fit} * 1.5) !important; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl2:checked ~ .zoom-content svg"
+        f" {{ height:calc({fit} * 2) !important; }}\n"
     )
     return (
         f'<div id="{p}" class="zoomwrap"><style>{style}</style>'
         f'<input type="checkbox" class="zoom-cb" id="{p}-zcb" '
         f'aria-label="Enlarge diagram">'
         f'<label for="{p}-zcb" class="zoom-open">{_e(label)}</label>'
-        f'<div class="zoom-body">{inner_html}'
-        f'<label for="{p}-zcb" class="zoom-backdrop" aria-hidden="true"></label>'
+        f'<div class="zoom-body">'
+        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl0" checked '
+        f'aria-label="Fit to screen">'
+        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl1" '
+        f'aria-label="1.5 times">'
+        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl2" '
+        f'aria-label="2 times">'
+        f'<div class="zoom-bar">'
+        f'<label for="{p}-zl0" class="zlab">Fit</label>'
+        f'<label for="{p}-zl1" class="zlab">1.5×</label>'
+        f'<label for="{p}-zl2" class="zlab">2×</label>'
         f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
         f'title="Close">✕</label>'
+        f'</div>'
+        f'<div class="zoom-content">{inner_html}</div>'
+        f'<label for="{p}-zcb" class="zoom-backdrop" aria-hidden="true"></label>'
         f'</div></div>'
     )
 

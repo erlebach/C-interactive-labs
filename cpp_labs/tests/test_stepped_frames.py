@@ -38,7 +38,8 @@ def test_demo_variant_body_uses_stepper_when_steps_present():
          "ptrdata": {"type": "frames", "ptrbytes": "8", "live": "main:0x40:r:4:0"},
          "ptrdata_steps": _steps(), "error_kind": None}
     html = _demo_variant_body("t", v, "cap", diagram=True)
-    assert html.count('type="radio"') == 3        # stepper rendered
+    assert html.count('name="t-md-step"') == 3     # 3 stepper step radios
+    assert "zoom-content" in html                   # wrapped in the zoom lightbox
     assert "Show full frame anatomy" in html       # anatomy present (in stepper now)
     assert "Enlarge" in html                        # zoomable lightbox present
     assert "minmax(0,2fr) minmax(0,1fr)" in html    # wider diagram column for frames
