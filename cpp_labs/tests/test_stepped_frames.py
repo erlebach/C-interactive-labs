@@ -73,3 +73,10 @@ def test_demo_variant_body_pointer_path_unchanged():
     assert "minmax(0,3fr) minmax(0,1fr)" in html      # unchanged ratio
     assert "zoom-body" not in html                      # no lightbox
     assert "Show full frame anatomy" not in html        # no frame anatomy
+
+
+def test_stepped_frames_step_buttons_have_visible_keyboard_focus():
+    # WCAG 2.4.7: the hidden step radios forward a focus ring to their number labels
+    html = stepped_frames("sf", _steps())
+    assert ":focus-visible ~ .sf-steps label[for=sf-s0]" in html
+    assert "outline:3px solid var(--accent)" in html

@@ -33,3 +33,10 @@ def test_zoomable_scales_whole_panel_via_css_zoom():
     assert "zoom:0.5" in html and "zoom:1.5" in html and "zoom:2" in html
     # no per-SVG height/max-width overrides remain (that broke the layout)
     assert "!important" not in html
+
+
+def test_zoomable_zoom_buttons_have_visible_keyboard_focus():
+    # WCAG 2.4.7: the hidden zoom-level radios forward a focus ring to their labels
+    html = zoomable("z", "<svg></svg>")
+    assert ":focus-visible ~ .zoom-bar label[for=z-zl0]" in html
+    assert "outline:3px solid var(--accent)" in html

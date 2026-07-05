@@ -866,6 +866,10 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
     active_sel = ", ".join(
         f"#{p} #{p}-{sid}:checked ~ .zoom-bar label[for={p}-{sid}]"
         for sid, _lab, _aria, _z in levels)
+    # Visible keyboard focus (WCAG 2.4.7) on the hidden zoom-level radios.
+    focus_sel = ", ".join(
+        f"#{p} #{p}-{sid}:focus-visible ~ .zoom-bar label[for={p}-{sid}]"
+        for sid, _lab, _aria, _z in levels)
     zoom_css = "".join(
         f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-{sid}:checked ~ .zoom-content"
         f" {{ zoom:{z}; }}\n"
@@ -900,6 +904,7 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f" padding:.2rem .7rem; border:1px solid #bbb; border-radius:6px; background:#fff;"
         f" cursor:pointer; font:13px system-ui; }}\n"
         f"{active_sel} {{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}\n"
+        f"{focus_sel} {{ outline:3px solid var(--accent); outline-offset:2px; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:inline-flex;"
         f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
         f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
@@ -1047,6 +1052,10 @@ def stepped_frames(comp_id: str, steps, *, with_anatomy: bool = False) -> str:
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
                    f"{{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}")
+        # Visible keyboard focus (WCAG 2.4.7): the radio is hidden, so forward
+        # the focus ring to its step-number label.
+        css.append(f"#{p} #{p}-s{i}:focus-visible ~ .sf-steps label[for={p}-s{i}] "
+                   f"{{ outline:3px solid var(--accent); outline-offset:2px; }}")
         if with_anatomy:
             an_svg = _svg_frames_anatomy(steps[i], f"{p}-an{i}")
             ans.append(f'<div class="sf-an sf-an{i}">{an_svg}</div>')
