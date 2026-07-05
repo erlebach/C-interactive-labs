@@ -1,0 +1,6 @@
+title: "Single Call"
+language: cpp
+bake: { sc: sf_single_call }
+blocks:
+  - concept: { id: sc-note, text: "${sc.explanation}" }
+  - topic:   { id: sc, source: sc }
