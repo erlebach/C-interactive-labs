@@ -181,7 +181,7 @@ def _stack_svg(p: str, title: str, desc: str,
     if n == 1:
         _, src_bottom = bottoms[0]
         body += (
-            f'<text x="{tip_x + 8}" y="{(src_bottom + tgt_y) // 2}" font-size="11" '
+            f'<text x="{tip_x + 8}" y="{(src_bottom + tgt_y) // 2}" font-size="13" '
             f'fill="{_DIM_COLOR}">points to</text>'
         )
     vb_h = tgt_y + th + _PAD
