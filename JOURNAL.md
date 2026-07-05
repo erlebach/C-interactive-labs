@@ -2,6 +2,21 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 11:51 — zoomable fix: actually enlarges (fill-to-fit + 1.5×/2×), stepper works in overlay
+
+Follow-up on user feedback that the ⤢ Enlarge lightbox opened but the diagram **didn't grow** and the
+stepper was **dead** in the overlay. Two real defects, both fixed: (1) every wrapped SVG carries an
+inline `max-width:{viewBox}px` cap that beat the overlay stylesheet, so the diagram never scaled — now
+overridden with `width:auto/max-width:none !important` and sized to the viewport; (2) the full-area
+`.zoom-backdrop` sat above the content, so every click closed the overlay — now the diagram lives in a
+`.zoom-content` stacked ABOVE the backdrop (z-index), so the stepper radios work and only clicks in the
+surrounding backdrop / the ✕ close it. Added zero-JS **Fit / 1.5× / 2×** zoom-level radios (Fit fills
+the viewport, default). **Verified in a real browser (Playwright, 1280×800):** frame diagram 155px →
+**688px** (Fit) → **1376px** (2×); clicking a step in the overlay switches the view and keeps it open;
+backdrop click closes. Engine suite 367 + stackframes subject 13 green. Branch `feat/stackframes-ux`
+(kept, not merged).
+
+
 ## 2026-07-05 11:34 — stackframes UX: step-synced anatomy, memory glossary, zoom lightbox
 
 Three post-review improvements to the shipped `stackframes` demonstration, brainstorm → spec → plan →
