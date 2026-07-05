@@ -2,6 +2,36 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 11:34 — stackframes UX: step-synced anatomy, memory glossary, zoom lightbox
+
+Three post-review improvements to the shipped `stackframes` demonstration, brainstorm → spec → plan →
+**subagent-driven** execution (Sonnet implementers, per-task diff review + a final holistic review
+subagent). **(1) Bug fix:** "Show full frame anatomy" only showed `main()` — it was fed the *first*
+PTRDATA snapshot. Now folded into `stepped_frames(..., with_anatomy=True)`: one anatomy table per step,
+gated by the same step radios, so it shows exactly the frames live at the selected step. **(2) Memory
+glossary:** new general `glossary_note` inline chip (same look as the Concept chip) + `glossary_note`
+YAML block; the memory-map demo defines text/data/bss/heap/stack/segment. **(3) Zoom + size:** new
+zero-JS `zoomable` CSS lightbox (checkbox promotes the *same* container to a fixed overlay — no DOM
+duplication, WCAG `svg==role` preserved; click/✕ to close, no ESC) and a wider `(2,1)` diagram column
+for frames/memmap via a new `code_diagram_panel(ratio=)` arg. **Verification:** full `cpp_labs` suite
+**512 passed**; all 8 pages build; built page svg==role 53/53, unique ids, chips gap correctly. Six
+pointer renderers unaffected (final `else` path, 3:1, no zoomable). Branch `feat/stackframes-ux`.
+Handoff: `handoffs/HANDOFF_2026-07-05_11h34mEST.md`.
+
+### Details
+
+**Files:** `components.py` (`code_diagram_panel` +`ratio`; `stepped_frames` +`with_anatomy`;
+`_demo_variant_body` rewire; new `glossary_note`, `zoomable`), `html_renderer.py` (chip-row `:has()`
+CSS, scoped so lone Concept chips are untouched), `render_page.py` (`_build_glossary_note` +`_BUILDERS`),
+`interface_catalog.py` (registered `glossary_note` in `_TIER` + `_BUILDER_INFO` — the drift guard caught
+the missing rows; `INTERFACE_ELEMENTS.md` regenerated), `sf_memmap.demo.yaml`. **Final-review finding
+fixed:** the chip-row gap (`margin-right` in the stylesheet) was defeated by the chips' inline
+`margin` shorthand; moved the gap to the glossary chip's inline left-margin (`.6rem`) and dropped the
+dead rule. Added a `_demo_variant_body` unit test locking the pointer path (3:1, no zoom-body).
+**Plan gap noted:** the plan didn't anticipate `_BUILDERS` additions requiring `interface_catalog`
+rows, and the per-task `cpp_labs/tests/` runs excluded the catalog test — caught at the Task 7
+full-suite gate; fixed with a dedicated commit.
+
 ## 2026-07-05 09:08 — stackframes subject shipped (2 SVG families + zero-JS stepper)
 
 Executed the approved 14-task TDD plan **subagent-driven** (fresh subagent per task, controller-reviewed
