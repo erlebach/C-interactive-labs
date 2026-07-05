@@ -264,10 +264,11 @@ def _compile(
     timeout: float,
     cancel_event: threading.Event | None,
     extra_flags: list[str] | None = None,
+    std: str = "c++20",
 ) -> tuple[str, subprocess.CompletedProcess[str] | None, str, str]:
     """Shared compile step used by :func:`compile_only` and :func:`compile_and_run`."""
     flags = extra_flags or []
-    compile_cmd = ["g++", "-std=c++20"] + flags + [src_path, "-o", exe_path]
+    compile_cmd = ["g++", f"-std={std}"] + flags + [src_path, "-o", exe_path]
     compile_cmd_str = " ".join(compile_cmd)
     try:
         compile_proc = _run_cancellable(
@@ -293,8 +294,9 @@ def compile_only(
     timeout: float = 5.0,
     cancel_event: threading.Event | None = None,
     extra_flags: list[str] | None = None,
+    std: str = "c++20",
 ) -> RunResult:
-    """Compile ``source`` with ``g++ -std=c++20`` but do NOT run the binary."""
+    """Compile ``source`` with ``g++ -std=<std>`` but do NOT run the binary."""
     tmpdir = tempfile.mkdtemp(prefix="cpp_lab_")
     try:
         src_path = os.path.join(tmpdir, "snippet.cpp")
@@ -303,7 +305,7 @@ def compile_only(
             f.write(source)
 
         cmd_str, compile_proc, status, compiler_stderr = _compile(
-            src_path, exe_path, timeout, cancel_event, extra_flags
+            src_path, exe_path, timeout, cancel_event, extra_flags, std=std
         )
         exit_code = compile_proc.returncode if compile_proc is not None else None
         return RunResult(
@@ -322,6 +324,7 @@ def compile_only(
 def build_compile_command(
     source: str,
     extra_flags: list[str] | None = None,
+    std: str = "c++20",
 ) -> str:
     """Return the g++ command string that would compile ``source``."""
     flags = extra_flags or []
@@ -331,7 +334,7 @@ def build_compile_command(
         exe_path = os.path.join(tmpdir, "snippet")
         with open(src_path, "w") as f:
             f.write(source)
-        compile_cmd = ["g++", "-std=c++20"] + flags + [src_path, "-o", exe_path]
+        compile_cmd = ["g++", f"-std={std}"] + flags + [src_path, "-o", exe_path]
         return " ".join(compile_cmd)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
@@ -342,8 +345,9 @@ def compile_and_run(
     timeout: float = 5.0,
     cancel_event: threading.Event | None = None,
     extra_flags: list[str] | None = None,
+    std: str = "c++20",
 ) -> RunResult:
-    """Compile ``source`` with ``g++ -std=c++20`` and run the resulting binary."""
+    """Compile ``source`` with ``g++ -std=<std>`` and run the resulting binary."""
     tmpdir = tempfile.mkdtemp(prefix="cpp_lab_")
     try:
         src_path = os.path.join(tmpdir, "snippet.cpp")
@@ -352,7 +356,7 @@ def compile_and_run(
             f.write(source)
 
         compile_cmd_str, compile_proc, compile_status, compiler_stderr = _compile(
-            src_path, exe_path, timeout, cancel_event, extra_flags
+            src_path, exe_path, timeout, cancel_event, extra_flags, std=std
         )
 
         if compile_status == "cancelled":
