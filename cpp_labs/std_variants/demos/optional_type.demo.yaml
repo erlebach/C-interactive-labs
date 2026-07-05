@@ -1,0 +1,5 @@
+title: "std::optional (C++17)"
+language: cpp
+bake: { opt: optional_type }
+blocks:
+  - topic: { id: opt, source: opt, diagram: false, concept: "${opt.explanation}" }
