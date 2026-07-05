@@ -754,12 +754,18 @@ def nav_shell(comp_id: str, items: Sequence[tuple[str, str]], *,
         "['left_rail', 'stacked', 'top_tabs']")
 
 
-def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
-    """Two-column code/diagram split; code scrolls; reflows to one column."""
+def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str,
+                       *, ratio: tuple[int, int] = (3, 1)) -> str:
+    """Two-column code/diagram split; code scrolls; reflows to one column.
+
+    ``ratio`` is (code_fraction, diagram_fraction) for the CSS grid tracks;
+    the default (3, 1) gives the code three-quarters. Diagram-heavy subjects
+    (stack frames, memory map) pass (2, 1) so the taller diagram gets more room.
+    """
     p = _safe(comp_id)
+    cf, df = ratio
     style = (
-        # Code gets ~three-quarters; the slim vertical SVG fits the narrow rest.
-        f"#{p} {{ display: grid; grid-template-columns: minmax(0,3fr) minmax(0,1fr); gap: 1rem; }}\n"
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,{cf}fr) minmax(0,{df}fr); gap: 1rem; }}\n"
         f"#{p} .cdp-code {{ min-width:0; }}\n"
         f"#{p} .cdp-diagram {{ min-width:0; }}\n"
         f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
