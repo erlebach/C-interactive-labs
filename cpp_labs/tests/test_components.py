@@ -796,7 +796,7 @@ class TestConcept:
         html = C.concept_note("c1", "A pointer stores an address.")
         assert html.startswith("<details")
         assert " open" not in html.split(">", 1)[0]      # collapsed: no open attr on <details>
-        assert "<summary" in html and "Concept" in html
+        assert "<summary" in html and "Key Idea" in html
         assert "A pointer stores an address." in html
 
     def test_concept_note_open_and_custom_label_and_escaping(self):

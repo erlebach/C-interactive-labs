@@ -263,11 +263,11 @@ def glossary(comp_id: str, title: str, terms: Sequence[tuple[str, str]]) -> str:
                       title=title, css_class="glossary")
 
 
-def concept_note(comp_id: str, text: str, *, label: str = "Concept",
+def concept_note(comp_id: str, text: str, *, label: str = "Key Idea",
                  open_: bool = False) -> str:
-    """Show one example's Concept as a fold-away note.
+    """Show one example's Key Idea as a fold-away note.
 
-    The note starts folded, showing just a "Concept" toggle styled as a
+    The note starts folded, showing just a "Key Idea" toggle styled as a
     button-like chip with a ``>`` caret that rotates down when opened, so it
     clearly reads as pressable. Clicking it (or pressing Enter/Space) opens it
     to reveal the text; clicking again folds it back. It works with the keyboard
@@ -278,7 +278,7 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
     Args:
         comp_id: A short unique name for this note, used to build its HTML ids.
         text: The note's wording, shown once the reader opens it.
-        label: The wording of the clickable line; defaults to "Concept".
+        label: The wording of the clickable line; defaults to "Key Idea".
         open_: Start already open instead of folded. Defaults to folded.
 
     Returns:
