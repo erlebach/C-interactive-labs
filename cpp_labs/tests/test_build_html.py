@@ -343,3 +343,32 @@ class TestBuildLabMissingGpp:
         with mock.patch("shutil.which", return_value=None):
             with pytest.raises((RuntimeError, SystemExit)):
                 build_lab("lab", [_make_topic()], tmp_dist)
+
+
+# ---------------------------------------------------------------------------
+# expand_variants — standards axis
+# ---------------------------------------------------------------------------
+
+
+class TestStandardsExpansion:
+    def _topic(self, **over):
+        kw = dict(
+            id="t", name="T", template="int main(){}",
+            controls=[], explanation="e", group="g",
+        )
+        kw.update(over)
+        return TopicTemplate(**kw)
+
+    def test_no_standards_single_default_variant(self):
+        states = expand_variants(self._topic())
+        assert states == [{}]
+
+    def test_standards_one_state_each(self):
+        states = expand_variants(self._topic(standards=[11, 17, 20]))
+        assert states == [{"__std__": "11"}, {"__std__": "17"}, {"__std__": "20"}]
+
+    def test_standards_preserve_freetext_defaults(self):
+        from cpp_labs.code_generator import ControlDef
+        ctrl = ControlDef(id="v", label="V", kind="text", default="7")
+        states = expand_variants(self._topic(standards=[17], controls=[ctrl]))
+        assert states == [{"v": "7", "__std__": "17"}]

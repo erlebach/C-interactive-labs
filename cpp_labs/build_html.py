@@ -52,6 +52,13 @@ def expand_variants(topic: TopicTemplate) -> list[dict[str, str]]:
             # keys on "true"/"false", not the stringified bare "False".
             base[ctrl.id] = ctrl.default
 
+    # A standards topic (validated to have no dropdowns) fans out on the C++
+    # standard instead: one variant per standard, carrying a synthetic
+    # ``__std__`` key that _compile_one turns into the -std flag and
+    # capture_variant turns into the "C++NN" tab label.
+    if getattr(topic, "standards", None):
+        return [{**base, "__std__": str(n)} for n in topic.standards]
+
     if not dropdowns:
         return [dict(base)]
 
