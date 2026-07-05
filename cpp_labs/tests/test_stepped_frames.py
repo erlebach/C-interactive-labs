@@ -39,7 +39,11 @@ def test_demo_variant_body_uses_stepper_when_steps_present():
          "ptrdata_steps": _steps(), "error_kind": None}
     html = _demo_variant_body("t", v, "cap", diagram=True)
     assert html.count('type="radio"') == 3        # stepper rendered
-    assert "Show full frame anatomy" in html      # anatomy details present
+    assert "Show full frame anatomy" in html       # anatomy present (in stepper now)
+    assert "Enlarge" in html                        # zoomable lightbox present
+    assert "minmax(0,2fr) minmax(0,1fr)" in html    # wider diagram column for frames
+    # step-synced anatomy: the deepest step's anatomy names the deeper frame
+    assert "foo()" in html
 
 
 def test_stepped_frames_no_anatomy_by_default():

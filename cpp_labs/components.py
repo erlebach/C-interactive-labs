@@ -1006,16 +1006,25 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
         steps = v.get("ptrdata_steps") or []
         ptype = (pd or {}).get("type")
         frame_steps = [s for s in steps if s.get("type") == "frames"]
+        ratio = (3, 1)
         if len(frame_steps) > 1:
-            diagram_html = stepped_frames(f"{pid}-md", frame_steps)
-            diagram_html += frames_anatomy_details(
-                f"{pid}-fa", pd if pd else frame_steps[-1])
+            diagram_html = zoomable(
+                f"{pid}-zoom",
+                stepped_frames(f"{pid}-md", frame_steps, with_anatomy=True))
+            ratio = (2, 1)
         elif ptype == "frames":
-            diagram_html = memory_diagram(f"{pid}-md", pd) + \
-                frames_anatomy_details(f"{pid}-fa", pd)
+            diagram_html = zoomable(
+                f"{pid}-zoom",
+                memory_diagram(f"{pid}-md", pd)
+                + frames_anatomy_details(f"{pid}-fa", pd))
+            ratio = (2, 1)
+        elif ptype == "memmap":
+            diagram_html = zoomable(f"{pid}-zoom", memory_diagram(f"{pid}-md", pd))
+            ratio = (2, 1)
         else:
             diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
-        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"], diagram_html)
+        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"],
+                                        diagram_html, ratio=ratio)
     else:
         code_block = v["code_html"]
     body = (
