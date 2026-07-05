@@ -1,0 +1,8 @@
+title: "Stack Frame Terms"
+terms:
+  - { term: "stack frame",      def: "The block a function call pushes onto the stack, holding its parameters, return address, saved frame pointer, and locals." }
+  - { term: "SP (stack pointer)", def: "Points to the top of the stack — the innermost (most recent) frame, at the lowest address." }
+  - { term: "FP (frame pointer)", def: "A fixed anchor into the current frame used to reach its locals and parameters." }
+  - { term: "return address",   def: "Where execution resumes in the caller after the callee returns; saved in the callee's frame." }
+  - { term: "LIFO",             def: "Last in, first out — the most recently pushed frame is the first popped." }
+  - { term: "dangling reference", def: "A reference or pointer into a frame that has already been destroyed on return; using it is undefined behavior." }
