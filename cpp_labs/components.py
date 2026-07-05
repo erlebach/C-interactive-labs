@@ -813,17 +813,32 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
 
     The enlarged content sits in ``.zoom-content`` stacked ABOVE the full-area
     ``.zoom-backdrop`` (so clicks on the diagram/stepper land on it; only clicks
-    in the surrounding backdrop, or the ✕, close it). Three zoom-level radios —
-    Fit / 1.5× / 2× — scale the diagram to 60% / 90% / 120% of the window height
-    (measured from a fixed 60%-height base, so 2× is a predictable 120vh, not 2×
-    of an already-enlarged state). Fit is the default. The size rules use
-    ``!important`` to beat the wrapped SVG's inline
-    ``max-width`` cap (without it the diagram never actually grows). No ESC (a
-    native <dialog> would need scripting)."""
+    in the surrounding backdrop, or the ✕, close it). Five zoom-level radios —
+    0.5× / 0.75× / Fit / 1.5× / 2× — scale the diagram to 20% / 30% / 40% / 60% /
+    80% of the window height (all measured from the fixed 40%-height Fit base, so
+    the factors are predictable and never explode). Fit is the default. The size
+    rules use ``!important`` to beat the wrapped SVG's inline ``max-width`` cap
+    (without it the diagram never actually grows). The toolbar wraps and uses
+    44px touch targets for mobile. No ESC (a native <dialog> would need
+    scripting)."""
     p = _safe(comp_id)
-    # Zoom heights measured from a fixed 60%-viewport base (NOT from an already
-    # enlarged state), so 2x is a predictable 120vh rather than exploding.
-    zh = {"zl0": "60vh", "zl1": "90vh", "zl2": "120vh"}
+    # Zoom heights are multiples of the 40vh Fit base: 0.5/0.75/1/1.5/2 x 40vh.
+    # (sid, label, aria, height)
+    levels = [
+        ("zl0", "0.5×", "half size", "20vh"),
+        ("zl1", "0.75×", "three-quarter size", "30vh"),
+        ("zl2", "Fit", "fit to 40% of window height", "40vh"),
+        ("zl3", "1.5×", "1.5 times", "60vh"),
+        ("zl4", "2×", "2 times", "80vh"),
+    ]
+    default = "zl2"
+    active_sel = ", ".join(
+        f"#{p} #{p}-{sid}:checked ~ .zoom-bar label[for={p}-{sid}]"
+        for sid, _lab, _aria, _h in levels)
+    height_css = "".join(
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-{sid}:checked ~ .zoom-content svg"
+        f" {{ height:{h} !important; }}\n"
+        for sid, _lab, _aria, h in levels)
     style = (
         # hidden-but-focusable controls
         f"#{p} .zoom-cb, #{p} .zl {{ position:absolute; width:1px; height:1px;"
@@ -837,23 +852,21 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f"#{p} .zoom-bar, #{p} .zoom-close, #{p} .zoom-backdrop {{ display:none; }}\n"
         # --- overlay open ---
         f"#{p} .zoom-cb:checked ~ .zoom-body {{ position:fixed; inset:0; z-index:1000;"
-        f" background:#fff; overflow:auto; padding:3.5rem 1rem 1.5rem;"
+        f" background:#fff; overflow:auto; padding:1rem;"
         f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
         f" position:fixed; inset:0; z-index:1001; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content {{ position:relative;"
         f" z-index:1002; width:fit-content; max-width:100%; margin:0 auto; }}\n"
-        # toolbar (Fit / 1.5x / 2x + close)
-        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; gap:.5rem;"
-        f" align-items:center; position:fixed; top:0; left:0; right:0; z-index:1003;"
-        f" padding:.4rem .8rem; background:#f4f6fb; border-bottom:1px solid #ccc; }}\n"
-        f"#{p} .zoom-bar .zlab {{ min-height:36px; display:inline-flex; align-items:center;"
+        # toolbar: sticky so it never overlaps content even when it wraps on mobile
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; flex-wrap:wrap;"
+        f" gap:.4rem; align-items:center; position:sticky; top:0; z-index:1003;"
+        f" padding:.5rem; margin-bottom:1rem; background:#f4f6fb; border:1px solid #ccc;"
+        f" border-radius:8px; }}\n"
+        f"#{p} .zoom-bar .zlab {{ min-height:44px; display:inline-flex; align-items:center;"
         f" padding:.2rem .7rem; border:1px solid #bbb; border-radius:6px; background:#fff;"
         f" cursor:pointer; font:13px system-ui; }}\n"
-        f"#{p} #{p}-zl0:checked ~ .zoom-bar label[for={p}-zl0],"
-        f" #{p} #{p}-zl1:checked ~ .zoom-bar label[for={p}-zl1],"
-        f" #{p} #{p}-zl2:checked ~ .zoom-bar label[for={p}-zl2] {{ background:#2a8a5a;"
-        f" color:#fff; border-color:#2a8a5a; }}\n"
+        f"{active_sel} {{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:inline-flex;"
         f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
         f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
@@ -861,30 +874,25 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         # SVG sizing: beat the inline max-width cap, then set height per zoom level
         f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto !important;"
         f" max-width:none !important; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl0:checked ~ .zoom-content svg"
-        f" {{ height:{zh['zl0']} !important; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl1:checked ~ .zoom-content svg"
-        f" {{ height:{zh['zl1']} !important; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-zl2:checked ~ .zoom-content svg"
-        f" {{ height:{zh['zl2']} !important; }}\n"
+        + height_css
     )
+    radios = "".join(
+        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-{sid}"'
+        f'{" checked" if sid == default else ""} aria-label="{aria}">'
+        for sid, _lab, aria, _h in levels)
+    zlabs = "".join(
+        f'<label for="{p}-{sid}" class="zlab">{lab}</label>'
+        for sid, lab, _aria, _h in levels)
     return (
         f'<div id="{p}" class="zoomwrap"><style>{style}</style>'
         f'<input type="checkbox" class="zoom-cb" id="{p}-zcb" '
         f'aria-label="Enlarge diagram">'
         f'<label for="{p}-zcb" class="zoom-open">{_e(label)}</label>'
         f'<div class="zoom-body">'
-        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl0" checked '
-        f'aria-label="Fit to screen">'
-        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl1" '
-        f'aria-label="1.5 times">'
-        f'<input type="radio" class="zl" name="{p}-zl" id="{p}-zl2" '
-        f'aria-label="2 times">'
-        f'<div class="zoom-bar">'
-        f'<label for="{p}-zl0" class="zlab">Fit</label>'
-        f'<label for="{p}-zl1" class="zlab">1.5×</label>'
-        f'<label for="{p}-zl2" class="zlab">2×</label>'
-        f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
+        + radios
+        + f'<div class="zoom-bar">'
+        + zlabs
+        + f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
         f'title="Close">✕</label>'
         f'</div>'
         f'<div class="zoom-content">{inner_html}</div>'
