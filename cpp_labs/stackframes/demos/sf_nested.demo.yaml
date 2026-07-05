@@ -1,0 +1,6 @@
+title: "Nested Calls"
+language: cpp
+bake: { nc: sf_nested }
+blocks:
+  - concept: { id: nc-note, text: "${nc.explanation}" }
+  - topic:   { id: nc, source: nc }
