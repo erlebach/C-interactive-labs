@@ -866,7 +866,7 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f"#{p} .zoom-bar .zlab {{ min-height:44px; display:inline-flex; align-items:center;"
         f" padding:.2rem .7rem; border:1px solid #bbb; border-radius:6px; background:#fff;"
         f" cursor:pointer; font:13px system-ui; }}\n"
-        f"{active_sel} {{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}\n"
+        f"{active_sel} {{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:inline-flex;"
         f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
         f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
@@ -1013,7 +1013,7 @@ def stepped_frames(comp_id: str, steps, *, with_anatomy: bool = False) -> str:
         views.append(f'<div class="sf-v sf-v{i}">{svg}</div>')
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
-                   f"{{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}")
+                   f"{{ background:#2a7f54; color:#fff; border-color:#2a7f54; }}")
         if with_anatomy:
             an_svg = _svg_frames_anatomy(steps[i], f"{p}-an{i}")
             ans.append(f'<div class="sf-an sf-an{i}">{an_svg}</div>')

@@ -291,7 +291,7 @@ def _svg_unknown(pd: dict, p: str) -> str:
 # ---------------------------------------------------------------------------
 
 _FRAME_STROKES = ["#cc6666", "#9966cc", "#6699cc", "#22aa88", "#cc8844", "#6688aa"]
-_ADDR_AXIS = "#2a8a5a"      # green: addresses increase upward
+_ADDR_AXIS = "#2a7f54"      # green: addresses increase upward (AA: 4.9:1 vs white)
 _STACK_AXIS = "#cc6600"     # orange: stack grows downward
 _SCHEM_COLOR = "#999999"    # grey: schematic (computed, not measured)
 
