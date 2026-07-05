@@ -40,3 +40,8 @@ def test_standards_with_freetext_control_is_allowed():
         controls=[{"id": "v", "label": "Value", "kind": "text", "default": "0"}],
     )
     assert _topic(d).standards == [11, 17]
+
+
+def test_duplicate_standards_are_rejected():
+    with pytest.raises(ValueError, match="duplicate"):
+        _topic(_base(standards=[11, 11, 17]))

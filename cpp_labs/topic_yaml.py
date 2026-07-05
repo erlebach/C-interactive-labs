@@ -47,6 +47,11 @@ def _topic(d: dict) -> TopicTemplate:
                 f"has dropdown control(s) {dropdowns}; a standards topic may not "
                 f"have a competing tab row (see std-variant-axis spec)"
             )
+        if len(set(standards)) != len(standards):
+            raise ValueError(
+                f"topic {d.get('id', '?')!r} has duplicate standards {standards}; "
+                f"each standard must appear at most once (it becomes one tab)"
+            )
     return TopicTemplate(
         id=d["id"],
         name=d["name"],

@@ -80,24 +80,37 @@ deliberately deferred; add it only if a real lesson needs it.
 
 ### 6. Demonstration (Q3)
 
-One new topic demonstrates the axis end-to-end with **structured bindings**:
+One new topic demonstrates the axis end-to-end with **`std::optional`**:
 
 ```cpp
-#include <utility>
 #include <iostream>
+#include <optional>
 int main() {
-    auto [a, b] = std::pair{1, 2};   // C++17 structured bindings
-    std::cout << a << " " << b << "\n";
+    // std::optional holds "a value, or nothing" — a C++17 library feature.
+    std::optional<int> maybe = 42;
+    // operator bool reports whether a value is present.
+    if (maybe) {
+        std::cout << "value: " << *maybe << "\n";
+    }
 }
 ```
 
 - `standards: [11, 17, 20]`, `diagram: false`, no memory harness (template omits
   `<<HARNESS>>`), `has_ptrdata: false`.
 - Expected baked result: **C++11 → compile error (red)**; **C++17 / C++20 →
-  compiled, output `1 2` (green)**.
-- Hosting: the plan chooses the lightest option — a minimal new subject folder
-  (`topics/` + one rail layout, the standard "drop a folder" pattern) or adding the
-  topic to a fitting existing subject. Either way it is YAML + layout only.
+  compiled, output `value: 42` (green)**.
+- **Why not structured bindings:** Apple clang only *warns* on `auto [a, b]` under
+  `-std=c++11` (a clang extension), so it would compile green and defeat the demo.
+  `std::optional` is a C++17 *library* feature genuinely absent under c++11, so it
+  hard-errors there. (Verified empirically in the compiler tests.)
+- Hosting: a minimal new subject folder `cpp_labs/std_variants/` (`topics/` +
+  `demos/` + one rail layout, the standard "drop a folder" pattern) — YAML +
+  layout only, auto-discovered by the build.
+
+**Single-standard caveat:** a topic with exactly one standard (e.g.
+`standards: [20]`) yields one variant, and `variant_tabs` suppresses the tab strip
+for a single panel — so no `C++20` label renders. Standards demos should list ≥2
+standards; the contrast *is* the lesson.
 
 ## Testing (TDD)
 
@@ -109,7 +122,7 @@ int main() {
 3. **expand_variants** — a standards topic yields one state per standard, each with
    the correct `__std__`; a non-standards topic is unchanged.
 4. **capture_variant / _compile_one** — label is `C++17`; the compile uses the
-   matching `-std` (assert via a std-sensitive snippet, e.g. structured bindings
+   matching `-std` (assert via a std-sensitive snippet, e.g. `std::optional`
    failing on C++11 and passing on C++17).
 5. **integration** — build the demo page; assert three tabs labeled
    `C++11 / C++17 / C++20`, with the C++11 variant a compile failure (red) and the
