@@ -1,0 +1,35 @@
+id: spaceship
+name: "three-way <=> "
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/language/operator_comparison
+standards: [17, 20]
+explanation: >-
+  The three-way comparison operator <=> (the "spaceship"), defaulted with
+  = default, generates <, <=, >, >=, and == from one line — a C++20 LANGUAGE
+  feature backed by the <compare> header. Under -std=c++17 neither operator<=>
+  nor <compare> exists, so the SAME source fails to compile at C++17 and
+  compiles at C++20. Vec2 is a class (private members); the defaulted operator
+  is a member, so it may read those private fields directly.
+template: |
+  #include <iostream>
+  #include <compare>
+  // operator<=> defaulted with = default synthesizes all six relational
+  // operators at once — a C++20 feature. Under -std=c++17 both <=> and the
+  // <compare> header are absent, so this does not compile there.
+  class Version {
+  public:
+      Version(int major, int minor) : major_(major), minor_(minor) {}
+      // one defaulted spaceship gives <, <=, >, >=, ==, != for free
+      auto operator<=>(const Version&) const = default;
+  private:
+      int major_;
+      int minor_;
+  };
+  int main() {
+      Version a(1, 4);
+      Version b(1, 7);
+      // the < below is synthesized from the defaulted <=>
+      std::cout << std::boolalpha
+                << "a is older: " << (a < b) << "\n";
+  }

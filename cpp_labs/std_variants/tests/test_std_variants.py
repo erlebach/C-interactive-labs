@@ -16,19 +16,21 @@ def html(tmp_path_factory):
     return out.read_text(encoding="utf-8")
 
 
-def test_three_standard_tabs(html):
-    for label in ("C++11", "C++17", "C++20"):
+def test_all_standard_tabs_present(html):
+    # optional/auto_return/make_unique span C++11/14/17; spaceship adds 17/20.
+    for label in ("C++11", "C++14", "C++17", "C++20"):
         assert label in html, f"missing standard tab {label!r}"
 
 
-def test_cpp11_shows_compile_failure(html):
-    # The C++11 variant must not compile std::optional.
+def test_old_standard_shows_compile_failure(html):
+    # Every demo's oldest tab is a genuine compile error (red), not a warning.
     assert "Compile failed" in html
 
 
-def test_modern_standard_shows_output(html):
-    # C++17 / C++20 compile and print "value: 42".
-    assert "value: 42" in html
+def test_each_demo_runs_on_its_modern_standard(html):
+    # The green tabs actually run and print their result.
+    for out in ("value: 42", "square(7) = 49", "*p = 42", "a is older: true"):
+        assert out in html, f"missing baked output {out!r}"
 
 
 def test_self_contained(html):

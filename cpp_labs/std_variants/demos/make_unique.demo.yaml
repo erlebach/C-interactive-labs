@@ -1,0 +1,5 @@
+title: "std::make_unique (C++14)"
+language: cpp
+bake: { mu: make_unique }
+blocks:
+  - topic: { id: mu, source: mu, diagram: false, concept: "${mu.explanation}" }

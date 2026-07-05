@@ -1,0 +1,21 @@
+id: make_unique
+name: "std::make_unique"
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+standards: [11, 14, 17]
+explanation: >-
+  std::make_unique<T>(args...) builds a unique_ptr without a raw new — a C++14
+  LIBRARY feature. C++11 shipped std::unique_ptr and std::make_shared but NOT
+  std::make_unique, so the SAME source fails to compile under -std=c++11 and
+  compiles from C++14 on. This is a library gap, not a language error: unique_ptr
+  itself exists in C++11; only the make_unique factory is missing.
+template: |
+  #include <iostream>
+  #include <memory>
+  int main() {
+      // std::make_unique is a C++14 library factory. Under -std=c++11 it does
+      // not exist (only unique_ptr and make_shared shipped in C++11).
+      auto p = std::make_unique<int>(42);
+      std::cout << "*p = " << *p << "\n";
+  }

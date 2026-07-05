@@ -1,0 +1,24 @@
+id: auto_return
+name: "auto return type"
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/language/function
+standards: [11, 14, 17]
+explanation: >-
+  Letting the compiler deduce a function's return type from its return statement
+  — auto square(int n) { return n * n; } — is a C++14 LANGUAGE feature. Under
+  -std=c++11 an auto return type must be paired with a trailing return type
+  (auto f() -> int), so the SAME source fails to compile at C++11 and compiles
+  from C++14 on. (Lambdas already deduce their return type in C++11 — this is
+  specifically about ordinary named functions.)
+template: |
+  #include <iostream>
+  // Return-type deduction on a NORMAL function is a C++14 feature.
+  // Under -std=c++11 this is an error: an auto return needs a trailing
+  // return type there (auto square(int n) -> int).
+  auto square(int n) {
+      return n * n;
+  }
+  int main() {
+      std::cout << "square(7) = " << square(7) << "\n";
+  }

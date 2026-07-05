@@ -1,0 +1,5 @@
+title: "three-way <=> (C++20)"
+language: cpp
+bake: { sp: spaceship }
+blocks:
+  - topic: { id: sp, source: sp, diagram: false, concept: "${sp.explanation}" }

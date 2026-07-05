@@ -3,4 +3,7 @@ style: left_rail
 header:
   - heading: { text: "C++ Standard Selector" }
 demos:
+  - ../demos/auto_return.demo.yaml
+  - ../demos/make_unique.demo.yaml
   - ../demos/optional_type.demo.yaml
+  - ../demos/spaceship.demo.yaml
