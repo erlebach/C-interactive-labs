@@ -692,6 +692,12 @@ details.concept[open] > summary .caret { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) {
   details.concept > summary .caret { transition: none; }
 }
+/* Two chips on one row: a Concept chip immediately followed by an inline
+   glossary chip both go inline-block; a lone Concept chip is unaffected. */
+details.concept.chip-inline,
+details.concept:has(+ details.concept.chip-inline) {
+  display: inline-block; vertical-align: top; margin-right: .6rem;
+}
 figure { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 figcaption { color: var(--fg-dim); font-size: .85rem; margin-top: .3rem; flex-shrink: 0; }
 """

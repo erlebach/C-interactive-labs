@@ -263,6 +263,29 @@ def concept_note(comp_id: str, text: str, *, label: str = "Concept",
     )
 
 
+def glossary_note(comp_id: str, terms, *, label: str = "Memory glossary",
+                  open_: bool = False) -> str:
+    """A per-example glossary as a fold-away chip, matching ``concept_note``.
+
+    Renders the same button-like ``<details class="concept">`` chip (rotating
+    caret, keyboard + screen-reader friendly, zero-JS) but its body is a term
+    list (``<dl>``) instead of prose. Carries the extra ``chip-inline`` class so
+    it can sit on one row beside the Concept chip. ``terms`` is a sequence of
+    ``(term, definition)`` pairs."""
+    p = _safe(comp_id)
+    rows = "".join(f"<dt>{_e(t)}</dt><dd>{_e(d)}</dd>\n" for t, d in terms)
+    body = _prose_box(f"{p}-box", f'<dl style="margin:0">\n{rows}</dl>',
+                      css_class="concept")
+    op = " open" if open_ else ""
+    return (
+        f'<details id="{p}" class="concept chip-inline"{op} style="margin:.4rem 0">\n'
+        f'<summary class="concept-toggle">'
+        f'<span class="caret" aria-hidden="true">▸</span>{_e(label)}</summary>\n'
+        f"{body}"
+        f"</details>\n"
+    )
+
+
 def concept_panel(comp_id: str, text: str, *, title: str = "Concept") -> str:
     """Show the whole page's Concept as its own titled panel.
 

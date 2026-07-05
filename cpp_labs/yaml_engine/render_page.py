@@ -242,11 +242,23 @@ def _build_concept(args: dict, data: dict) -> str:
                           open_=args.get("open", False))
 
 
+def _build_glossary_note(args: dict, data: dict) -> str:
+    """Build one example's fold-away glossary chip from its YAML block.
+
+    ``args["terms"]`` is a list of ``{term, def}`` maps (already ``${...}``-
+    resolved); converted to (term, definition) pairs for the component."""
+    terms = [(t["term"], t["def"]) for t in args["terms"]]
+    return C.glossary_note(args["id"], terms,
+                           label=args.get("label", "Memory glossary"),
+                           open_=args.get("open", False))
+
+
 _BUILDERS = {
     "heading": _build_heading,
     "html": _build_html,
     "topic": _build_topic,
     "concept": _build_concept,
+    "glossary_note": _build_glossary_note,
 }
 
 
