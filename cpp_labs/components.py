@@ -856,8 +856,16 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
         f" position:fixed; inset:0; z-index:1001; }}\n"
+        # Stable full-width content box (NOT fit-content) so switching steps —
+        # whose per-step anatomy has a different aspect ratio, hence a different
+        # auto width at a fixed height — cannot re-center and shift the block.
+        # Each SVG is block-centered instead, so all steps share one center axis.
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content {{ position:relative;"
-        f" z-index:1002; width:fit-content; max-width:100%; margin:0 auto; }}\n"
+        f" z-index:1002; width:100%; max-width:100%; margin:0; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content svg {{ display:block;"
+        f" margin-left:auto; margin-right:auto; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content .sf-steps"
+        f" {{ justify-content:center; }}\n"
         # toolbar: sticky so it never overlaps content even when it wraps on mobile
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; flex-wrap:wrap;"
         f" gap:.4rem; align-items:center; position:sticky; top:0; z-index:1003;"
