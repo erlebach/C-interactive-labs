@@ -59,9 +59,9 @@ _HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 _MONO_TOGGLE_CSS = (
     ".mono-cb{position:absolute;width:1px;height:1px;overflow:hidden;"
     "clip:rect(0 0 0 0);white-space:nowrap}\n"
-    ".mono-toggle{display:inline-flex;align-items:center;min-height:36px;"
-    "padding:.15rem .7rem;border:1px solid var(--accent);border-radius:8px;"
-    "background:var(--panel-bg);color:var(--accent);font:600 13px system-ui;"
+    ".mono-toggle{display:inline-flex;align-items:center;min-height:40px;"
+    "padding:.2rem .8rem;border:1px solid var(--accent);border-radius:8px;"
+    "background:var(--panel-bg);color:var(--accent);font:600 16px system-ui;"
     "cursor:pointer;white-space:nowrap}\n"
     ".mono-cb:focus-visible ~ header .mono-toggle{outline:2px solid var(--accent);"
     "outline-offset:2px}\n"
@@ -133,11 +133,13 @@ header { display: flex; align-items: center; justify-content: space-between;
 .hdr-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 /* keyboard-navigation help: a compact chip whose panel floats (position:absolute)
    so opening it costs no layout height. */
-details.kbd-help { position: relative; }
-details.kbd-help > summary { display: inline-flex; align-items: center; gap: .35rem;
-  min-height: 36px; padding: .15rem .7rem; border: 1px solid var(--accent);
+/* margin:0 overrides the global `details { margin-top:.5rem }` so the Keyboard
+   chip lines up with the Monochrome label in the flex header row. */
+details.kbd-help { position: relative; margin: 0; }
+details.kbd-help > summary { display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 40px; padding: .2rem .8rem; border: 1px solid var(--accent);
   border-radius: 8px; background: var(--panel-bg); color: var(--accent);
-  font: 600 13px system-ui; cursor: pointer; list-style: none; white-space: nowrap; }
+  font: 600 16px system-ui; cursor: pointer; list-style: none; white-space: nowrap; }
 details.kbd-help > summary::-webkit-details-marker { display: none; }
 details.kbd-help[open] > summary { background: var(--accent); color: #fff; }
 .kbd-panel { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 50;
