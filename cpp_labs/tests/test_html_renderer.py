@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer
+from cpp_labs.html_renderer import assemble_page, render_fragment, svg_renderer, _marker_defs, _arrow_v, _vbox, _LH, _stack_svg
 from cpp_labs.code_generator import ControlDef, TopicTemplate
 
 
@@ -89,9 +89,12 @@ class TestSvgRendererRaw:
         out = svg_renderer(_raw_pd())
         assert 'role="img"' in out
 
-    def test_has_viewbox(self):
+    def test_has_vertical_viewbox(self):
         out = svg_renderer(_raw_pd())
-        assert 'viewBox="0 0 500 160"' in out
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        assert m, "no viewBox"
+        w, h = int(m.group(1)), int(m.group(2))
+        assert h > w, "diagram should be taller than wide (vertical)"
 
     def test_aria_labelledby_references_title_and_desc(self):
         out = svg_renderer(_raw_pd())
@@ -538,3 +541,78 @@ class TestRenderFragmentLayout:
         frag = self._multi_variant_frag()
         # The diagram column div must carry display:flex
         assert "display:flex" in frag.replace(" ", "") or "display: flex" in frag
+
+
+class TestVerticalPrimitives:
+    def test_marker_defs_has_marker_and_color(self):
+        out = _marker_defs("m1", "#0b5394")
+        assert out.startswith("<defs>")
+        assert "<marker" in out
+        assert 'id="m1"' in out
+        assert 'orient="auto-start-reverse"' in out
+        assert "#0b5394" in out
+
+    def test_arrow_v_references_marker_and_is_not_forced_horizontal(self):
+        out = _arrow_v(50, 20, 50, 120, "#0b5394", "m1")
+        assert 'marker-end="url(#m1)"' in out
+        # vertical: y1 != y2 (the old _arrow forced mid_y = y1)
+        assert 'y1="20"' in out and 'y2="120"' in out
+
+    def test_vbox_height_scales_with_line_count(self):
+        svg2, h2 = _vbox(10, 10, 160, [("ptr", "#1a1a1a"), ("0xabc", "#555555")], "#0b5394")
+        svg3, h3 = _vbox(10, 10, 160,
+                         [("a", "#1a1a1a"), ("b", "#555"), ("c", "#555")], "#0b5394")
+        assert h3 == h2 + _LH
+        assert 'font-size="14"' in svg2      # matches code panel
+        assert "<rect" in svg2 and "ptr" in svg2
+
+
+# ---------------------------------------------------------------------------
+# _stack_svg tests
+# ---------------------------------------------------------------------------
+
+def _box(lines, stroke="#0b5394"):
+    return {"lines": lines, "stroke": stroke}
+
+
+class TestStackSvg:
+    def _one(self):
+        return _stack_svg("t", "title", "desc",
+                          [_box([("ptr", "#1a1a1a"), ("0xa", "#555")])],
+                          _box([("val=42", "#1a1a1a"), ("0xb", "#555")]))
+
+    def test_single_source_is_vertical_viewbox(self):
+        out = self._one()
+        assert "<svg" in out and 'role="img"' in out
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        w, h = int(m.group(1)), int(m.group(2))
+        assert h > w
+        assert (w, h) != (500, 160)
+
+    def test_single_source_one_arrow(self):
+        assert self._one().count("<line") == 1
+
+    def test_two_sources_converge_two_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("sp1", "#1a1a1a")]), _box([("sp2", "#1a1a1a")])],
+                         _box([("val=42", "#1a1a1a")]))
+        assert out.count("<line") == 2
+
+    def test_three_sources_stack_three_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("a", "#1a1a1a")]), _box([("b", "#1a1a1a")]),
+                          _box([("c", "#1a1a1a")])],
+                         _box([("val", "#1a1a1a")]))
+        assert out.count("<path") >= 3
+
+    def test_no_target_draws_no_arrow(self):
+        out = _stack_svg("t", "weak", "desc",
+                         [_box([("weak_ptr", "#1a1a1a"), ("exp", "#555")])], None)
+        assert out.count("<line") == 0 and "url(#" not in out
+
+    def test_three_sources_no_target_no_arrows(self):
+        out = _stack_svg("t", "title", "desc",
+                         [_box([("a", "#000")]), _box([("b", "#000")]),
+                          _box([("c", "#000")])], None)
+        assert out.count("<path") == 0
+        assert "url(#" not in out

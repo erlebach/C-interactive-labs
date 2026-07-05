@@ -356,6 +356,15 @@ class TestHoverLinkDiagram:
     def test_namespaced(self):
         assert "hl" in self._frag()
 
+    def test_hover_link_is_vertical_and_interactive(self):
+        out = C.hover_link_diagram("hl", PD)
+        assert 'role="img"' in out
+        assert ":hover" in out and ":focus" in out          # still interactive
+        assert 'tabindex="0"' in out                        # keyboard focusable
+        assert 'aria-label=' in out                          # focusable element is named
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', out)
+        assert m and int(m.group(2)) > int(m.group(1))      # taller than wide
+
 
 class TestBeforeAfterToggle:
     def _frag(self):
@@ -529,6 +538,38 @@ class TestVariantBodyErrorKind:
         assert "var(--c-const)" in out
 
 
+class TestVariantBodyDiagramGating:
+    """A diagram:true variant with no ptrdata (compile-error gotcha, value-pass tab)
+    renders an EMPTY right cell — never the '_svg_unknown' debug placeholder — while
+    keeping the two-column grid so the code column's width never changes."""
+
+    def _v(self, **over):
+        v = {
+            "code_html": "<pre><code>x</code></pre>",
+            "ptrdata": None, "bytes": [],
+            "stdout": "", "stderr": "",
+            "ok": False, "failed": True, "error_kind": "compile",
+        }
+        v.update(over)
+        return v
+
+    def test_no_ptrdata_omits_placeholder_but_keeps_grid(self):
+        out = C._demo_variant_body("t", self._v(ptrdata=None), "cap", diagram=True)
+        # no developer-facing placeholder text
+        assert "no diagram" not in out
+        assert "type=?" not in out
+        # code column width unchanged (two-column grid still present, empty right cell)
+        assert "minmax(0,3fr) minmax(0,1fr)" in out
+        assert 'class="cdp-diagram"' in out
+
+    def test_with_ptrdata_still_renders_diagram(self):
+        pd = {"type": "raw", "ptr_addr": "0xa", "target_addr": "0xb", "target_val": "42"}
+        out = C._demo_variant_body("t", self._v(ptrdata=pd, ok=True, failed=False),
+                                   "cap", diagram=True)
+        assert 'role="img"' in out
+        assert "no diagram" not in out
+
+
 # ---------------------------------------------------------------------------
 # 7.x — secondary diagram interactions
 # ---------------------------------------------------------------------------
@@ -650,11 +691,11 @@ class TestCodeDiagramPanel:
         frag = self._frag()
         assert "code here" in frag and "diagram" in frag
 
-    def test_code_gets_two_thirds(self):
-        # Code column is wider than the diagram (2fr:1fr), and no fixed-height
-        # cap boxes it (code soft-wraps and flows at natural height instead).
+    def test_code_gets_three_quarters(self):
+        # With the diagram now slim + vertical, the code column widens to 3fr:1fr,
+        # and no fixed-height cap boxes it (code soft-wraps at natural height).
         frag = self._frag()
-        assert "minmax(0,2fr) minmax(0,1fr)" in frag
+        assert "minmax(0,3fr) minmax(0,1fr)" in frag
         assert "max-height" not in frag
 
     def test_reflow_breakpoint(self):
