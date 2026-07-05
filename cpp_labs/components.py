@@ -278,7 +278,8 @@ def glossary_note(comp_id: str, terms, *, label: str = "Memory glossary",
                       css_class="concept")
     op = " open" if open_ else ""
     return (
-        f'<details id="{p}" class="concept chip-inline"{op} style="margin:.4rem 0">\n'
+        f'<details id="{p}" class="concept chip-inline"{op} '
+        f'style="margin:.4rem 0 .4rem .6rem">\n'
         f'<summary class="concept-toggle">'
         f'<span class="caret" aria-hidden="true">▸</span>{_e(label)}</summary>\n'
         f"{body}"

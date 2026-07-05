@@ -693,10 +693,12 @@ details.concept[open] > summary .caret { transform: rotate(90deg); }
   details.concept > summary .caret { transition: none; }
 }
 /* Two chips on one row: a Concept chip immediately followed by an inline
-   glossary chip both go inline-block; a lone Concept chip is unaffected. */
+   glossary chip both go inline-block; a lone Concept chip is unaffected. The
+   horizontal gap is set by the glossary chip's own inline left margin (an inline
+   style attribute outranks this stylesheet, so the gap can't live here). */
 details.concept.chip-inline,
 details.concept:has(+ details.concept.chip-inline) {
-  display: inline-block; vertical-align: top; margin-right: .6rem;
+  display: inline-block; vertical-align: top;
 }
 figure { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 figcaption { color: var(--fg-dim); font-size: .85rem; margin-top: .3rem; flex-shrink: 0; }

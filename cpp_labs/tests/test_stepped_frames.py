@@ -58,3 +58,17 @@ def test_stepped_frames_anatomy_is_per_step():
     assert html.count("sf-an") >= 3
     # the deepest step (main+foo) anatomy names both frames + real slots
     assert "foo()" in html and "return address" in html
+
+
+def test_demo_variant_body_pointer_path_unchanged():
+    # A pointer variant (ptype not frames/memmap, no ptrdata_steps) must keep the
+    # original 3:1 column and NOT get the zoomable lightbox — the six pointer
+    # renderers are unaffected by the frame-diagram rewire.
+    v = {"code_html": "<pre>x</pre>", "ok": True, "failed": False,
+         "stdout": "", "stderr": "", "bytes": [],
+         "ptrdata": {"type": "raw", "addr": "0x1", "value": "0x2"},
+         "ptrdata_steps": [], "error_kind": None}
+    html = _demo_variant_body("t", v, "cap", diagram=True)
+    assert "minmax(0,3fr) minmax(0,1fr)" in html      # unchanged ratio
+    assert "zoom-body" not in html                      # no lightbox
+    assert "Show full frame anatomy" not in html        # no frame anatomy
