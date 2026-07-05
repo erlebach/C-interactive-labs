@@ -97,6 +97,26 @@ def parse_ptrdata(stdout: str) -> dict | None:
     return result if result else None
 
 
+def parse_ptrdata_all(stdout: str) -> list[dict]:
+    """Extract EVERY ``PTRDATA:`` line from ``stdout`` as a list of key=value
+    dicts, in source order. Empty list if none. Used by the stepped frame
+    diagram, which snapshots the live stack at each call/return. The
+    single-line :func:`parse_ptrdata` is unchanged (still reads the first line
+    only) so the six pointer renderers keep their exact behaviour.
+    """
+    steps: list[dict] = []
+    for match in _PTRDATA_RE.finditer(stdout):
+        line = match.group(1).strip()
+        result = {}
+        for token in line.split():
+            if "=" in token:
+                key, _, value = token.partition("=")
+                result[key] = value
+        if result:
+            steps.append(result)
+    return steps
+
+
 # ---------------------------------------------------------------------------
 # g++ probe
 # ---------------------------------------------------------------------------

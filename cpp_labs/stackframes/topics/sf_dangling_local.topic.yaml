@@ -1,0 +1,22 @@
+id: sf_dangling_local
+name: "Dangling Reference (gotcha)"
+group: Gotchas
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+sanitize: false
+extra_compile_flags: ["-Werror=return-local-addr"]
+explanation: >-
+  A function's frame is destroyed the moment it returns. If it returns a
+  reference or pointer to one of its OWN locals, that reference dangles — it
+  aliases reclaimed stack memory. g++ catches this at build time; here we make
+  the warning an error so the mistake cannot slip through.
+template: |
+  #include <cstdio>
+  // BUG: returns a reference to a local — its frame dies on return.
+  int& make() {
+      int local = 42;
+      return local;
+  }
+  int main() {
+      int& r = make();
+      printf("%d\n", r);
+  }

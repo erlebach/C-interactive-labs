@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .code_generator import ControlDef, TopicTemplate, generate_source
-from .compiler_runner import compile_and_run, parse_membytes
+from .compiler_runner import compile_and_run, parse_membytes, parse_ptrdata_all
 from .html_renderer import assemble_page, render_fragment, svg_renderer
 
 
@@ -130,13 +130,15 @@ def _compile_one(
     # (double-free, use-after-move, null deref). Compile them with
     # AddressSanitizer so the crash yields a precise diagnostic on stderr rather
     # than a bare signal; ``-g`` keeps the report's function names readable.
-    extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else None
-    result = compile_and_run(source, extra_flags=extra_flags)
+    extra_flags = ["-fsanitize=address", "-g"] if getattr(topic, "sanitize", False) else []
+    extra_flags = list(extra_flags) + list(getattr(topic, "extra_compile_flags", []) or [])
+    result = compile_and_run(source, extra_flags=extra_flags or None)
 
     if result.status == "compile-failed":
         return {
             "source": source,
             "ptrdata": None,
+            "ptrdata_steps": [],
             "svg": svg_renderer(None),
             "stdout": "",
             "membytes": "n/a",
@@ -155,6 +157,7 @@ def _compile_one(
         return {
             "source": source,
             "ptrdata": ptrdata,
+            "ptrdata_steps": parse_ptrdata_all(result.stdout),
             "svg": svg_renderer(ptrdata),
             "stdout": result.stdout,
             "membytes": result.memory_bytes or parse_membytes(result.stdout) or "n/a",
@@ -169,6 +172,7 @@ def _compile_one(
     return {
         "source": source,
         "ptrdata": ptrdata,
+        "ptrdata_steps": parse_ptrdata_all(result.stdout),
         "svg": svg_renderer(ptrdata),
         "stdout": result.stdout,
         "membytes": membytes,

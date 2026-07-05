@@ -1,0 +1,52 @@
+id: sf_recursion
+name: Recursion
+group: Stack Frames
+doc_url: https://en.cppreference.com/w/cpp/language/storage_duration
+explanation: >-
+  Each recursive call gets its own frame with its own copy of the parameter and
+  locals. countdown(3) pushes three frames; they pop in reverse order (LIFO).
+  Step through to watch the stack grow to full depth and then unwind.
+template: |
+  #include <cstdio>
+  #include <vector>
+  // A teaching shadow-stack: records live frames so we can print a PTRDATA
+  // snapshot at each call and return. Addresses vary per run (never asserted);
+  // only the enter/leave trace and the byte sizes are deterministic.
+  struct Frame { const char* fn; const char* ln; const void* addr; int lb; int pb; };
+  static std::vector<Frame> g_stack;
+  static int g_step = 0;
+  static void snapshot() {
+      printf("PTRDATA: type=frames step=%d ptrbytes=%zu live=",
+             ++g_step, sizeof(void*));
+      for (std::size_t i = 0; i < g_stack.size(); ++i) {
+          const Frame& f = g_stack[i];
+          printf("%s%s:%p:%s:%d:%d", i ? "," : "",
+                 f.fn, f.addr, f.ln, f.lb, f.pb);
+      }
+      printf("\n");
+  }
+  static void frame_enter(const char* fn, const char* ln,
+                          const void* addr, int lb, int pb) {
+      printf("enter %s\n", fn);
+      g_stack.push_back({fn, ln, addr, lb, pb});
+      snapshot();
+  }
+  static void frame_leave(const char* fn) {
+      printf("leave %s\n", fn);
+      g_stack.pop_back();
+      snapshot();
+  }
+  void countdown(int n) {
+      frame_enter("countdown", "n", &n, (int)sizeof(n), (int)sizeof(n));
+      if (n > 1) {
+          countdown(n - 1);
+      }
+      frame_leave("countdown");
+  }
+  int main() {
+      int r = 3;
+      frame_enter("main", "r", &r, (int)sizeof(r), 0);
+      countdown(3);
+      frame_leave("main");
+      printf("done\n");
+  }

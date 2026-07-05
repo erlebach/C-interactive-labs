@@ -1,0 +1,6 @@
+title: "Recursion"
+language: cpp
+bake: { re: sf_recursion }
+blocks:
+  - concept: { id: re-note, text: "${re.explanation}" }
+  - topic:   { id: re, source: re }

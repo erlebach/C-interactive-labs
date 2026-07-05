@@ -1,0 +1,12 @@
+title: "Stack Frames — the Call Stack"
+style: left_rail
+sidebar:
+  - concept:  { id: obj, text: "How the call stack works: every call pushes a frame; every return pops one. Addresses increase upward while the stack grows downward. Watch frames push and pop, see what a frame holds, and meet the classic dangling-local gotcha." }
+  - glossary: { id: g-sf, source: ../glossaries/stackframes.glossary.yaml, label: "Vocabulary" }
+demos:
+  - ../demos/sf_single_call.demo.yaml
+  - ../demos/sf_nested.demo.yaml
+  - ../demos/sf_locals.demo.yaml
+  - ../demos/sf_recursion.demo.yaml
+  - ../demos/sf_dangling_local.demo.yaml
+  - ../demos/sf_memmap.demo.yaml

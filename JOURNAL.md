@@ -2,6 +2,82 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 09:08 — stackframes subject shipped (2 SVG families + zero-JS stepper)
+
+Executed the approved 14-task TDD plan **subagent-driven** (fresh subagent per task, controller-reviewed
+each diff for scope — no contamination). New pure-YAML `stackframes` demonstration on the `left_rail`
+layout with **two new SVG families** (`type=frames` stacked call-stack + anatomy table, `type=memmap`
+process map) and a **zero-JS CSS-radio push/pop stepper** driven by real g++ output baked at build time.
+6 rail examples (`sf_single_call`, `sf_nested`, `sf_locals` 2-tab, `sf_recursion`, `sf_dangling_local`
+gotcha, `sf_memmap`) share an inlined frame-tracer printing deterministic enter/leave traces + one
+PTRDATA snapshot per call/return (addresses drawn, never asserted). Engine additions are all additive —
+the six pointer renderers are untouched. **Verification:** full `cpp_labs` suite **500 passed** (prior
+476 + 24 new); all 8 pages rebuild (`built 8, failed 0`); built page = 36 stepper radios, 5 anatomy
+disclosures, svg==role 32/32 (WCAG), self-contained. Branch `feat/stackframes`.
+Handoff: `handoffs/HANDOFF_2026-07-05_09h08mEST.md`.
+
+### Details
+
+**Phase 1 (engine, 5 commits):** `parse_ptrdata_all` reads EVERY `PTRDATA:` line (additive; first-line
+`parse_ptrdata` untouched). `html_renderer`: `_svg_frames`/`_frames_core` (vertical stack, main on top at
+highest address, SP marker on innermost, **dual axis — addresses increase upward / stack grows downward**,
+`solid=` prefix count ghosts reclaimed frames), `_svg_frames_anatomy` (per-frame slot·address·size table,
+measured local red, schematic param/retaddr/saved-FP grey), `_svg_memmap` (text→stack). `components.py`:
+`stepped_frames` CSS-radio stepper + `frames_anatomy_details` `<details>`; `_demo_variant_body` branches
+frames/steps, pointer subjects (no `ptrdata_steps`) keep the old path. `ptrdata_steps` baked through
+`build_html._compile_one` (all 3 return branches) + `render_page._bake_program`. New additive
+`TopicTemplate.extra_compile_flags` threaded via `topic_yaml` → `_compile_one`.
+
+**Phase 2 (pure YAML, 8 commits):** the 6 topics/demos + glossary + rail layout.
+
+**Host notes (Apple clang aliased as g++):** dangling gotcha compiles with `-Werror=return-local-addr` →
+real red compile-error box; the host diagnostic reads `reference to stack memory associated with local
+variable` (the subject test asserts that OR the GNU `return-local-addr`/`reference to local` spellings).
+`sf_memmap` loads the five addresses into `uintptr_t` locals before comparing to dodge the
+`<`-parsed-as-template-bracket error; all four ordering booleans (`text<data<bss<heap<stack`) print `1`.
+Interface-catalog regen produced no diff (`stepped_frames`/`frames_anatomy_details` are internal, not
+`_DISPATCH` block keywords).
+
+## 2026-07-04 23:59 — stackframes: brainstorm → spec → plan (design only, no code)
+
+Design session for a new `stackframes` demonstration on the **left_rail** layout. Brainstormed
+with the visual companion, wrote the spec, wrote a 14-task TDD implementation plan — **no
+implementation code yet**; both artifacts committed on `feat/stackframes` (spec `3136437`, plan
+`4297919`). Design locks 6 rail examples, **two new SVG families** (`type=frames`, `type=memmap`),
+and a **zero-JS push/pop stepper**. Next: execute the plan **subagent-driven** from Task 1.
+Spec: `docs/superpowers/specs/2026-07-04-stackframes-design.md`; plan:
+`docs/superpowers/plans/2026-07-04-stackframes.md`; handoff:
+`handoffs/HANDOFF_2026-07-04_23h59mEST.md`.
+
+### Details
+
+- **Examples:** `sf_single_call`, `sf_nested`, `sf_locals` (two tabs), `sf_recursion`,
+  `sf_dangling_local` (gotcha), `sf_memmap`.
+- **Stepper:** program emits one `PTRDATA` line per call/return → `parse_ptrdata_all` (additive;
+  first-line `parse_ptrdata` untouched) → one SVG per step behind a CSS-radio control. A reusable
+  C++ **frame-tracer** snippet produces the deterministic trace.
+- **Diagram convention:** high-memory-on-top / SP-at-bottom, dual axis (**addresses ↑ / stack ↓**),
+  clean real-address default + **full frame anatomy** in `<details>` with per-slot byte sizes and
+  per-row addresses (measured local red, schematic slots grey).
+- **Determinism contract:** traces + `sizeof`-derived sizes + memmap ordering booleans baked &
+  asserted; raw addresses drawn but never asserted.
+- **Gotcha** via `-Werror=return-local-addr` (no ASan run-env) → red compile-error box; needs one
+  additive `extra_compile_flags` field on `TopicTemplate`.
+- **Open issue flagged in handoff:** `-std=c++20` is hardcoded in `compiler_runner.py` (9 sites);
+  a per-standard variant axis (11/14/17/20) remains deferred future work — stackframes itself is
+  C++11-agnostic, so not a blocker.
+
+## 2026-07-04 22:49 — Vertical memory diagrams, SKILL_PREPARATION.md, +4 function_args examples
+
+Three merged workstreams. **(1)** Re-oriented every SVG memory diagram horizontal→vertical via one `_stack_svg(sources, target)` helper encoding the **source-count rule** (≤2 converge, ≥3 stack); native `<marker>` arrowheads; 14px box text matching the code panel; `code_diagram_panel` **2fr:1fr → 3fr:1fr**; `hover_link_diagram` reuses `_stack_svg`; ptrdata-less variants get an **empty right cell (not the `type=? — no diagram` placeholder) with the code-column width held constant** (merge `c27444b`). **(2)** `cpp_labs/SKILL_PREPARATION.md` — the reusable demonstration-authoring guide, precursor to the future *demonstration* skill (`04c129e`). **(3)** Four new `function_args` examples — const ref (+compile-error gotcha), swap (works vs no-op), output params, copy cost — the guide's first use (merge `221607f`, commit `e2387fb`). Full `cpp_labs` suite **476 passed**; all 7 pages rebuilt. Next (brainstorm first): a `stackframes` demonstration on the **left_rail** layout. Handoff: `handoffs/HANDOFF_2026-07-04_22h49mEST.md`.
+
+### Details
+
+- **Vertical diagrams:** the seven hand-placed `_svg_*` renderers became thin adapters over `_stack_svg`; arrowheads use `<marker orient="auto-start-reverse">` (SVG has no arrow primitive — the old code hand-drew a horizontal polygon locked at `mid_y=y1`). The SVG is capped at its intrinsic width (`max-width` + `height:auto`) so 14 user-units ≈ 14px. `hover_link_diagram` overlay CSS got WCAG fixes: `:focus:not(:focus-visible)` preserves the keyboard focus ring; the focusable `<figure>` gained an `aria-label`. Spec `docs/superpowers/specs/2026-07-04-vertical-memory-diagrams-design.md`; plan `docs/superpowers/plans/2026-07-04-vertical-memory-diagrams.md`. Executed subagent-driven with two-stage (spec + quality) review — a fix-subagent committed a regression from a contaminated working tree (`e3e0062`, reverted the vertical refactor) that the spec reviewer's viewBox test caught and `7c5e9ea` corrected. Layout rule locked as feedback `~/.claude/memory/feedback/lab-layout-stability.md`.
+- **SKILL_PREPARATION.md** covers: topic anatomy, `<<placeholder>>`/`<<HARNESS>>` substitution, controls+`value_map`, `cases:` sub-cases (compile + runtime/ASan gotchas), the PTRDATA type/keys table, `sanitize`, the two diagram-gating mechanisms, page-vs-layout wiring + block vocabulary, per-subject test conventions, locked C++ style, build commands, and add-example / new-subject checklists. Corrected one prior misconception: the topic YAML flag is `has_ptrdata` (advisory); the column-dropping `diagram:` is a **page-block** arg, not a topic field.
+- **function_args examples:** `fa_const_ref`/`fa_out_param` are `diagram:true` (ref/raw diagrams; const_ref's Mistake case → empty cell); `fa_swap`/`fa_copy_cost` are `diagram:false` (full-width code + concept in the right column). All programs verified to compile with deterministic output before baking; tests assert exact stdout, Correct/Mistake pairing, the compile-error box, diagrams, and the svg==role=img invariant. Page kept **stacked** (user chose not to convert to a rail). `test_topics_loader` updated (subject is no longer single-topic); `TestPageRender` FAKE data gained stubs for the 4 new topic blocks.
+- **Deferred (unchanged):** `dangling_ptr` needs `ASAN_OPTIONS=detect_stack_use_after_return=1` at run time; `cls_copy_assign` self-assignment gotcha (gated on it) — same stack-use-after-return machinery a stackframes dangling-local gotcha would need.
+
 ## 2026-07-04 16:56 — Layout space fixes, code-style pass, build script
 
 Three coupled improvements from user screenshots. **Layout (CSS):** the whole page was capped by `.demo-wrap { max-width: 70rem }` and centered — jamming content into a narrow column with big empty margins on wide screens; bumped to **100rem**. Code `<pre>` now `white-space: pre-wrap; overflow-wrap: anywhere` so long lines wrap — **the full code is always visible, no horizontal scroll**. Widened the code column: both `code_concept_panel` and `code_diagram_panel` grids went **50/50 → 2fr:1fr** (code two-thirds, right column — concept or diagram — one-third). Removed the fixed `max-height` caps on `stacked_subcases` (32rem) and `code_diagram_panel` code col (28rem) that boxed code into small scroll-regions floating in white. **Code-style pass:** reformatted all 9 op_overload + class_structure topic templates to the locked convention — comments on their own line **above** the code (never trailing), long `std::cout`/`return os` chains **broken at `<<`** with continuations aligned; output verified **byte-identical** (subject tests assert exact stdout). **`build_labs.sh`** (new, repo root): one command rebuilds every page in `dist_labs/`, auto-discovering `cpp_labs/*/layouts/*.yaml` + `cpp_labs/*/*.page.yaml`, echoing the exact `python …` command per spec (`./build_labs.sh <filter>` for a subset). Updated the two tests that pinned the removed caps; regenerated `usage/INTERFACE_ELEMENTS.md`. Full `cpp_labs` **458 passed**. **Next (brainstorm first):** re-orient the SVG memory diagrams vertically so the code column can widen further on diagram pages, and create a skill for that work. Handoff: `handoffs/HANDOFF_2026-07-04_16h56mEST.md`.

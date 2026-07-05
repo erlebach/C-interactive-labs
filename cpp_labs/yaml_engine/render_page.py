@@ -79,6 +79,7 @@ def _bake_program(v: dict[str, Any], language: str | None = None) -> dict[str, A
         "source": v.get("source", ""),
         "code_html": _pre(v.get("source", ""), language),
         "ptrdata": v.get("ptrdata"),
+        "ptrdata_steps": v.get("ptrdata_steps", []),
         "stdout": v.get("stdout", ""),
         "stderr": v.get("stderr", ""),
         "ok": not v.get("failed", False),

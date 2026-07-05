@@ -30,7 +30,14 @@ import html as _html
 from pathlib import Path
 from typing import Any, Sequence
 
-from .html_renderer import _CSS, SEMANTIC_PALETTE, svg_renderer
+from .html_renderer import (
+    _CSS,
+    SEMANTIC_PALETTE,
+    svg_renderer,
+    _svg_frames_anatomy,
+    _parse_frames,
+    _frames_core,
+)
 
 # Vendored highlight.js (common bundle incl. C++) + theme, inlined for
 # self-contained syntax highlighting. Loaded once at import; opt-in per page.
@@ -298,48 +305,24 @@ def memory_diagram(comp_id: str, ptrdata: dict[str, Any] | None) -> str:
 
 
 def hover_link_diagram(comp_id: str, ptrdata: dict[str, Any] | None) -> str:
-    """Hovering/focusing the pointer lights its target + arrow (CSS only).
-
-    The highlight is conveyed by color *and* a thicker stroke (non-color cue).
-    The pointer box is focusable (``tabindex``) so keyboard users get the same
-    highlight as mouse users.
-    """
-    pd = ptrdata or {}
+    """Hovering/focusing the diagram lights the arrow + target (CSS only), on top
+    of the shared vertical diagram. Highlight is color *and* thicker stroke (a
+    non-color cue); the figure is focusable so keyboard users get the same effect."""
     p = _safe(comp_id)
-    addr = _e(pd.get("ptr_addr", "?"))
-    tgt = _e(pd.get("target_addr", "?"))
-    val = _e(pd.get("target_val", "?"))
-    title_id, desc_id = f"{p}-title", f"{p}-desc"
+    svg = svg_renderer(ptrdata, p)          # the shared vertical diagram
     style = (
-        f"#{p} .ptr:hover ~ .target, #{p} .ptr:focus ~ .target,"
-        f"#{p} .ptr:hover ~ .arrow, #{p} .ptr:focus ~ .arrow"
-        " { stroke: var(--c-val); stroke-width: 5; }\n"
-        f"#{p} .ptr {{ cursor: pointer; }}\n"
-        f"#{p} .ptr:focus {{ outline: none; }}"
+        f"#{p} {{ cursor: pointer; }}\n"
+        f"#{p}:focus:not(:focus-visible) {{ outline: none; }}\n"
+        f"#{p}:hover line, #{p}:focus line,"
+        f"#{p}:hover path, #{p}:focus path"
+        " { stroke: var(--c-val); stroke-width: 5; }"
     )
-    svg = (
-        f'<svg viewBox="0 0 500 160" role="img" aria-labelledby="{title_id} {desc_id}" '
-        'style="width:100%;background:#fff;border:1px solid var(--border);border-radius:8px">'
-        f'<title id="{title_id}">hover-link pointer diagram</title>'
-        f'<desc id="{desc_id}">Hover or focus the pointer box to highlight the '
-        f'value it points to (val={val} at {tgt}).</desc>'
-        f'<g class="ptr" tabindex="0">'
-        f'<rect x="20" y="50" width="180" height="62" rx="8" fill="#e8f0ff" '
-        f'stroke="var(--c-addr)" stroke-width="2"/>'
-        f'<text x="34" y="78" font-family="ui-monospace,monospace" font-size="16">ptr</text>'
-        f'<text x="34" y="98" font-family="ui-monospace,monospace" font-size="12" fill="#555">{addr}</text>'
-        f"</g>"
-        f'<line class="arrow" x1="200" y1="81" x2="296" y2="81" '
-        f'stroke="var(--c-addr)" stroke-width="3"/>'
-        f'<polygon class="arrow" points="296,75 312,81 296,87" fill="var(--c-addr)" '
-        f'stroke="var(--c-addr)" stroke-width="1"/>'
-        f'<rect class="target" x="312" y="50" width="170" height="62" rx="8" fill="#e8f0ff" '
-        f'stroke="var(--c-addr)" stroke-width="2"/>'
-        f'<text x="326" y="78" font-family="ui-monospace,monospace" font-size="16">val={val}</text>'
-        f'<text x="326" y="98" font-family="ui-monospace,monospace" font-size="12" fill="#555">{tgt}</text>'
-        f"</svg>"
+    return (
+        f'<figure id="{p}" tabindex="0" '
+        f'aria-label="pointer diagram — hover or focus to highlight the arrow" '
+        f'style="margin:0">\n'
+        f'<style>\n{style}\n</style>\n{svg}\n</figure>\n'
     )
-    return f'<figure id="{p}" style="margin:0">\n<style>\n{style}\n</style>\n{svg}\n</figure>\n'
 
 
 def before_after_toggle(
@@ -775,8 +758,8 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str) -> str:
     """Two-column code/diagram split; code scrolls; reflows to one column."""
     p = _safe(comp_id)
     style = (
-        # Code gets ~two-thirds; the (currently wide) SVG scales to fit the rest.
-        f"#{p} {{ display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 1rem; }}\n"
+        # Code gets ~three-quarters; the slim vertical SVG fits the narrow rest.
+        f"#{p} {{ display: grid; grid-template-columns: minmax(0,3fr) minmax(0,1fr); gap: 1rem; }}\n"
         f"#{p} .cdp-code {{ min-width:0; }}\n"
         f"#{p} .cdp-diagram {{ min-width:0; }}\n"
         f"@media (max-width: 760px) {{ #{p} {{ grid-template-columns: minmax(0,1fr); }} }}"
@@ -854,6 +837,59 @@ def stacked_subcases(comp_id: str, subcases: Sequence[tuple[str, str]]) -> str:
     return f'<div id="{p}" class="ssc">\n<style>\n{style}\n</style>\n{cases}</div>\n'
 
 
+def frames_anatomy_details(comp_id: str, pd: dict) -> str:
+    """A native <details> disclosure wrapping the full per-frame anatomy SVG."""
+    p = _safe(comp_id)
+    return (
+        f'<details style="margin-top:.5rem;border:1px solid #ddd;border-radius:6px;'
+        f'padding:.3rem .6rem"><summary style="cursor:pointer;min-height:44px;'
+        f'font-weight:600">Show full frame anatomy</summary>\n'
+        + _svg_frames_anatomy(pd, f"{p}-an")
+        + "</details>\n"
+    )
+
+
+def stepped_frames(comp_id: str, steps) -> str:
+    """Zero-JS CSS-radio stepper over frame snapshots: one radio + one frame SVG
+    per step; selecting a step shows that snapshot. Frames present at a deeper
+    step but gone at the current one are drawn ghost (reclaimed). Defaults to
+    the deepest step. Assumes each step's frame list is a prefix of the deepest
+    (true for straight call chains and recursion)."""
+    p = _safe(comp_id)
+    ptrbytes, deepest = 8, []
+    parsed = []
+    for s in steps:
+        pb, frames = _parse_frames(s)
+        parsed.append(frames)
+        if len(frames) > len(deepest):
+            ptrbytes, deepest = pb, frames
+    default = max(range(len(parsed)), key=lambda i: len(parsed[i])) if parsed else 0
+
+    inputs, labels, views = [], [], []
+    css = [f"#{p} .sf-v {{ display:none; }}"]
+    for i, frames in enumerate(parsed):
+        checked = " checked" if i == default else ""
+        inputs.append(f'<input type="radio" name="{p}-step" id="{p}-s{i}"{checked} '
+                      f'style="position:absolute;opacity:0">')
+        labels.append(
+            f'<label for="{p}-s{i}" style="cursor:pointer;border:1px solid #bbb;'
+            f'border-radius:6px;padding:2px 9px;font:13px system-ui;'
+            f'min-height:44px;display:inline-flex;align-items:center">'
+            f'{i + 1}</label>')
+        svg = _frames_core(deepest, f"{p}-fr{i}", solid=len(frames))
+        views.append(f'<div class="sf-v sf-v{i}">{svg}</div>')
+        css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
+        css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
+                   f"{{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}")
+    return (
+        f'<div id="{p}"><style>{chr(10).join(css)}</style>'
+        + "".join(inputs)
+        + f'<div class="sf-steps" style="display:flex;gap:6px;margin-bottom:8px">'
+        + "".join(labels) + "</div>"
+        + f'<div class="sf-views">' + "".join(views) + "</div></div>"
+    )
+
+
 def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) -> str:
     """One compiled program: code+diagram split, badge, output, collapsed bytes.
 
@@ -863,12 +899,29 @@ def _demo_variant_body(pid: str, v: dict, caption: str, diagram: bool = True) ->
 
     ``diagram=False`` drops the memory diagram (and the two-column split),
     showing the code full-width — for subjects with no memory-model picture.
+
+    When ``diagram=True`` but this variant has no ``ptrdata`` (a compile-error
+    gotcha or a value-pass tab), the two-column grid is KEPT — so the code
+    column's width never changes between variants — but the right cell is left
+    empty rather than rendering the ``_svg_unknown`` "no diagram" placeholder.
     """
-    code_block = (
-        code_diagram_panel(f"{pid}-cdp", v["code_html"],
-                           memory_diagram(f"{pid}-md", v["ptrdata"]))
-        if diagram else v["code_html"]
-    )
+    if diagram:
+        pd = v.get("ptrdata")
+        steps = v.get("ptrdata_steps") or []
+        ptype = (pd or {}).get("type")
+        frame_steps = [s for s in steps if s.get("type") == "frames"]
+        if len(frame_steps) > 1:
+            diagram_html = stepped_frames(f"{pid}-md", frame_steps)
+            diagram_html += frames_anatomy_details(
+                f"{pid}-fa", pd if pd else frame_steps[-1])
+        elif ptype == "frames":
+            diagram_html = memory_diagram(f"{pid}-md", pd) + \
+                frames_anatomy_details(f"{pid}-fa", pd)
+        else:
+            diagram_html = memory_diagram(f"{pid}-md", pd) if pd else ""
+        code_block = code_diagram_panel(f"{pid}-cdp", v["code_html"], diagram_html)
+    else:
+        code_block = v["code_html"]
     body = (
         code_block
         + '<div style="margin-top:.8rem">'

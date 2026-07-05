@@ -1,0 +1,69 @@
+id: sf_locals
+name: Locals in the Frame
+group: Stack Frames
+doc_url: https://en.cppreference.com/w/cpp/language/storage_duration
+explanation: >-
+  Local variables live inside the function's own frame. A leaf that computes
+  its result inline has no named locals and a smaller frame; add locals and the
+  frame grows to hold them. Switch tabs to compare.
+template: |
+  #include <cstdio>
+  #include <vector>
+  // A teaching shadow-stack: records live frames so we can print a PTRDATA
+  // snapshot at each call and return. Addresses vary per run (never asserted);
+  // only the enter/leave trace and the byte sizes are deterministic.
+  struct Frame { const char* fn; const char* ln; const void* addr; int lb; int pb; };
+  static std::vector<Frame> g_stack;
+  static int g_step = 0;
+  static void snapshot() {
+      printf("PTRDATA: type=frames step=%d ptrbytes=%zu live=",
+             ++g_step, sizeof(void*));
+      for (std::size_t i = 0; i < g_stack.size(); ++i) {
+          const Frame& f = g_stack[i];
+          printf("%s%s:%p:%s:%d:%d", i ? "," : "",
+                 f.fn, f.addr, f.ln, f.lb, f.pb);
+      }
+      printf("\n");
+  }
+  static void frame_enter(const char* fn, const char* ln,
+                          const void* addr, int lb, int pb) {
+      printf("enter %s\n", fn);
+      g_stack.push_back({fn, ln, addr, lb, pb});
+      snapshot();
+  }
+  static void frame_leave(const char* fn) {
+      printf("leave %s\n", fn);
+      g_stack.pop_back();
+      snapshot();
+  }
+  <<callee>>
+  int main() {
+      int r = 0;
+      frame_enter("main", "r", &r, (int)sizeof(r), 0);
+      r = work(4);
+      frame_leave("main");
+      printf("result r = %d\n", r);
+  }
+controls:
+  - id: callee
+    label: Locals
+    kind: dropdown
+    options: [without locals, with locals]
+    default: without locals
+    placeholder: <<callee>>
+    value_map:
+      without locals: |
+        int work(int n) {
+            // no named locals: frame carries only the parameter + machinery
+            frame_enter("work", "(none)", (const void*)&n, 0, (int)sizeof(n));
+            frame_leave("work");
+            return n * n + 1;
+        }
+      with locals: |
+        int work(int n) {
+            int a = n * n;
+            int b = a + 1;
+            frame_enter("work", "b", &b, (int)sizeof(b), (int)sizeof(n));
+            frame_leave("work");
+            return b;
+        }

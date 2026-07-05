@@ -31,7 +31,7 @@ SEMANTIC_PALETTE: dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# SVG constants — mirror the 500×160 DPG coordinate space
+# SVG geometry constants — vertical layout (tall + narrow); box font matches code panel
 # ---------------------------------------------------------------------------
 
 _BOX_FILL = "#e8f0ff"
@@ -41,6 +41,18 @@ _NULL_COLOR = "#8b0000"
 _LABEL_COLOR = "#1a1a1a"
 _DIM_COLOR = "#555555"
 _SHARED_COUNT_COLOR = "#4a7c20"
+
+# Vertical-layout geometry (tall + narrow). Box text is 14px to match the code panel.
+_FONT = 14           # px, == code panel font-size (ui-monospace)
+_LH = 22             # text line height within a box
+_BOX_TOP_PAD = 20    # box top padding to first text baseline
+_SVG_TEXT_ASCENDER = 4  # SVG <text> y is the baseline; add this to reach the visual top of glyphs
+_PAD = 16            # outer padding / gap between boxes
+_SRC_W1 = 160        # source/target box width when a single source
+_SRC_W2 = 120        # source box width when two sources sit side-by-side
+_ARROW_GAP = 60      # vertical gap reserved for the arrow between rows
+_STACK_RM = 34       # right margin channel for >=3 stacked-source arrows
+_BOX_GAP = 12  # inter-box vertical gap in the stacked column
 
 
 def _e(s: Any) -> str:
@@ -55,14 +67,6 @@ def _e(s: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _rect(x1: int, y1: int, x2: int, y2: int, stroke: str = _BOX_STROKE) -> str:
-    w, h = x2 - x1, y2 - y1
-    return (
-        f'<rect x="{x1}" y="{y1}" width="{w}" height="{h}" rx="8" '
-        f'fill="{_BOX_FILL}" stroke="{stroke}" stroke-width="2"/>'
-    )
-
-
 def _text(x: int, y: int, txt: str, color: str = _LABEL_COLOR, size: int = 14) -> str:
     return (
         f'<text x="{x}" y="{y}" font-size="{size}" '
@@ -70,26 +74,133 @@ def _text(x: int, y: int, txt: str, color: str = _LABEL_COLOR, size: int = 14) -
     )
 
 
-def _arrow(x1: int, y1: int, x2: int, y2: int, color: str = _ARROW_COLOR) -> str:
-    tip = x2
-    mid_y = y1
+def _marker_defs(marker_id: str, color: str) -> str:
+    """A reusable arrowhead <marker>. `orient="auto-start-reverse"` rotates it to
+    the line direction, so vertical / diagonal / curved arrows all get a correct
+    head. Fill is fixed per-diagram (one arrow color per diagram)."""
     return (
-        f'<line x1="{x1}" y1="{mid_y}" x2="{tip - 16}" y2="{mid_y}" '
-        f'stroke="{color}" stroke-width="3"/>'
-        f'<polygon points="{tip-16},{mid_y-6} {tip},{mid_y} {tip-16},{mid_y+6}" '
-        f'fill="{color}"/>'
-        f'<text x="{x1 + 6}" y="{mid_y - 6}" font-size="11" fill="{_DIM_COLOR}">points to</text>'
+        f'<defs><marker id="{marker_id}" viewBox="0 0 10 10" refX="9" refY="5" '
+        f'markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+        f'<path d="M0,0 L10,5 L0,10 z" fill="{color}"/></marker></defs>'
     )
 
 
-def _wrap_svg(p: str, title_text: str, desc_text: str, body: str) -> str:
-    """Wrap *body* in an accessible SVG shell.  ``p`` is the unique id prefix."""
+def _arrow_v(x1: int, y1: int, x2: int, y2: int, color: str, marker_id: str) -> str:
+    """A straight arrow from (x1,y1) to (x2,y2) with a marker arrowhead.
+    Endpoints are honored as given, so vertical and diagonal arrows are supported."""
+    return (
+        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" '
+        f'stroke-width="3" marker-end="url(#{marker_id})"/>'
+    )
+
+
+def _vbox(x: int, y: int, w: int, lines: list[tuple[str, str]], stroke: str) -> tuple[str, int]:
+    """Draw a rounded box at (x,y) with stacked text `lines` (each a
+    (text, color) pair). Height scales with the number of lines. Text is 14px
+    monospace to match the code panel. Returns (svg, height)."""
+    h = _BOX_TOP_PAD + len(lines) * _LH
+    parts = [
+        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" '
+        f'fill="{_BOX_FILL}" stroke="{stroke}" stroke-width="2"/>'
+    ]
+    ty = y + _BOX_TOP_PAD + _SVG_TEXT_ASCENDER
+    for txt, color in lines:
+        parts.append(
+            f'<text x="{x + 14}" y="{ty}" font-size="{_FONT}" '
+            f'font-family="ui-monospace,monospace" fill="{color}">{_e(txt)}</text>'
+        )
+        ty += _LH
+    return "".join(parts), h
+
+
+def _stack_svg(p: str, title: str, desc: str,
+               sources: list[dict], target: "dict | None",
+               *, arrow_color: str = _ARROW_COLOR) -> str:
+    """Vertical memory diagram. `sources`/`target` are box specs
+    ({"lines": [(text,color)...], "stroke": color}). Encodes the source-count
+    rule: <=2 sources sit side-by-side and converge onto the target; >=3 stack
+    in a column with arrows routed down the right. `target=None` draws no arrow
+    (e.g. weak_ptr)."""
+    n = len(sources)
+    marker_id = f"{p}-ah"
+    body = _marker_defs(marker_id, arrow_color) if target is not None else ""
+
+    if n >= 3:
+        # Stacked column; arrows route down a right-side channel into the target.
+        ws = _SRC_W1
+        x = _PAD
+        y = _PAD
+        right_edges = []
+        for s in sources:
+            svg, h = _vbox(x, y, ws, s["lines"], s["stroke"])
+            body += svg
+            right_edges.append((x + ws, y + h // 2))
+            y += h + _BOX_GAP
+        chan = x + ws + _STACK_RM // 2
+        ty = y - _BOX_GAP + _ARROW_GAP
+        tsvg, th = _vbox(x, ty, ws, target["lines"], target["stroke"]) if target else ("", 0)
+        body += tsvg
+        if target is not None:
+            for ex, ey in right_edges:
+                body += (
+                    f'<path d="M{ex} {ey} H{chan} V{ty + th // 2} H{x + ws}" '
+                    f'fill="none" stroke="{arrow_color}" stroke-width="3" '
+                    f'marker-end="url(#{marker_id})"/>'
+                )
+        vb_w = ws + 2 * _PAD + _STACK_RM
+        vb_h = ty + th + _PAD if target else y - _BOX_GAP + _PAD
+        return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+    # n <= 2: converge. Sources in a top row, target centered below.
+    sw = _SRC_W1 if n == 1 else _SRC_W2
+    tw = _SRC_W1
+    row_w = n * sw + (n - 1) * _PAD
+    vb_w = max(row_w + 2 * _PAD, tw + 2 * _PAD)
+    start_x = (vb_w - row_w) // 2
+    src_y = _PAD
+    src_h = 0
+    bottoms = []
+    for i, s in enumerate(sources):
+        bx = start_x + i * (sw + _PAD)
+        svg, h = _vbox(bx, src_y, sw, s["lines"], s["stroke"])
+        body += svg
+        src_h = max(src_h, h)
+        bottoms.append((bx + sw // 2, src_y + h))
+
+    if target is None:
+        vb_h = src_y + src_h + _PAD
+        return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+    tgt_y = src_y + src_h + _ARROW_GAP
+    tgt_x = (vb_w - tw) // 2
+    tsvg, th = _vbox(tgt_x, tgt_y, tw, target["lines"], target["stroke"])
+    body += tsvg
+    tip_x = vb_w // 2
+    for bx, by in bottoms:
+        body += _arrow_v(bx, by, tip_x, tgt_y, arrow_color, marker_id)
+    if n == 1:
+        _, src_bottom = bottoms[0]
+        body += (
+            f'<text x="{tip_x + 8}" y="{(src_bottom + tgt_y) // 2}" font-size="13" '
+            f'fill="{_DIM_COLOR}">points to</text>'
+        )
+    vb_h = tgt_y + th + _PAD
+    return _wrap_svg(p, title, desc, body, vb_w=vb_w, vb_h=vb_h)
+
+
+def _wrap_svg(p: str, title_text: str, desc_text: str, body: str,
+              *, vb_w: int = 500, vb_h: int = 160) -> str:
+    """Wrap *body* in an accessible SVG shell. `p` is the unique id prefix.
+    `vb_w`/`vb_h` set the viewBox. `max-width:{vb_w}px; height:auto` keeps the
+    diagram at its intrinsic aspect and caps it so 14 user-units ≈ 14px (matching
+    the code panel) in the common case, scaling down only on very narrow screens."""
     title_id = f"{p}-title"
     desc_id = f"{p}-desc"
     return (
-        f'<svg viewBox="0 0 500 160" role="img" '
+        f'<svg viewBox="0 0 {vb_w} {vb_h}" role="img" '
         f'aria-labelledby="{title_id} {desc_id}" '
-        f'style="width:100%;height:100%;min-height:0;background:#fff;border:1px solid #c5cee0;border-radius:8px">'
+        f'style="width:100%;max-width:{vb_w}px;height:auto;background:#fff;'
+        f'border:1px solid #c5cee0;border-radius:8px">'
         f'<title id="{title_id}">{_e(title_text)}</title>'
         f'<desc id="{desc_id}">{_e(desc_text)}</desc>'
         f'{body}'
@@ -103,135 +214,310 @@ def _wrap_svg(p: str, title_text: str, desc_text: str, body: str) -> str:
 
 
 def _svg_raw(pd: dict, p: str) -> str:
-    addr = pd.get("ptr_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("target_val", "?")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ptr", size=16)
-        + _text(34, 96, str(addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81)
-        + _rect(312, 50, 482, 112)
-        + _text(326, 75, f"val={val}", size=16)
-        + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-    )
-    return _wrap_svg(p, "raw pointer diagram",
-                     f"ptr at {_e(addr)} → val={_e(val)} at {_e(tgt)}.", body)
+    addr, tgt, val = pd.get("ptr_addr", "?"), pd.get("target_addr", "?"), pd.get("target_val", "?")
+    src = {"lines": [("ptr", _LABEL_COLOR), (str(addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "raw pointer diagram",
+                      f"ptr at {_e(addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_null(pd: dict, p: str) -> str:
     addr = pd.get("ptr_addr", "0x0")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ptr", size=16)
-        + _text(34, 96, str(addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81, _NULL_COLOR)
-        + _rect(312, 50, 482, 112, stroke=_NULL_COLOR)
-        + _text(350, 88, "NULL", _NULL_COLOR, 18)
-    )
-    return _wrap_svg(p, "null pointer diagram",
-                     f"ptr at {_e(addr)} points to NULL.", body)
+    src = {"lines": [("ptr", _LABEL_COLOR), (str(addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [("NULL", _NULL_COLOR)], "stroke": _NULL_COLOR}
+    return _stack_svg(p, "null pointer diagram", f"ptr at {_e(addr)} points to NULL.",
+                      [src], dst, arrow_color=_NULL_COLOR)
 
 
 def _svg_ref(pd: dict, p: str) -> str:
-    ref_addr = pd.get("ref_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("target_val", "?")
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "ref", size=16)
-        + _text(34, 96, str(ref_addr), _DIM_COLOR, 12)
-        + _arrow(200, 81, 312, 81)
-        + _rect(312, 50, 482, 112)
-        + _text(326, 75, f"val={val}", size=16)
-        + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-    )
-    return _wrap_svg(p, "reference diagram",
-                     f"ref at {_e(ref_addr)} → val={_e(val)} at {_e(tgt)}.", body)
+    ref_addr, tgt, val = pd.get("ref_addr", "?"), pd.get("target_addr", "?"), pd.get("target_val", "?")
+    src = {"lines": [("ref", _LABEL_COLOR), (str(ref_addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "reference diagram",
+                      f"ref at {_e(ref_addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_unique(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("val", "?")
+    ptr_addr, tgt, val = pd.get("ptr_addr", "?"), pd.get("target_addr", "?"), pd.get("val", "?")
     is_null = pd.get("is_null", "0") == "1"
-    body = (
-        _rect(20, 50, 200, 112)
-        + _text(34, 75, "unique_ptr", size=14)
-        + _text(34, 96, str(ptr_addr), _DIM_COLOR, 12)
-    )
+    src = {"lines": [("unique_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)], "stroke": _BOX_STROKE}
     if is_null:
-        body += (
-            _arrow(200, 81, 312, 81, _NULL_COLOR)
-            + _rect(312, 50, 482, 112, stroke=_NULL_COLOR)
-            + _text(350, 88, "NULL", _NULL_COLOR, 18)
-        )
-        desc = f"unique_ptr at {_e(ptr_addr)} → NULL."
-    else:
-        body += (
-            _arrow(200, 81, 312, 81)
-            + _rect(312, 50, 482, 112)
-            + _text(326, 75, f"val={val}", size=16)
-            + _text(326, 96, str(tgt), _DIM_COLOR, 12)
-        )
-        desc = f"unique_ptr at {_e(ptr_addr)} → val={_e(val)} at {_e(tgt)}."
-    return _wrap_svg(p, "unique_ptr diagram", desc, body)
+        dst = {"lines": [("NULL", _NULL_COLOR)], "stroke": _NULL_COLOR}
+        return _stack_svg(p, "unique_ptr diagram", f"unique_ptr at {_e(ptr_addr)} → NULL.",
+                          [src], dst, arrow_color=_NULL_COLOR)
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "unique_ptr diagram",
+                      f"unique_ptr at {_e(ptr_addr)} → val={_e(val)} at {_e(tgt)}.", [src], dst)
 
 
 def _svg_shared(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    ptr2_addr = pd.get("ptr2_addr")
-    tgt = pd.get("target_addr", "?")
-    val = pd.get("val", "?")
-    use_count = pd.get("use_count", "?")
-    body = ""
+    ptr_addr, ptr2_addr = pd.get("ptr_addr", "?"), pd.get("ptr2_addr")
+    tgt, val, use_count = pd.get("target_addr", "?"), pd.get("val", "?"), pd.get("use_count", "?")
     if ptr2_addr:
-        body += (
-            _rect(10, 20, 170, 70)
-            + _text(20, 45, "sp1", size=14)
-            + _text(20, 62, str(ptr_addr), _DIM_COLOR, 11)
-            + _arrow(170, 45, 310, 81)
-            + _rect(10, 90, 170, 140)
-            + _text(20, 115, "sp2", size=14)
-            + _text(20, 132, str(ptr2_addr), _DIM_COLOR, 11)
-            + _arrow(170, 115, 310, 81)
-        )
+        sources = [
+            {"lines": [("sp1", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)], "stroke": _BOX_STROKE},
+            {"lines": [("sp2", _LABEL_COLOR), (str(ptr2_addr), _DIM_COLOR)], "stroke": _BOX_STROKE},
+        ]
     else:
-        body += (
-            _rect(10, 50, 170, 112)
-            + _text(20, 75, "shared_ptr", size=13)
-            + _text(20, 95, str(ptr_addr), _DIM_COLOR, 11)
-            + _arrow(170, 81, 310, 81)
-        )
-    body += (
-        _rect(310, 50, 480, 112)
-        + _text(320, 72, f"val={val}", size=15)
-        + _text(320, 90, str(tgt), _DIM_COLOR, 11)
-        + _text(320, 108, f"use_count={use_count}", _SHARED_COUNT_COLOR, 11)
-    )
-    return _wrap_svg(p, "shared_ptr diagram",
-                     f"shared_ptr at {_e(ptr_addr)} → val={_e(val)}, use_count={_e(use_count)}.", body)
+        sources = [{"lines": [("shared_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR)],
+                    "stroke": _BOX_STROKE}]
+    dst = {"lines": [(f"val={val}", _LABEL_COLOR), (str(tgt), _DIM_COLOR),
+                     (f"use_count={use_count}", _SHARED_COUNT_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "shared_ptr diagram",
+                      f"shared_ptr at {_e(ptr_addr)} → val={_e(val)}, use_count={_e(use_count)}.",
+                      sources, dst)
 
 
 def _svg_weak(pd: dict, p: str) -> str:
-    ptr_addr = pd.get("ptr_addr", "?")
-    expired = pd.get("expired", "?")
-    use_count = pd.get("use_count", "?")
-    body = (
-        _rect(10, 30, 490, 130)
-        + _text(25, 60, "weak_ptr", size=15)
-        + _text(25, 80, str(ptr_addr), _DIM_COLOR, 12)
-        + _text(25, 100, f"expired={expired}", _LABEL_COLOR, 13)
-        + _text(25, 118, f"use_count={use_count}", _SHARED_COUNT_COLOR, 13)
-    )
-    return _wrap_svg(p, "weak_ptr diagram",
-                     f"weak_ptr at {_e(ptr_addr)}, expired={_e(expired)}, use_count={_e(use_count)}.", body)
+    ptr_addr, expired, use_count = pd.get("ptr_addr", "?"), pd.get("expired", "?"), pd.get("use_count", "?")
+    src = {"lines": [("weak_ptr", _LABEL_COLOR), (str(ptr_addr), _DIM_COLOR),
+                     (f"expired={expired}", _LABEL_COLOR),
+                     (f"use_count={use_count}", _SHARED_COUNT_COLOR)], "stroke": _BOX_STROKE}
+    return _stack_svg(p, "weak_ptr diagram",
+                      f"weak_ptr at {_e(ptr_addr)}, expired={_e(expired)}, use_count={_e(use_count)}.",
+                      [src], None)
 
 
 def _svg_unknown(pd: dict, p: str) -> str:
+    # No box structure to stack; use _wrap_svg directly with a minimal fallback label.
     ptype = pd.get("type", "?") if pd else "?"
-    return _wrap_svg(p, f"diagram ({_e(ptype)})", "No diagram available.",
-                     _text(20, 80, f"type={_e(ptype)} — no diagram", _DIM_COLOR, 13))
+    body = _text(16, 40, f"type={_e(ptype)} — no diagram", _DIM_COLOR, 13)
+    return _wrap_svg(p, f"diagram ({_e(ptype)})", "No diagram available.", body,
+                     vb_w=220, vb_h=80)
+
+
+# ---------------------------------------------------------------------------
+# Stack-frame diagram family (type=frames) and process memory map (type=memmap)
+# ---------------------------------------------------------------------------
+
+_FRAME_STROKES = ["#cc6666", "#9966cc", "#6699cc", "#22aa88", "#cc8844", "#6688aa"]
+_ADDR_AXIS = "#2a8a5a"      # green: addresses increase upward
+_STACK_AXIS = "#cc6600"     # orange: stack grows downward
+_SCHEM_COLOR = "#999999"    # grey: schematic (computed, not measured)
+
+
+def _parse_frames(pd: dict) -> "tuple[int, list[dict]]":
+    """Parse a frames ptrdata dict into (ptrbytes, frames). Each frame is
+    ``{name, addr, local, bytes, pbytes}`` outermost->innermost. Missing pieces
+    degrade to ``"?"`` / ``0`` (never raises)."""
+    try:
+        ptrbytes = int(pd.get("ptrbytes", "8"))
+    except (TypeError, ValueError):
+        ptrbytes = 8
+    frames = []
+    for entry in (pd.get("live", "") or "").split(","):
+        if not entry:
+            continue
+        parts = entry.split(":")
+
+        def _get(i):
+            return parts[i] if i < len(parts) else "?"
+
+        def _int(i):
+            try:
+                return int(parts[i])
+            except (IndexError, ValueError):
+                return 0
+
+        frames.append({"name": _get(0), "addr": _get(1), "local": _get(2),
+                       "bytes": _int(3), "pbytes": _int(4)})
+    return ptrbytes, frames
+
+
+def _frames_core(frames: list, p: str, *, solid: "int | None" = None) -> str:
+    """Vertical stack of call frames. Outermost (e.g. main) on top at the
+    highest address; each deeper call a box below at a lower address; SP marker
+    on the innermost *solid* frame. Frames at index >= ``solid`` are drawn ghost
+    (dashed) -- used by the stepper to show a reclaimed frame after a return.
+    Dual axis: addresses increase upward (green), stack grows downward
+    (orange)."""
+    if solid is None:
+        solid = len(frames)
+    box_w, box_h, gap, pad, left = 210, 54, 10, 12, 58
+    n = len(frames)
+    vb_w = left + box_w + pad + 44
+    vb_h = pad + n * (box_h + gap) + pad + 4
+    parts = []
+    # address axis (up, green) on the far left
+    axis_top, axis_bot = pad + 6, vb_h - pad
+    parts.append(
+        f'<line x1="{left - 40}" y1="{axis_bot}" x2="{left - 40}" y2="{axis_top}" '
+        f'stroke="{_ADDR_AXIS}" stroke-width="2"/>'
+        f'<path d="M{left - 44} {axis_top + 8} L{left - 40} {axis_top} '
+        f'L{left - 36} {axis_top + 8} z" fill="{_ADDR_AXIS}"/>'
+        f'<text x="{left - 48}" y="{(axis_top + axis_bot) // 2}" font-size="11" '
+        f'fill="{_ADDR_AXIS}" text-anchor="middle" '
+        f'transform="rotate(-90 {left - 48} {(axis_top + axis_bot) // 2})">'
+        f'addresses increase</text>'
+    )
+    # stack-growth axis (down, orange) on the far right
+    rx = vb_w - 12
+    parts.append(
+        f'<line x1="{rx}" y1="{axis_top}" x2="{rx}" y2="{axis_bot}" '
+        f'stroke="{_STACK_AXIS}" stroke-width="2"/>'
+        f'<path d="M{rx - 4} {axis_bot - 8} L{rx} {axis_bot} L{rx + 4} '
+        f'{axis_bot - 8} z" fill="{_STACK_AXIS}"/>'
+        f'<text x="{rx + 4}" y="{(axis_top + axis_bot) // 2}" font-size="11" '
+        f'fill="{_STACK_AXIS}" text-anchor="middle" '
+        f'transform="rotate(90 {rx + 4} {(axis_top + axis_bot) // 2})">'
+        f'stack grows</text>'
+    )
+    y = pad
+    for i, f in enumerate(frames):
+        ghost = i >= solid
+        stroke = _SCHEM_COLOR if ghost else _FRAME_STROKES[i % len(_FRAME_STROKES)]
+        dash = ' stroke-dasharray="5 4"' if ghost else ""
+        fill = "#f7f7f7" if ghost else "#ffffff"
+        parts.append(
+            f'<rect x="{left}" y="{y}" width="{box_w}" height="{box_h}" rx="8" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="2"{dash}/>'
+        )
+        is_sp = (not ghost) and (i == solid - 1)
+        title = f'{_e(f["name"])}()' + ("  &#8592; SP" if is_sp else "")
+        if ghost:
+            parts.append(
+                f'<text x="{left + 14}" y="{y + 31}" font-size="12" '
+                f'font-family="ui-monospace,monospace" fill="{_SCHEM_COLOR}">'
+                f'{_e(f["name"])}() reclaimed on return</text>'
+            )
+        else:
+            parts.append(
+                f'<text x="{left + 14}" y="{y + 22}" font-size="13" '
+                f'font-family="system-ui" font-weight="600" fill="#1a1a1a">'
+                f'{title}</text>'
+                f'<text x="{left + 14}" y="{y + 42}" font-size="12" '
+                f'font-family="ui-monospace,monospace" fill="#b00000">'
+                f'&amp;{_e(f["local"])} = {_e(f["addr"])}</text>'
+            )
+        y += box_h + gap
+    body = "".join(parts)
+    return _wrap_svg(
+        p, "call stack frames",
+        "Stack frames, main on top at the highest address; deeper calls at "
+        "lower addresses. Addresses increase upward; the stack grows downward.",
+        body, vb_w=vb_w, vb_h=vb_h)
+
+
+def _svg_frames(pd: dict, p: str) -> str:
+    """Single-snapshot dispatch entry for ``type=frames``."""
+    _pb, frames = _parse_frames(pd)
+    return _frames_core(frames, p)
+
+
+def _svg_frames_anatomy(pd: dict, p: str) -> str:
+    """Expanded per-frame anatomy: a three-column table (slot · address · size)
+    for every live frame. The local's row is the real measured address (red);
+    params / return-addr / saved-FP rows carry schematic addresses (grey)
+    computed by stacking the known slot sizes above the measured local. Only
+    the local address is measured; the rest are illustrative."""
+    ptrbytes, frames = _parse_frames(pd)
+    row_h, hdr_h, frame_gap, pad, left = 18, 16, 10, 12, 40
+    col_addr, col_size = 190, 290
+    parts = [
+        f'<text x="{left}" y="{pad + 10}" font-size="9" fill="#999">slot</text>'
+        f'<text x="{col_addr}" y="{pad + 10}" font-size="9" fill="#999">address</text>'
+        f'<text x="{col_size}" y="{pad + 10}" font-size="9" fill="#999">size</text>'
+    ]
+    y = pad + hdr_h
+    for i, f in enumerate(frames):
+        # slots high->low: [param?], return address, saved FP, local
+        try:
+            base = int(f["addr"], 16)
+        except (ValueError, TypeError):
+            base = None
+        rows = []  # (label, addr_or_None, bytes, measured)
+        savedfp = (base + f["bytes"]) if base is not None else None
+        retaddr = (savedfp + ptrbytes) if savedfp is not None else None
+        param = (retaddr + ptrbytes) if (retaddr is not None and f["pbytes"]) else None
+        if f["pbytes"]:
+            rows.append((f'parameter: {f["pbytes"]}B', param, f["pbytes"], False))
+        rows.append(("return address", retaddr, ptrbytes, False))
+        rows.append(("saved frame ptr", savedfp, ptrbytes, False))
+        rows.append((f'local: {f["local"]}', base, f["bytes"], True))
+        fh = hdr_h // 2 + len(rows) * row_h + 6
+        stroke = _FRAME_STROKES[i % len(_FRAME_STROKES)]
+        parts.append(
+            f'<rect x="{left - 8}" y="{y - 12}" width="{col_size + 40}" '
+            f'height="{fh}" rx="6" fill="#ffffff" stroke="{stroke}" '
+            f'stroke-width="2"/>'
+            f'<text x="{left}" y="{y + 2}" font-size="12" font-weight="600" '
+            f'fill="#1a1a1a">{_e(f["name"])}()</text>'
+        )
+        ry = y + row_h
+        for label, addr, nbytes, measured in rows:
+            addr_s = f"0x{addr:x}" if addr is not None else "?"
+            acol = "#b00000" if measured else _SCHEM_COLOR
+            parts.append(
+                f'<text x="{left}" y="{ry}" font-size="11" '
+                f'fill="#333">{_e(label)}</text>'
+                f'<text x="{col_addr}" y="{ry}" font-size="10" '
+                f'font-family="ui-monospace,monospace" fill="{acol}">{addr_s}</text>'
+                f'<text x="{col_size}" y="{ry}" font-size="10" '
+                f'font-family="ui-monospace,monospace" fill="#0066cc">'
+                f'{nbytes} B</text>'
+            )
+            ry += row_h
+        y = ry + frame_gap
+    vb_w = col_size + 72
+    vb_h = y + pad
+    return _wrap_svg(p, "full frame anatomy",
+                     "Each frame's slots with byte sizes and addresses; only "
+                     "the local address is measured, the rest are schematic.",
+                     "".join(parts), vb_w=vb_w, vb_h=vb_h)
+
+
+_MEMMAP_ORDER = ["stack", "heap", "bss", "data", "text"]   # high -> low address
+_MEMMAP_LABEL = {
+    "stack": "params, auto variables",
+    "heap": "dynamic variables",
+    "bss": "uninitialized global/static",
+    "data": "initialized global/static",
+    "text": "machine instructions",
+}
+_MEMMAP_FILL = {
+    "stack": "#d6e8f5", "heap": "#e7e0f2", "bss": "#f0e6d0",
+    "data": "#e0e8d0", "text": "#f5d6d6",
+}
+
+
+def _svg_memmap(pd: dict, p: str) -> str:
+    """Whole-process memory map: text (low) -> stack (high), heap grows up and
+    stack grows down toward each other. One real address per region."""
+    regions = {}
+    for entry in (pd.get("regions", "") or "").split(","):
+        if not entry:
+            continue
+        parts = entry.split(":")
+        key = parts[0]
+        regions[key] = {"addr": parts[1] if len(parts) > 1 else "?",
+                        "label": parts[2] if len(parts) > 2 else ""}
+    box_w, box_h, gap, pad, left = 210, 46, 8, 26, 30
+    vb_w = left + box_w + 130
+    vb_h = pad + len(_MEMMAP_ORDER) * (box_h + gap) + pad
+    parts = [f'<text x="{left + box_w // 2}" y="14" font-size="11" fill="#555" '
+             f'text-anchor="middle">high memory</text>']
+    y = pad
+    for key in _MEMMAP_ORDER:
+        r = regions.get(key, {"addr": "?", "label": _MEMMAP_LABEL.get(key, "")})
+        fill = _MEMMAP_FILL.get(key, "#ffffff")
+        parts.append(
+            f'<rect x="{left}" y="{y}" width="{box_w}" height="{box_h}" rx="6" '
+            f'fill="{fill}" stroke="#888" stroke-width="1.5"/>'
+            f'<text x="{left + 12}" y="{y + 20}" font-size="12" font-weight="600" '
+            f'fill="#1a1a1a">{_e(key)}</text>'
+            f'<text x="{left + 12}" y="{y + 38}" font-size="10" '
+            f'font-family="ui-monospace,monospace" fill="#b00000">'
+            f'{_e(r["addr"])}</text>'
+            f'<text x="{left + box_w + 8}" y="{y + 26}" font-size="10" '
+            f'fill="#666">{_e(_MEMMAP_LABEL.get(key, ""))}</text>'
+        )
+        y += box_h + gap
+    parts.append(f'<text x="{left + box_w // 2}" y="{vb_h - 8}" font-size="11" '
+                 f'fill="#555" text-anchor="middle">low memory</text>')
+    return _wrap_svg(p, "process memory map",
+                     "Process regions from text (low) to stack (high); heap "
+                     "grows up and the stack grows down.",
+                     "".join(parts), vb_w=vb_w, vb_h=vb_h)
 
 
 # ---------------------------------------------------------------------------
@@ -260,6 +546,8 @@ def svg_renderer(ptrdata: dict[str, Any] | None, svg_id: str = "d") -> str:
         "unique": _svg_unique,
         "shared": _svg_shared,
         "weak": _svg_weak,
+        "frames": _svg_frames,
+        "memmap": _svg_memmap,
     }
     fn = dispatch.get(ptr_type)
     if fn:

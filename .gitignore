@@ -115,3 +115,6 @@ dist_labs/
 Thumbs.db
 desktop.ini
 .playwright-cli/
+
+# superpowers visual-companion mockups (transient)
+.superpowers/
