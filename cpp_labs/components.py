@@ -59,8 +59,6 @@ _HLJS_OVERRIDE_CSS = ".hljs-comment,.hljs-quote{color:#9199a8}"
 _MONO_TOGGLE_CSS = (
     ".mono-cb{position:absolute;width:1px;height:1px;overflow:hidden;"
     "clip:rect(0 0 0 0);white-space:nowrap}\n"
-    "header{display:flex;align-items:center;justify-content:space-between;"
-    "gap:.75rem;flex-wrap:wrap}\n"
     ".mono-toggle{display:inline-flex;align-items:center;min-height:36px;"
     "padding:.15rem .7rem;border:1px solid var(--accent);border-radius:8px;"
     "background:var(--panel-bg);color:var(--accent);font:600 13px system-ui;"
@@ -69,6 +67,23 @@ _MONO_TOGGLE_CSS = (
     "outline-offset:2px}\n"
     ".mono-cb:checked ~ header .mono-toggle{background:var(--accent);color:#fff}\n"
     ".mono-cb:checked ~ main .hljs span{color:inherit !important}\n"
+)
+
+# A visible, zero-JS keyboard-navigation help (native <details>) shown on every
+# page in the header row. It benefits sighted keyboard users the most; screen
+# readers get the navigation model from the radio-group roles/names natively.
+_KBD_HELP_HTML = (
+    '<details class="kbd-help">'
+    '<summary><span aria-hidden="true">⌨</span> Keyboard</summary>'
+    '<div class="kbd-panel">'
+    '<dl>'
+    '<dt><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></dt>'
+    '<dd>Move between groups — topics, step numbers, zoom, and page controls.</dd>'
+    '<dt><kbd>←</kbd> <kbd>→</kbd> arrow keys</dt>'
+    '<dd>Move within a group — e.g. the step numbers or the topic list.</dd>'
+    '<dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>'
+    '<dd>Activate the control that has focus.</dd>'
+    '</dl></div></details>'
 )
 
 
@@ -111,6 +126,30 @@ def _e(s: Any) -> str:
 COMPONENT_CSS = """
 .demo-wrap { max-width: 100rem; margin: 0 auto; padding: 1rem 1.2rem; }
 .demo-wrap h2 { font-size: 1.1rem; }
+/* header row: title on the left, tool chips (keyboard help, monochrome) on the
+   right — collapsed tools add no vertical space. */
+header { display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap; }
+.hdr-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+/* keyboard-navigation help: a compact chip whose panel floats (position:absolute)
+   so opening it costs no layout height. */
+details.kbd-help { position: relative; }
+details.kbd-help > summary { display: inline-flex; align-items: center; gap: .35rem;
+  min-height: 36px; padding: .15rem .7rem; border: 1px solid var(--accent);
+  border-radius: 8px; background: var(--panel-bg); color: var(--accent);
+  font: 600 13px system-ui; cursor: pointer; list-style: none; white-space: nowrap; }
+details.kbd-help > summary::-webkit-details-marker { display: none; }
+details.kbd-help[open] > summary { background: var(--accent); color: #fff; }
+.kbd-panel { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 50;
+  width: min(24rem, 92vw); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel-bg); box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  padding: .6rem .85rem; font: 13px/1.45 system-ui; text-align: left; }
+.kbd-panel dl { margin: 0; }
+.kbd-panel dt { font-weight: 700; margin-top: .4rem; }
+.kbd-panel dt:first-child { margin-top: 0; }
+.kbd-panel dd { margin: .1rem 0 0; }
+.kbd-panel kbd { border: 1px solid var(--border); border-radius: 4px;
+  padding: 0 .3rem; font: 12px ui-monospace, monospace; background: #fff; }
 .legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
 .legend li { display: inline-flex; align-items: center; gap: .4rem;
   border: 1px solid var(--border); border-radius: 6px; padding: .2rem .5rem; }
@@ -182,7 +221,9 @@ def page_shell(comp_id: str, body_html: str, *, title: str = "Demo",
         "<body>\n"
         '<a class="skip" href="#main">Skip to content</a>\n'
         f"{mono_cb}"
-        f"<header>\n<h1>{t}</h1>\n{mono_label}</header>\n"
+        f"<header>\n<h1>{t}</h1>\n"
+        f'<div class="hdr-tools">{_KBD_HELP_HTML}{mono_label}</div>\n'
+        "</header>\n"
         '<main id="main">\n'
         f'<div class="demo-wrap">\n{body_html}\n</div>\n'
         "</main>\n"
@@ -925,7 +966,7 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f'<label for="{p}-zcb" class="zoom-open">{_e(label)}</label>'
         f'<div class="zoom-body">'
         + radios
-        + f'<div class="zoom-bar">'
+        + f'<div class="zoom-bar" role="group" aria-label="Zoom level">'
         + zlabs
         + f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
         f'title="Close">✕</label>'
@@ -1072,7 +1113,8 @@ def stepped_frames(comp_id: str, steps, *, with_anatomy: bool = False) -> str:
     return (
         f'<div id="{p}"><style>{chr(10).join(css)}</style>'
         + "".join(inputs)
-        + f'<div class="sf-steps" style="display:flex;gap:6px;margin-bottom:8px">'
+        + f'<div class="sf-steps" role="group" aria-label="Step through the call stack" '
+        f'style="display:flex;gap:6px;margin-bottom:8px">'
         + "".join(labels) + "</div>"
         + f'<div class="sf-views">' + "".join(views) + "</div>"
         + anatomy

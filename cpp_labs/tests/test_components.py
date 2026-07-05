@@ -286,6 +286,15 @@ class TestPageShell:
         page = C.page_shell("s", "<p>hi</p>", title="T", highlight=False)
         assert "mono-cb" not in page
 
+    def test_header_has_visible_keyboard_help_on_every_page(self):
+        # A visible, zero-JS keyboard-navigation help chip lives in the header row
+        # on ALL pages (highlight or not) — sighted keyboard users see it too.
+        for hl in (True, False):
+            page = C.page_shell("s", "<p>x</p>", title="T", highlight=hl)
+            assert 'class="kbd-help"' in page and "<details" in page
+            assert "Keyboard" in page and "<kbd>Tab</kbd>" in page
+            assert re.search(r"<header>.*kbd-help.*</header>", page, re.S)
+
     def test_document_flow_no_viewport_lock(self):
         # Document pages must NOT opt into the legacy DPG viewport lock: the body
         # is plain document flow (no `lab-shell` class, no inline height/overflow

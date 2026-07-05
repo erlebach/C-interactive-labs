@@ -80,3 +80,9 @@ def test_stepped_frames_step_buttons_have_visible_keyboard_focus():
     html = stepped_frames("sf", _steps())
     assert ":focus-visible ~ .sf-steps label[for=sf-s0]" in html
     assert "outline:3px solid var(--accent)" in html
+
+
+def test_stepped_frames_group_has_accessible_name():
+    # WCAG: the step radio group announces its purpose + position to screen readers
+    html = stepped_frames("sf", _steps())
+    assert 'class="sf-steps" role="group" aria-label="Step through the call stack"' in html

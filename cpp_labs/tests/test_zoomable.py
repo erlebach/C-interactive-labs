@@ -40,3 +40,8 @@ def test_zoomable_zoom_buttons_have_visible_keyboard_focus():
     html = zoomable("z", "<svg></svg>")
     assert ":focus-visible ~ .zoom-bar label[for=z-zl0]" in html
     assert "outline:3px solid var(--accent)" in html
+
+
+def test_zoomable_bar_is_a_labelled_group():
+    html = zoomable("z", "<svg></svg>")
+    assert 'class="zoom-bar" role="group" aria-label="Zoom level"' in html
