@@ -1,0 +1,39 @@
+id: fa_const_ref
+name: "const Reference"
+group: Functions
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+explanation: >-
+  A const reference (const T&) is a read-only alias: the function sees the caller's
+  variable without copying it, but cannot change it. It is the standard way to pass
+  something you only need to read. Assigning through a const reference is a compile error.
+template: |
+  #include <iostream>
+  #include <cstdio>
+  <<body>>
+cases:
+  - label: "Correct: read through a const reference"
+    subs:
+      "<<body>>": |
+        // const reference: a read-only alias — no copy is made and the callee cannot change it
+        void show(const int& x) {
+            printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
+                   (void*)&x, (void*)&x, x);
+            std::cout << "show sees " << x << " (read-only)" << std::endl;
+        }
+
+        int main() {
+            int val = 42;
+            show(val);
+        }
+  - label: "Mistake: assign through it  (compile error)"
+    subs:
+      "<<body>>": |
+        // Mistake: a const reference is read-only, so assigning through it is a compile error
+        void bump(const int& x) {
+            x = 99;
+        }
+
+        int main() {
+            int val = 42;
+            bump(val);
+        }

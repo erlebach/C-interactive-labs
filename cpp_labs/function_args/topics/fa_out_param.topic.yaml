@@ -1,0 +1,27 @@
+id: fa_out_param
+name: "Output Parameters"
+group: Functions
+doc_url: https://en.cppreference.com/w/cpp/language/pointer
+target_var: q
+explanation: >-
+  A function returns only one value, but a pointer parameter lets it hand several results
+  back: the caller passes the addresses of its own variables and the function writes THROUGH
+  those pointers. Here divmod fills both the quotient and the remainder. The diagram shows one
+  output pointer pointing back at the caller's quotient variable.
+template: |
+  #include <iostream>
+  #include <cstdio>
+
+  // output parameters: the caller passes addresses; the function writes results THROUGH them
+  void divmod(int a, int b, int* q, int* r) {
+      *q = a / b;
+      *r = a % b;
+      printf("PTRDATA: type=raw ptr_addr=%p target_addr=%p target_val=%d\n",
+             (void*)&q, (void*)q, *q);
+  }
+
+  int main() {
+      int q = 0, r = 0;
+      divmod(17, 5, &q, &r);
+      std::cout << "17 / 5 = " << q << " remainder " << r << std::endl;
+  }

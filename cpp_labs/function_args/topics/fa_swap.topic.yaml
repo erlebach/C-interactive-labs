@@ -1,0 +1,45 @@
+id: fa_swap
+name: "swap: why references matter"
+group: Functions
+doc_url: https://en.cppreference.com/w/cpp/language/reference
+explanation: >-
+  swap is the classic case that shows why references matter. With reference parameters
+  the function works on the caller's own variables and really exchanges them. With value
+  parameters it exchanges two copies and the caller's variables are left untouched — a
+  silent no-op that compiles cleanly, which is exactly what makes the bug dangerous.
+template: |
+  #include <iostream>
+  <<body>>
+cases:
+  - label: "Works: pass by reference"
+    subs:
+      "<<body>>": |
+        // by reference: a and b are aliases for the caller's variables, so this really swaps them
+        void swap_vals(int& a, int& b) {
+            int tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        int main() {
+            int x = 1, y = 2;
+            std::cout << "before: x=" << x << " y=" << y << std::endl;
+            swap_vals(x, y);
+            std::cout << "after:  x=" << x << " y=" << y << std::endl;
+        }
+  - label: "Silent no-op: pass by value"
+    subs:
+      "<<body>>": |
+        // by value: a and b are copies, so swapping them leaves the caller's x and y untouched
+        void swap_vals(int a, int b) {
+            int tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        int main() {
+            int x = 1, y = 2;
+            std::cout << "before: x=" << x << " y=" << y << std::endl;
+            swap_vals(x, y);
+            std::cout << "after:  x=" << x << " y=" << y << " (unchanged!)" << std::endl;
+        }

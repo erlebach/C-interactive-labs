@@ -15,8 +15,11 @@ def loaded():
     return load_topics(_HERE / "topics")
 
 
-def test_single_topic_loaded(loaded):
-    assert list(loaded.keys()) == ["function_args"]
+def test_all_topics_loaded(loaded):
+    # the core "pass three ways" topic plus the four added examples
+    assert set(loaded) == {
+        "function_args", "fa_const_ref", "fa_swap", "fa_out_param", "fa_copy_cost",
+    }
 
 
 def test_mode_dropdown_value_map(loaded):
