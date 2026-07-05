@@ -811,34 +811,32 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
     their one-to-one ``role="img"`` AND stay interactive: a stepper's radios
     still work in the overlay) is promoted to a fixed full-screen overlay.
 
-    The enlarged content sits in ``.zoom-content`` stacked ABOVE the full-area
+    The enlarged content sits in ``.zoom-content`` — the ENTIRE right panel
+    (``inner_html``: stepper + anatomy) as one unit — stacked ABOVE the full-area
     ``.zoom-backdrop`` (so clicks on the diagram/stepper land on it; only clicks
     in the surrounding backdrop, or the ✕, close it). Five zoom-level radios —
-    0.5× / 0.75× / Fit / 1.5× / 2× — scale the diagram to 20% / 30% / 40% / 60% /
-    80% of the window height (all measured from the fixed 40%-height Fit base, so
-    the factors are predictable and never explode). Fit is the default. The size
-    rules use ``!important`` to beat the wrapped SVG's inline ``max-width`` cap
-    (without it the diagram never actually grows). The toolbar wraps and uses
-    44px touch targets for mobile. No ESC (a native <dialog> would need
-    scripting)."""
+    0.5× / 0.75× / 1× / 1.5× / 2× — apply a single CSS ``zoom`` to that whole
+    panel, so it scales as one unit and every internal relationship (frame
+    diagram ↔ anatomy, spacing, text) is preserved exactly — just bigger or
+    smaller. 1.5× is the default. The toolbar wraps and uses 44px touch targets
+    for mobile. No ESC (a native <dialog> would need scripting)."""
     p = _safe(comp_id)
-    # Zoom heights are multiples of the 40vh Fit base: 0.5/0.75/1/1.5/2 x 40vh.
-    # (sid, label, aria, height)
+    # (sid, label, aria, zoom-factor) — a plain multiplier on the whole panel.
     levels = [
-        ("zl0", "0.5×", "half size", "20vh"),
-        ("zl1", "0.75×", "three-quarter size", "30vh"),
-        ("zl2", "Fit", "fit to 40% of window height", "40vh"),
-        ("zl3", "1.5×", "1.5 times", "60vh"),
-        ("zl4", "2×", "2 times", "80vh"),
+        ("zl0", "0.5×", "half size", "0.5"),
+        ("zl1", "0.75×", "three-quarter size", "0.75"),
+        ("zl2", "1×", "actual size", "1"),
+        ("zl3", "1.5×", "1.5 times", "1.5"),
+        ("zl4", "2×", "2 times", "2"),
     ]
-    default = "zl2"
+    default = "zl3"
     active_sel = ", ".join(
         f"#{p} #{p}-{sid}:checked ~ .zoom-bar label[for={p}-{sid}]"
-        for sid, _lab, _aria, _h in levels)
-    height_css = "".join(
-        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-{sid}:checked ~ .zoom-content svg"
-        f" {{ height:{h} !important; }}\n"
-        for sid, _lab, _aria, h in levels)
+        for sid, _lab, _aria, _z in levels)
+    zoom_css = "".join(
+        f"#{p} .zoom-cb:checked ~ .zoom-body #{p}-{sid}:checked ~ .zoom-content"
+        f" {{ zoom:{z}; }}\n"
+        for sid, _lab, _aria, z in levels)
     style = (
         # hidden-but-focusable controls
         f"#{p} .zoom-cb, #{p} .zl {{ position:absolute; width:1px; height:1px;"
@@ -856,16 +854,10 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
         f" position:fixed; inset:0; z-index:1001; }}\n"
-        # Stable full-width content box (NOT fit-content) so switching steps —
-        # whose per-step anatomy has a different aspect ratio, hence a different
-        # auto width at a fixed height — cannot re-center and shift the block.
-        # Each SVG is block-centered instead, so all steps share one center axis.
+        # The whole panel, at its natural size, centered; `zoom` (below) scales it
+        # as one unit — so nothing inside is re-laid-out and nothing shifts.
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content {{ position:relative;"
-        f" z-index:1002; width:100%; max-width:100%; margin:0; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content svg {{ display:block;"
-        f" margin-left:auto; margin-right:auto; }}\n"
-        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-content .sf-steps"
-        f" {{ justify-content:center; }}\n"
+        f" z-index:1002; width:fit-content; margin:0 auto; }}\n"
         # toolbar: sticky so it never overlaps content even when it wraps on mobile
         f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-bar {{ display:flex; flex-wrap:wrap;"
         f" gap:.4rem; align-items:center; position:sticky; top:0; z-index:1003;"
@@ -879,10 +871,7 @@ def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> st
         f" margin-left:auto; align-items:center; justify-content:center; min-width:44px;"
         f" min-height:44px; border:1px solid #bbb; border-radius:8px; background:#fff;"
         f" cursor:pointer; font-size:20px; }}\n"
-        # SVG sizing: beat the inline max-width cap, then set height per zoom level
-        f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto !important;"
-        f" max-width:none !important; }}\n"
-        + height_css
+        + zoom_css
     )
     radios = "".join(
         f'<input type="radio" class="zl" name="{p}-zl" id="{p}-{sid}"'

@@ -18,19 +18,18 @@ def test_zoomable_overlay_checkbox_unchecked_by_default():
     assert 'class="zoom-cb" id="z-zcb" aria-label="Enlarge diagram">' in html
 
 
-def test_zoomable_has_five_zoom_levels_with_fit_default():
+def test_zoomable_has_five_zoom_levels_default_1_5x():
     html = zoomable("z", "<svg></svg>")
-    assert html.count('type="radio"') == 5           # 0.5x / 0.75x / Fit / 1.5x / 2x
-    for lab in ("0.5×", "0.75×", "Fit", "1.5×", "2×"):
+    assert html.count('type="radio"') == 5           # 0.5x / 0.75x / 1x / 1.5x / 2x
+    for lab in ("0.5×", "0.75×", "1×", "1.5×", "2×"):
         assert lab in html
-    # exactly one preselected zoom level (Fit); the open checkbox is NOT checked
+    # exactly one preselected zoom level (1.5x); the open checkbox is NOT checked
     assert html.count(" checked") == 1
 
 
-def test_zoomable_enlarges_svg_beating_inline_cap():
-    # the wrapped SVG's inline max-width cap is overridden so it actually grows
+def test_zoomable_scales_whole_panel_via_css_zoom():
+    # a single CSS `zoom` on the whole .zoom-content panel — not per-SVG resizing
     html = zoomable("z", "<svg></svg>")
-    assert "max-width:none !important" in html
-    assert "height:40vh !important" in html      # Fit = 40% of window height (base)
-    assert "height:20vh !important" in html      # 0.5x of the 40vh base
-    assert "height:80vh !important" in html      # 2x of the 40vh base
+    assert "zoom:0.5" in html and "zoom:1.5" in html and "zoom:2" in html
+    # no per-SVG height/max-width overrides remain (that broke the layout)
+    assert "!important" not in html
