@@ -1,0 +1,6 @@
+title: "Process Memory Map"
+language: cpp
+bake: { mm: sf_memmap }
+blocks:
+  - concept: { id: mm-note, text: "${mm.explanation}" }
+  - topic:   { id: mm, source: mm }

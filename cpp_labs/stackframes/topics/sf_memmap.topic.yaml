@@ -1,0 +1,34 @@
+id: sf_memmap
+name: Process Memory Map
+group: Stack Frames
+doc_url: https://en.cppreference.com/w/cpp/language/storage_duration
+explanation: >-
+  The stack is one region of the whole process image. From low to high
+  addresses: text (code) < initialized data < uninitialized data (bss) < heap <
+  stack. The heap grows up and the stack grows down, toward each other.
+template: |
+  #include <cstdio>
+  #include <cstdint>
+  int g_seed = 7;          // initialized global -> data
+  int g_count;             // uninitialized global -> bss
+  int main() {
+      int local = 0;                 // -> stack
+      int* heap = new int(5);        // -> heap
+      // store as integers first — avoids C++ parse ambiguity with < inside args
+      uintptr_t text_addr  = reinterpret_cast<uintptr_t>(&main);
+      uintptr_t data_addr  = reinterpret_cast<uintptr_t>(&g_seed);
+      uintptr_t bss_addr   = reinterpret_cast<uintptr_t>(&g_count);
+      uintptr_t heap_addr  = reinterpret_cast<uintptr_t>(heap);
+      uintptr_t stack_addr = reinterpret_cast<uintptr_t>(&local);
+      // ordering is deterministic and assertable; addresses vary and are only drawn
+      printf("text < data? %d\n",  (int)(text_addr  < data_addr));
+      printf("data < bss? %d\n",   (int)(data_addr  < bss_addr));
+      printf("bss < heap? %d\n",   (int)(bss_addr   < heap_addr));
+      printf("heap < stack? %d\n", (int)(heap_addr  < stack_addr));
+      printf("PTRDATA: type=memmap regions=text:%p:main,data:%p:g_seed,"
+             "bss:%p:g_count,heap:%p:new_int,stack:%p:local\n",
+             reinterpret_cast<void*>(text_addr), reinterpret_cast<void*>(data_addr),
+             reinterpret_cast<void*>(bss_addr),  reinterpret_cast<void*>(heap_addr),
+             reinterpret_cast<void*>(stack_addr));
+      delete heap;
+  }
