@@ -2,6 +2,35 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-04 23:59 — stackframes: brainstorm → spec → plan (design only, no code)
+
+Design session for a new `stackframes` demonstration on the **left_rail** layout. Brainstormed
+with the visual companion, wrote the spec, wrote a 14-task TDD implementation plan — **no
+implementation code yet**; both artifacts committed on `feat/stackframes` (spec `3136437`, plan
+`4297919`). Design locks 6 rail examples, **two new SVG families** (`type=frames`, `type=memmap`),
+and a **zero-JS push/pop stepper**. Next: execute the plan **subagent-driven** from Task 1.
+Spec: `docs/superpowers/specs/2026-07-04-stackframes-design.md`; plan:
+`docs/superpowers/plans/2026-07-04-stackframes.md`; handoff:
+`handoffs/HANDOFF_2026-07-04_23h59mEST.md`.
+
+### Details
+
+- **Examples:** `sf_single_call`, `sf_nested`, `sf_locals` (two tabs), `sf_recursion`,
+  `sf_dangling_local` (gotcha), `sf_memmap`.
+- **Stepper:** program emits one `PTRDATA` line per call/return → `parse_ptrdata_all` (additive;
+  first-line `parse_ptrdata` untouched) → one SVG per step behind a CSS-radio control. A reusable
+  C++ **frame-tracer** snippet produces the deterministic trace.
+- **Diagram convention:** high-memory-on-top / SP-at-bottom, dual axis (**addresses ↑ / stack ↓**),
+  clean real-address default + **full frame anatomy** in `<details>` with per-slot byte sizes and
+  per-row addresses (measured local red, schematic slots grey).
+- **Determinism contract:** traces + `sizeof`-derived sizes + memmap ordering booleans baked &
+  asserted; raw addresses drawn but never asserted.
+- **Gotcha** via `-Werror=return-local-addr` (no ASan run-env) → red compile-error box; needs one
+  additive `extra_compile_flags` field on `TopicTemplate`.
+- **Open issue flagged in handoff:** `-std=c++20` is hardcoded in `compiler_runner.py` (9 sites);
+  a per-standard variant axis (11/14/17/20) remains deferred future work — stackframes itself is
+  C++11-agnostic, so not a blocker.
+
 ## 2026-07-04 22:49 — Vertical memory diagrams, SKILL_PREPARATION.md, +4 function_args examples
 
 Three merged workstreams. **(1)** Re-oriented every SVG memory diagram horizontal→vertical via one `_stack_svg(sources, target)` helper encoding the **source-count rule** (≤2 converge, ≥3 stack); native `<marker>` arrowheads; 14px box text matching the code panel; `code_diagram_panel` **2fr:1fr → 3fr:1fr**; `hover_link_diagram` reuses `_stack_svg`; ptrdata-less variants get an **empty right cell (not the `type=? — no diagram` placeholder) with the code-column width held constant** (merge `c27444b`). **(2)** `cpp_labs/SKILL_PREPARATION.md` — the reusable demonstration-authoring guide, precursor to the future *demonstration* skill (`04c129e`). **(3)** Four new `function_args` examples — const ref (+compile-error gotcha), swap (works vs no-op), output params, copy cost — the guide's first use (merge `221607f`, commit `e2387fb`). Full `cpp_labs` suite **476 passed**; all 7 pages rebuilt. Next (brainstorm first): a `stackframes` demonstration on the **left_rail** layout. Handoff: `handoffs/HANDOFF_2026-07-04_22h49mEST.md`.
