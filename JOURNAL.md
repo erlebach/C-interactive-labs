@@ -2,6 +2,18 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 12:24 — fix: no per-step horizontal shift in the zoom overlay
+
+User saw the stack-frame diagram + anatomy jump horizontally when clicking step radios in enlarged
+mode (not in normal mode). Cause: the overlay forces SVG *height* with `width:auto`, so each step's
+per-step anatomy (different frame count → different viewBox aspect) got a different auto width; with
+`.zoom-content { width:fit-content; margin:0 auto }` that width change re-centered the whole block.
+Fix: stable `width:100%` content box + block-center each SVG (`margin-inline:auto`) and center
+`.sf-steps`, so all steps share one center axis. **Playwright-verified (1280×900):** frame diagram
+left/center identical across steps (267/640), anatomy center stable at 640 even as its width changes
+(1064→637px). Engine suite 367 green. Branch `feat/stackframes-ux` (kept).
+
+
 ## 2026-07-05 12:12 — zoom: 5 levels (0.5×–2×), Fit=40% base, mobile-verified
 
 Per user follow-up on the zoomable lightbox: added 0.5×/0.75× levels, changed Fit to **40% of window
