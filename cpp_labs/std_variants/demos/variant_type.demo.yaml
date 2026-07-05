@@ -1,0 +1,5 @@
+title: "std::variant (C++17)"
+language: cpp
+bake: { va: variant_type }
+blocks:
+  - topic: { id: va, source: va, diagram: false, concept: "${va.explanation}" }

@@ -28,8 +28,17 @@ def test_old_standard_shows_compile_failure(html):
 
 
 def test_each_demo_runs_on_its_modern_standard(html):
-    # The green tabs actually run and print their result.
-    for out in ("value: 42", "square(7) = 49", "*p = 42", "a is older: true"):
+    # The green tabs actually run and print their result (one string per demo).
+    for out in (
+        "square(7) = 49",     # auto_return
+        "*p = 42",            # make_unique
+        "value: 42",          # optional
+        "now holds: hello",   # variant
+        "filename: hw1.cpp",  # filesystem
+        "sum = 10",           # span
+        "twice(21) = 42",     # concepts
+        "a is older: true",   # spaceship
+    ):
         assert out in html, f"missing baked output {out!r}"
 
 

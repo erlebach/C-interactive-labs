@@ -1,0 +1,5 @@
+title: "std::span (C++20)"
+language: cpp
+bake: { sv: span_view }
+blocks:
+  - topic: { id: sv, source: sv, diagram: false, concept: "${sv.explanation}" }

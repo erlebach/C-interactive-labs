@@ -6,4 +6,8 @@ demos:
   - ../demos/auto_return.demo.yaml
   - ../demos/make_unique.demo.yaml
   - ../demos/optional_type.demo.yaml
+  - ../demos/variant_type.demo.yaml
+  - ../demos/filesystem.demo.yaml
+  - ../demos/span_view.demo.yaml
+  - ../demos/concepts.demo.yaml
   - ../demos/spaceship.demo.yaml
