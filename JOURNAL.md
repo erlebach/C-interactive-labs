@@ -2,6 +2,34 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 14:10 — Accessibility pass: contrast, monochrome toggle, focus, keyboard help, labels
+
+Series of a11y improvements on `feat/stackframes-ux` (browser-verified with Playwright), prompted by
+SiteImprove/keyboard review. **(1) Contrast (real AA fix):** green `#2a8a5a`→`#2a7f54` (white-on-green
+4.3→4.9:1) for active step/zoom buttons + the diagram axis. **(2) Monochrome code toggle:** zero-JS
+header-row chip (`page_shell`, gated on highlight) that forces every hljs token to inherit the base
+colour — an accessible single-colour view (best-practice accommodation; the SIA-R79 badge itself is an
+Alfa over-eager heuristic on highlighted code, not a real failure — see MEMORY note). **(3) Focus
+visible (WCAG 2.4.7):** the stepper step buttons and zoom-level buttons hid their radios and weren't
+showing keyboard focus; added `:focus-visible ~ label` outlines (rail/tabs already had them). Verified
+by real Tab navigation. **(4) Keyboard help:** a visible zero-JS `<details>` "⌨ Keyboard" chip in the
+header (floats open → no vertical space) documenting Tab/arrows/Enter — for sighted keyboard users.
+**(5) Group semantics:** `role="group"`+`aria-label` on the stepper and zoom bars (the rail already had
+it) so screen readers announce the group purpose natively. **(6) Labels:** per-example concept chip
+"Concept"→**"Key Idea"**; sidebar demonstration concept "Concept"→**"Main Takeaway"**. Full suite 374
+passed; all 8 pages build. Branch kept (not merged).
+
+### Details
+
+Files: `components.py` (`page_shell` header tools + `_KBD_HELP_HTML` + `_MONO_TOGGLE_CSS` + COMPONENT_CSS
+header/kbd CSS; `stepped_frames` focus + `role=group`; `zoomable` focus + `role=group`; `concept_note`
+default label), `html_renderer.py` (`_ADDR_AXIS` colour), `render_page.py` (`_build_concept` +
+sidebar-concept label defaults). Design notes: keyboard-nav hints are for SIGHTED keyboard users (SR
+users get the model from roles/names), so the help is VISIBLE, not sr-only. The mono toggle does NOT
+clear SIA-R79 (spans persist) — it provides the accessible view. Zero-JS throughout except the existing
+highlight.js. All new controls: 3px accent focus ring, ≥36px targets, `:has()`/`~` CSS only.
+
+
 ## 2026-07-05 12:38 — zoom simplified: scale the whole right panel as one unit (CSS `zoom`)
 
 Karpathy pass on user feedback: the enlarge overlay had been resizing each SVG by height, which changed
