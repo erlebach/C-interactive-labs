@@ -404,6 +404,68 @@ def _svg_frames(pd: dict, p: str) -> str:
     return _frames_core(frames, p)
 
 
+def _svg_frames_anatomy(pd: dict, p: str) -> str:
+    """Expanded per-frame anatomy: a three-column table (slot · address · size)
+    for every live frame. The local's row is the real measured address (red);
+    params / return-addr / saved-FP rows carry schematic addresses (grey)
+    computed by stacking the known slot sizes above the measured local. Only
+    the local address is measured; the rest are illustrative."""
+    ptrbytes, frames = _parse_frames(pd)
+    row_h, hdr_h, frame_gap, pad, left = 18, 16, 10, 12, 40
+    col_addr, col_size = 190, 290
+    parts = [
+        f'<text x="{left}" y="{pad + 10}" font-size="9" fill="#999">slot</text>'
+        f'<text x="{col_addr}" y="{pad + 10}" font-size="9" fill="#999">address</text>'
+        f'<text x="{col_size}" y="{pad + 10}" font-size="9" fill="#999">size</text>'
+    ]
+    y = pad + hdr_h
+    for i, f in enumerate(frames):
+        # slots high->low: [param?], return address, saved FP, local
+        try:
+            base = int(f["addr"], 16)
+        except (ValueError, TypeError):
+            base = None
+        rows = []  # (label, addr_or_None, bytes, measured)
+        savedfp = (base + f["bytes"]) if base is not None else None
+        retaddr = (savedfp + ptrbytes) if savedfp is not None else None
+        param = (retaddr + ptrbytes) if (retaddr is not None and f["pbytes"]) else None
+        if f["pbytes"]:
+            rows.append((f'parameter: {f["pbytes"]}B', param, f["pbytes"], False))
+        rows.append(("return address", retaddr, ptrbytes, False))
+        rows.append(("saved frame ptr", savedfp, ptrbytes, False))
+        rows.append((f'local: {f["local"]}', base, f["bytes"], True))
+        fh = hdr_h // 2 + len(rows) * row_h + 6
+        stroke = _FRAME_STROKES[i % len(_FRAME_STROKES)]
+        parts.append(
+            f'<rect x="{left - 8}" y="{y - 12}" width="{col_size + 40}" '
+            f'height="{fh}" rx="6" fill="#ffffff" stroke="{stroke}" '
+            f'stroke-width="2"/>'
+            f'<text x="{left}" y="{y + 2}" font-size="12" font-weight="600" '
+            f'fill="#1a1a1a">{_e(f["name"])}()</text>'
+        )
+        ry = y + row_h
+        for label, addr, nbytes, measured in rows:
+            addr_s = f"0x{addr:x}" if addr is not None else "?"
+            acol = "#b00000" if measured else _SCHEM_COLOR
+            parts.append(
+                f'<text x="{left}" y="{ry}" font-size="11" '
+                f'fill="#333">{_e(label)}</text>'
+                f'<text x="{col_addr}" y="{ry}" font-size="10" '
+                f'font-family="ui-monospace,monospace" fill="{acol}">{addr_s}</text>'
+                f'<text x="{col_size}" y="{ry}" font-size="10" '
+                f'font-family="ui-monospace,monospace" fill="#0066cc">'
+                f'{nbytes} B</text>'
+            )
+            ry += row_h
+        y = ry + frame_gap
+    vb_w = col_size + 72
+    vb_h = y + pad
+    return _wrap_svg(p, "full frame anatomy",
+                     "Each frame's slots with byte sizes and addresses; only "
+                     "the local address is measured, the rest are schematic.",
+                     "".join(parts), vb_w=vb_w, vb_h=vb_h)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
