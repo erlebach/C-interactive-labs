@@ -778,6 +778,51 @@ def code_diagram_panel(comp_id: str, code_html: str, diagram_html: str,
     )
 
 
+def zoomable(comp_id: str, inner_html: str, *, label: str = "⤢ Enlarge") -> str:
+    """Wrap HTML in a zero-JS click-to-fullscreen container.
+
+    A visually-hidden but keyboard-focusable checkbox drives the state; the
+    visible ``label`` chip opens it. When checked, the SAME ``.zoom-body`` (which
+    contains ``inner_html`` verbatim — never duplicated, so any SVGs inside keep
+    their one-to-one ``role="img"`` and interactive state) is promoted to a fixed
+    full-screen overlay. A close glyph and a full-area backdrop label both toggle
+    the checkbox off. No ESC (a native <dialog> would need scripting)."""
+    p = _safe(comp_id)
+    style = (
+        f"#{p} .zoom-cb {{ position:absolute; width:1px; height:1px; overflow:hidden;"
+        f" clip:rect(0 0 0 0); white-space:nowrap; }}\n"
+        f"#{p} .zoom-open {{ display:inline-flex; align-items:center; min-height:44px;"
+        f" padding:.2rem .7rem; margin:.2rem 0 .4rem; border:1px solid var(--border,#bbb);"
+        f" border-radius:8px; background:var(--panel-bg,#fff); cursor:pointer;"
+        f" font:13px system-ui; width:fit-content; }}\n"
+        f"#{p} .zoom-cb:focus-visible ~ .zoom-open {{ outline:2px solid var(--accent,#2a6);"
+        f" outline-offset:2px; }}\n"
+        f"#{p} .zoom-close, #{p} .zoom-backdrop {{ display:none; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body {{ position:fixed; inset:0; z-index:1000;"
+        f" background:#fff; overflow:auto; padding:2.5rem 1.5rem 1.5rem;"
+        f" box-shadow:0 0 0 100vmax rgba(0,0,0,.5); }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-close {{ display:flex;"
+        f" position:fixed; top:.6rem; right:.9rem; z-index:1002; align-items:center;"
+        f" justify-content:center; width:44px; height:44px; border:1px solid #bbb;"
+        f" border-radius:8px; background:#fff; cursor:pointer; font-size:20px; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body .zoom-backdrop {{ display:block;"
+        f" position:fixed; inset:0; z-index:1001; }}\n"
+        f"#{p} .zoom-cb:checked ~ .zoom-body svg {{ width:auto; max-width:100%;"
+        f" height:auto; max-height:calc(100vh - 5rem); }}\n"
+    )
+    return (
+        f'<div id="{p}" class="zoomwrap"><style>{style}</style>'
+        f'<input type="checkbox" class="zoom-cb" id="{p}-zcb" '
+        f'aria-label="Enlarge diagram">'
+        f'<label for="{p}-zcb" class="zoom-open">{_e(label)}</label>'
+        f'<div class="zoom-body">{inner_html}'
+        f'<label for="{p}-zcb" class="zoom-backdrop" aria-hidden="true"></label>'
+        f'<label for="{p}-zcb" class="zoom-close" aria-label="Close" '
+        f'title="Close">✕</label>'
+        f'</div></div>'
+    )
+
+
 def code_concept_panel(comp_id: str, main_html: str, concept_text: str,
                        *, title: str = "Concept") -> str:
     """Two-column split: the demo on the left, a titled Concept aside on the right.
