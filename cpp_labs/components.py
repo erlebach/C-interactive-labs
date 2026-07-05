@@ -900,12 +900,17 @@ def frames_anatomy_details(comp_id: str, pd: dict) -> str:
     )
 
 
-def stepped_frames(comp_id: str, steps) -> str:
+def stepped_frames(comp_id: str, steps, *, with_anatomy: bool = False) -> str:
     """Zero-JS CSS-radio stepper over frame snapshots: one radio + one frame SVG
     per step; selecting a step shows that snapshot. Frames present at a deeper
     step but gone at the current one are drawn ghost (reclaimed). Defaults to
     the deepest step. Assumes each step's frame list is a prefix of the deepest
-    (true for straight call chains and recursion)."""
+    (true for straight call chains and recursion).
+
+    When ``with_anatomy`` is set, a <details> "Show full frame anatomy" is
+    emitted *inside the same container* holding one per-step anatomy table; the
+    same step radios drive it, so the anatomy always matches the selected step
+    (all frames live at that step, not just main)."""
     p = _safe(comp_id)
     ptrbytes, deepest = 8, []
     parsed = []
@@ -916,8 +921,10 @@ def stepped_frames(comp_id: str, steps) -> str:
             ptrbytes, deepest = pb, frames
     default = max(range(len(parsed)), key=lambda i: len(parsed[i])) if parsed else 0
 
-    inputs, labels, views = [], [], []
+    inputs, labels, views, ans = [], [], [], []
     css = [f"#{p} .sf-v {{ display:none; }}"]
+    if with_anatomy:
+        css.append(f"#{p} .sf-an {{ display:none; }}")
     for i, frames in enumerate(parsed):
         checked = " checked" if i == default else ""
         inputs.append(f'<input type="radio" name="{p}-step" id="{p}-s{i}"{checked} '
@@ -932,12 +939,27 @@ def stepped_frames(comp_id: str, steps) -> str:
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-views .sf-v{i} {{ display:block; }}")
         css.append(f"#{p} #{p}-s{i}:checked ~ .sf-steps label[for={p}-s{i}] "
                    f"{{ background:#2a8a5a; color:#fff; border-color:#2a8a5a; }}")
+        if with_anatomy:
+            an_svg = _svg_frames_anatomy(steps[i], f"{p}-an{i}")
+            ans.append(f'<div class="sf-an sf-an{i}">{an_svg}</div>')
+            css.append(f"#{p} #{p}-s{i}:checked ~ .sf-anwrap .sf-an{i} "
+                       f"{{ display:block; }}")
+    anatomy = ""
+    if with_anatomy:
+        anatomy = (
+            f'<details class="sf-anwrap" style="margin-top:.5rem;border:1px solid #ddd;'
+            f'border-radius:6px;padding:.3rem .6rem"><summary style="cursor:pointer;'
+            f'min-height:44px;font-weight:600">Show full frame anatomy</summary>'
+            + "".join(ans) + "</details>"
+        )
     return (
         f'<div id="{p}"><style>{chr(10).join(css)}</style>'
         + "".join(inputs)
         + f'<div class="sf-steps" style="display:flex;gap:6px;margin-bottom:8px">'
         + "".join(labels) + "</div>"
-        + f'<div class="sf-views">' + "".join(views) + "</div></div>"
+        + f'<div class="sf-views">' + "".join(views) + "</div>"
+        + anatomy
+        + "</div>"
     )
 
 

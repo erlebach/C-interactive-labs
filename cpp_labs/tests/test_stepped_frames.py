@@ -40,3 +40,17 @@ def test_demo_variant_body_uses_stepper_when_steps_present():
     html = _demo_variant_body("t", v, "cap", diagram=True)
     assert html.count('type="radio"') == 3        # stepper rendered
     assert "Show full frame anatomy" in html      # anatomy details present
+
+
+def test_stepped_frames_no_anatomy_by_default():
+    html = stepped_frames("sf", _steps())
+    assert "Show full frame anatomy" not in html
+
+
+def test_stepped_frames_anatomy_is_per_step():
+    html = stepped_frames("sf", _steps(), with_anatomy=True)
+    assert "Show full frame anatomy" in html
+    # one anatomy view per step (3), each gated by its radio
+    assert html.count("sf-an") >= 3
+    # the deepest step (main+foo) anatomy names both frames + real slots
+    assert "foo()" in html and "return address" in html
