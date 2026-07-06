@@ -2,6 +2,31 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-06 00:18 — demonstration-builder skill + template_subject exemplar
+
+Built `.claude/skills/demonstration-builder/`: lean `SKILL.md` (pushy trigger + 6-step authoring
+workflow), three reference docs (`PATTERN.md` = YAML anatomy + test families; `DIAGRAMS.md` = renderer
+triage + two renderer families + zero-JS interaction layer; `CHECKLIST.md` = ordered build/verify
+commands), and copy-me `templates/` skeletons. Zero engine code change — skill references the existing
+`cpp_labs/` engine. Validated by authoring the worked exemplar `cpp_labs/template_subject/` (examples
+`ts_value` dropdown-variants + `ts_method` plain class; gotcha `ts_gotcha` Correct/Mistake pair; all
+`diagram: false`; TDD against exact baked g++ stdout). Guard test
+`cpp_labs/tests/test_demonstration_skill.py` checks skeletons parse, reference files present, frontmatter
+valid. Deferred: case-2 SVG-redraw engine block, interactive-diagram template components, engine bundling,
+skill-creator eval loop. Verification: **built 10, failed 0**; targeted suite **9 passed**; full engine
+suite **391 passed**; interface-catalog **4 passed**. Spec/plan: `docs/superpowers/specs/` and
+`docs/superpowers/plans/` dated 2026-07-05.
+
+### Details
+
+- Skill structure: `SKILL.md` + `reference/{PATTERN,DIAGRAMS,CHECKLIST}.md` + `templates/{topic.yaml,
+  test_topic.py, layout.rail.yaml}`. Authoring intent: user drafts YAML, agent polishes; no Python touch.
+- `ts_value`: 3 dropdown variants (stack/heap/init) showing value-category mechanics.
+- `ts_method`: single-variant class with member function, plain concept aside.
+- `ts_gotcha`: compile-error gotcha using Correct/Mistake `sub_cases` pattern.
+- Spec: `docs/superpowers/specs/2026-07-05-demonstration-builder-skill-design.md`
+- Plan: `docs/superpowers/plans/2026-07-05-demonstration-builder-skill.md`
+
 ## 2026-07-05 20:43 — C++ standard variant axis + std_variants subject (PR opened)
 
 Built the long-deferred **per-C++-standard axis** (brainstorm → spec → plan → subagent-driven, 13
