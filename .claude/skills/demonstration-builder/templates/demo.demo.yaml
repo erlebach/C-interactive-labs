@@ -1,0 +1,8 @@
+# A demo = a mini page-spec baking ONE topic. Copy to cpp_labs/<subject>/demos/<id>.demo.yaml.
+# For subjects with no memory diagram, set diagram:false and put the concept in the
+# right column via the topic block's `concept:` arg.
+title: "Human name"
+language: cpp
+bake: { d: my_topic }            # compile topic id `my_topic`, expose as ${d.*}
+blocks:
+  - topic: { id: d, source: d, diagram: false, concept: "${d.explanation}" }
