@@ -100,8 +100,10 @@ def test_no_diagram(html):
 
 
 def test_gotcha_error_box(html):
-    # The Mistake case fails to compile → a real red compiler-error console.
-    assert "out--err" in html
+    # The Mistake case fails to compile → a real red "Compile failed" badge.
+    # NOTE: assert the badge text, NOT the always-inlined `.out--err` CSS class
+    # (which is present on every page and would pass vacuously).
+    assert "Compile failed" in html
 
 
 def test_correct_mistake_labels(html):
@@ -360,7 +362,9 @@ Run:
 ./build_labs.sh template_subject
 pytest cpp_labs/template_subject/tests/test_template_subject.py -q
 ```
-Expected: build reports `built 1, failed 0`; all 6 tests PASS (`test_exact_baked_output` now finds `count = 1`; `test_gotcha_error_box` finds `out--err`; `test_correct_mistake_labels` finds both labels).
+Expected: build reports `built 1, failed 0`; all 6 tests PASS (`test_exact_baked_output` now finds `count = 1`; `test_gotcha_error_box` finds `Compile failed`; `test_correct_mistake_labels` finds both labels).
+
+NOTE (correction from Task 2 spec review): the existing `test_gotcha_error_box` in the committed test file still asserts `"out--err"` (an always-inlined CSS class → vacuous). As part of this task, EDIT that test to assert `"Compile failed"` instead, matching the block above.
 
 - [ ] **Step 5: Commit**
 
