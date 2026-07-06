@@ -1,0 +1,5 @@
+title: "Missing accessor"
+language: cpp
+bake: { g: ts_gotcha }
+blocks:
+  - topic: { id: g, source: g, diagram: false, concept: "${g.explanation}" }

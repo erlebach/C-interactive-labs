@@ -1,0 +1,31 @@
+id: ts_gotcha
+name: "Missing accessor"
+group: Gotchas
+doc_url: https://en.cppreference.com/w/cpp/language/member_functions
+explanation: >-
+  main() calls c.value(). The Correct case provides that accessor and prints the
+  count. The Mistake case omits it, so c.value() names a member that does not exist
+  and the program fails to COMPILE — surfaced here as a real red compiler error.
+template: |
+  #include <iostream>
+  class Counter {
+      // running count, starts at zero
+      int n_ = 0;
+  public:
+      void tick() { ++n_; }
+      <<accessor>>
+  };
+  int main() {
+      Counter c;
+      c.tick();
+      std::cout << "count = " << c.value() << "\n";
+  }
+cases:
+  - label: "Correct: provide the accessor"
+    subs:
+      "<<accessor>>": |-
+        // a const accessor returns the current count
+        int value() const { return n_; }
+  - label: "Mistake: omit the accessor  (compile error)"
+    subs:
+      "<<accessor>>": ""

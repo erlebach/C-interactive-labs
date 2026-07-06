@@ -12,3 +12,4 @@ sidebar:
 demos:
   - ../demos/ts_value.demo.yaml
   - ../demos/ts_method.demo.yaml
+  - ../demos/ts_gotcha.demo.yaml

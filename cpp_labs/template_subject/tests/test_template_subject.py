@@ -38,8 +38,9 @@ def test_no_diagram(html):
 
 
 def test_gotcha_error_box(html):
-    # The Mistake case fails to compile → a real red compiler-error console.
-    assert "out--err" in html
+    # The Mistake case fails to compile → a real red "Compile failed" badge.
+    # NOTE: assert the badge text, NOT the always-inlined `.out--err` CSS class.
+    assert "Compile failed" in html
 
 
 def test_correct_mistake_labels(html):
