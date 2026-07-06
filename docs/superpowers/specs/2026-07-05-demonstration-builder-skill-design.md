@@ -53,9 +53,12 @@ tests pass.
    cases are keyed on whether a renderer already exists, and the skill suggests a diagram
    when the author doesn't:
    - **Case 1 — a diagram helps AND a built-in renderer already fits.** The built-in
-     inventory is currently narrow: the 6 memory renderers (`raw`/`null`/`ref`/`unique`/
-     `shared`/`weak`), so in practice only pointer/reference/smart-pointer topics land
-     here. Skill picks the `type=` and emits the `PTRDATA:` line. Works today.
+     inventory currently spans **two families**: (a) the 6 memory renderers
+     (`raw`/`null`/`ref`/`unique`/`shared`/`weak`), and (b) the **stackframe family** —
+     `_svg_frames` (`type=frames`), per-frame `_svg_frames_anatomy`, and the process
+     `_svg_memmap` (`type=memmap`). In practice this covers pointer/reference/
+     smart-pointer topics *and* call-stack / memory-layout topics. Skill picks the
+     `type=` and emits the `PTRDATA:` line. Works today.
    - **Case 2 — a diagram helps but no renderer exists yet.** This is the *common* case
      for the rest of a C++ course: linked lists, graphs, trees, call/stack frames, array
      & vector memory layout, class composition, iterator ranges, and more. The skill
@@ -66,10 +69,36 @@ tests pass.
      right column).
    - **Case 3 — no diagram helps** → `diagram: false`.
 
-   The memory-diagram bias in Case 1 is an artifact of the current engine (those are the
-   only renderers built to date), **not** a pedagogical stance. Most course subjects that
-   want a diagram fall in Case 2 today; growing the built-in inventory beyond memory is
-   exactly the `diagram-generation` sub-skill's job.
+   The built-in inventory (memory + stackframe families) is **not** a pedagogical
+   ranking — it is just what has been built to date. It is still narrow relative to the
+   many structural subjects (lists, graphs, trees, iterator ranges, class composition),
+   most of which fall in Case 2 today; growing the inventory is exactly the
+   `diagram-generation` sub-skill's job.
+
+3b. **Diagram interactivity is available and OPTIONAL — and it is diagram-agnostic.**
+   A static SVG is a perfectly good default; the skill should *offer* interactivity, not
+   impose it. The engine already provides a reusable, **zero-JS** interaction layer
+   (CSS-radio + native `<details>`, so it degrades gracefully and works JS-off), and
+   these compositors wrap *any* SVG — not just the stackframe ones:
+   - **Stepper** — `stepped_frames(comp_id, steps, with_anatomy=)`: ordered
+     student-paced snapshot reveals; elements present at a deeper step but gone at the
+     current one draw **ghosted** (reclaimed). This is the general mechanism for changing
+     **emphasis / connectivity / shape across ordered states**.
+   - **Enlarge / zoom** — `zoomable(comp_id, inner_html, label=)`: click-to-fullscreen
+     overlay with 0.5× / 0.75× / 1× / 1.5× / 2× zoom-level radios that scale the whole
+     panel as a unit (the "expanded / zoomed-up figure"). The same `inner_html` is
+     promoted, so nested SVGs keep their one-to-one `role="img"` and stay interactive.
+   - **More detail below/within** — `frames_anatomy_details(comp_id, pd)` and
+     `progressive_steps(comp_id, steps)`: native `<details>` disclosures that reveal an
+     expanded, more-detailed view (e.g. full per-frame anatomy) beneath the figure.
+   - **Toggle / tabs** — `before_after_toggle`, `variant_tabs`: switch a diagram between
+     two or more states (before/after, per-variant).
+
+   Because each is "a radio/`<details>` selects a state, CSS restyles the SVG," the same
+   patterns generalize to changing **colors, emphasis, shapes, or connectivity** on a
+   Case-2 hand-drawn SVG too. The skill's DIAGRAMS.md catalogs both renderer families
+   **and** this interaction layer, and the workflow asks the author whether a diagram
+   should be static or gain a stepper / enlarge / detail-reveal.
 
 4. **Case-2 engine support deferred.**
    Injecting a hand-authored/static custom SVG into the diagram column may need a small
@@ -90,7 +119,9 @@ tests pass.
   reference/
     PATTERN.md             # distilled SKILL_PREPARATION.md — YAML shapes, placeholders,
                            #   controls/cases, PTRDATA, locked C++ style, page/layout wiring
-    DIAGRAMS.md            # the 3-case diagram decision + 6-renderer catalog + case-2 seam
+    DIAGRAMS.md            # the 3-case diagram decision; renderer catalog (memory +
+                           #   stackframe families); the zero-JS interaction layer
+                           #   (stepper / zoom / detail-reveal / toggle); case-2 seam
     CHECKLIST.md           # the build + verify checklist
   templates/
     topic.topic.yaml       # annotated skeletons the agent copies & fills
