@@ -104,6 +104,23 @@ into `cpp_labs/<subject>/` and fills.
    `pytest cpp_labs/<subject>/tests/ -q`; report the *real* baked output.
 6. **Iterate** until the build is clean and tests are green.
 
+## Authoring methodology (superpowers + borrowed skill-creator guidance)
+
+We build on the **superpowers** track (brainstorm → spec → plan → TDD), because we've
+already invested in this design and it fits the repo's `docs/superpowers/` convention.
+But `skill-creator` (and `superpowers:writing-skills`) carry skill-specific wisdom the
+general brainstorming flow does not, and we fold these in at the build step:
+
+- **SKILL.md anatomy + progressive disclosure** — keep `SKILL.md` lean (< ~500 lines),
+  push heavy material into `reference/` loaded on demand, bundle reusable starting files
+  under `templates/`. This matches the structure in §"Skill structure" above.
+- **A "pushy" `description` field** — the frontmatter `description` is the primary
+  trigger mechanism and Claude tends to *under*-trigger. Write it to fire whenever an
+  author starts, drafts, or asks to build a new `cpp_labs` demonstration/subject/topic,
+  not only when they name the skill.
+- **Explain the *why*** — prefer reasoned guidance over rigid ALWAYS/NEVER; the model
+  follows a harness better when it understands intent.
+
 ## Testing
 
 The generated `template_subject/tests/` follows the §9 families of the prep guide:
@@ -122,3 +139,9 @@ and its tests pass.**
   course.
 - **Engine bundling (option 2)** — vendor a self-contained engine copy under the skill
   for portability once v1 is proven.
+- **`skill-creator` eval loop (optional validation)** — once v1 is green, optionally run
+  `skill-creator`'s empirical harness: give Claude the skill vs. a baseline on several
+  realistic "build me a demonstration for X" prompts, benchmark quantitatively, review,
+  and iterate. Proves the skill reliably produces a green demonstration across varied
+  prompts (not just our single `template_subject` deliverable), and can drive the
+  `description`-triggering optimizer.
