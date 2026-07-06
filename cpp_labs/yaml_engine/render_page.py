@@ -218,7 +218,7 @@ def _build_topic(args: dict, data: dict) -> str:
     return C.demo_panel(args["id"], data[args["source"]],
                         diagram=args.get("diagram", True),
                         concept=args.get("concept"),
-                        concept_title=args.get("concept_title", "Concept"))
+                        concept_title=args.get("concept_title", "Key Idea"))
 
 
 def _build_concept(args: dict, data: dict) -> str:

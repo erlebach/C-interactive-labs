@@ -1,0 +1,5 @@
+title: "auto return type (C++14)"
+language: cpp
+bake: { ar: auto_return }
+blocks:
+  - topic: { id: ar, source: ar, diagram: false, concept: "${ar.explanation}" }

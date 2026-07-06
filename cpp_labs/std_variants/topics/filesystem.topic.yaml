@@ -1,0 +1,22 @@
+id: filesystem
+name: "std::filesystem"
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/filesystem
+standards: [11, 17, 20]
+explanation: >-
+  std::filesystem models paths, files, and directories portably — splitting a
+  path into filename, extension, parent, and so on. It is a C++17 LIBRARY
+  feature (it grew out of Boost.Filesystem): under -std=c++11 the <filesystem>
+  header provides no std::filesystem, so the SAME source fails to compile there
+  and compiles from C++17 on.
+template: |
+  #include <iostream>
+  #include <filesystem>
+  int main() {
+      // std::filesystem::path parses a path into components — a C++17 feature.
+      // Under -std=c++11 the <filesystem> header has no std::filesystem.
+      std::filesystem::path p = "/home/student/hw1.cpp";
+      std::cout << "filename: " << p.filename().string() << "\n";
+      std::cout << "extension: " << p.extension().string() << "\n";
+  }

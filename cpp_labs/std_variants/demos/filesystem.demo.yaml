@@ -1,0 +1,5 @@
+title: "std::filesystem (C++17)"
+language: cpp
+bake: { fs: filesystem }
+blocks:
+  - topic: { id: fs, source: fs, diagram: false, concept: "${fs.explanation}" }

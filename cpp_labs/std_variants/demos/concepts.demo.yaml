@@ -1,0 +1,5 @@
+title: "concepts / requires (C++20)"
+language: cpp
+bake: { co: concepts }
+blocks:
+  - topic: { id: co, source: co, diagram: false, concept: "${co.explanation}" }

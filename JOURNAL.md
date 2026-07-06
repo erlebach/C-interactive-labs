@@ -2,6 +2,54 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-05 20:43 — C++ standard variant axis + std_variants subject (PR opened)
+
+Built the long-deferred **per-C++-standard axis** (brainstorm → spec → plan → subagent-driven, 13
+commits on `feat/std-variant-axis`, PR opened). A topic declares `standards: [11,17,20]` and the engine
+compiles the SAME source under each `-std`, rendering zero-JS CSS-radio tabs (`C++11 | C++17 | C++20`)
+— red compile-error badge on the old standard, green output on the new. Engine is +40 lines threading a
+`std="c++20"` param through `compiler_runner.py` and a `standards` field + `__std__` variant states
+through `code_generator`/`topic_yaml`/`build_html`; **default stays `c++20`, so every pre-existing page
+is byte-for-byte unchanged.** New subject `cpp_labs/std_variants/` = **8 demos** (C++14/17/20, language
++ library) + a **Main Takeaway** demonstration concept. Also unified the per-example concept label on
+`diagram:false` pages "Concept"→**"Key Idea"**. Full suite **539 passed**; std_variants integration
+**4/4**; `./build_labs.sh` **built 9, failed 0**. Handoff:
+`handoffs/HANDOFF_2026-07-05_20h43mEST.md`; spec/plan under `docs/superpowers/`.
+
+### Details
+
+**KEY GOTCHA (locked):** Apple clang only *warns* (compiles green) on many "modern" features —
+structured bindings, `string_view`, `if constexpr`, fold expressions, designated init, variable
+templates, inline static vars — so they are **unusable** for the red/green demo; `std::bit_cast` and
+`std::ranges` are **unsupported even at C++20** on this libc++. Every candidate feature must be
+**empirically verified to hard-error in `/tmp` before authoring** (compile under old `-std` → expect
+failure; under new → expect compile + expected stdout).
+
+**The 8 demos:** auto-return (C++14 lang), make_unique (C++14 lib), optional (C++17 lib), variant
+(C++17 lib), filesystem (C++17 lib), span (C++20 lib), concepts (C++20 lang), `<=>` (C++20 lang).
+
+**Decisions:** teach C++20 as the baseline; keep the axis as ONE small standards-awareness subject, not
+sprinkled across every demo (standards-sensitive code is the exception, so tabs elsewhere = noise).
+Standards-only rule (no competing dropdown; duplicates rejected). Label taxonomy: demonstration
+objective = **Main Takeaway** (`concept_panel`), per-example = **Key Idea** (both `concept_note` toggle
+and `code_concept_panel` aside). Changing a component *default value* (not signature) needs no interface
+-catalog regen — `test_interface_catalog` stayed green.
+
+**Key commits:** `d2f99c3` (-std param) · `df91bc7` (standards field + validation) · `d74282f`/`d4d8415`
+(variant expansion + label/compile) · `3c2186b` (optional demo) · `31fcacc`/`6c4085f` (6 more demos) ·
+`b34af25` (Main Takeaway) · `8f15755` (Key Idea unify).
+
+## 2026-07-05 17:33 — stackframes-ux merged (PR #5); branch cleaned
+
+Closes out the stackframes UX + accessibility work. Final tweak before merge: aligned the header
+Keyboard/Monochrome chips (reset `details.kbd-help{margin:0}` — the global `details{margin-top:.5rem}`
+had nudged the `<details>`-based chip down vs the `<label>`) and bumped both chips to 16px (+23%). Full
+`cpp_labs` suite **522 passed** (a final run caught 3 stale `yaml_engine/test_render_page.py` assertions
+from the label rename + the always-on keyboard-help `<details>` — updated). **PR #5 merged** into `main`
+(`eb60c2b`); `feat/stackframes-ux` deleted local + remote. Supersedes the prior entry's "not merged"
+note. Stackframes is done for now. Handoff: `handoffs/HANDOFF_2026-07-05_17h18mEST.md`.
+
+
 ## 2026-07-05 14:10 — Accessibility pass: contrast, monochrome toggle, focus, keyboard help, labels
 
 Series of a11y improvements on `feat/stackframes-ux` (browser-verified with Playwright), prompted by

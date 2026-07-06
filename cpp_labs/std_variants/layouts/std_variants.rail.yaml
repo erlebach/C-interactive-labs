@@ -1,0 +1,15 @@
+title: "C++ Standards — Same Code, Different Standard"
+style: left_rail
+header:
+  - heading: { text: "C++ Standard Selector" }
+sidebar:
+  - concept: { id: obj, text: "A language feature belongs to a specific C++ standard. Each example compiles the SAME source under several standards (C++11/14/17/20): switch the tabs to see it fail to compile under the older standard and succeed under the newer one. The goal is not to support old compilers but to recognize which standard a feature needs, to read a compiler error like 'X is a C++17 extension', and to understand why code that builds for you may fail on an older toolchain. Default to modern C++ (C++20); this shows how the boundaries got there." }
+demos:
+  - ../demos/auto_return.demo.yaml
+  - ../demos/make_unique.demo.yaml
+  - ../demos/optional_type.demo.yaml
+  - ../demos/variant_type.demo.yaml
+  - ../demos/filesystem.demo.yaml
+  - ../demos/span_view.demo.yaml
+  - ../demos/concepts.demo.yaml
+  - ../demos/spaceship.demo.yaml

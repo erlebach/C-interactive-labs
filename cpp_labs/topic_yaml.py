@@ -37,11 +37,26 @@ def _topic(d: dict) -> TopicTemplate:
         if key not in d:
             raise ValueError(f"topic YAML missing required field {key!r}: {d.get('id', '?')}")
     cases = d.get("cases")
+    controls = [_control(c) for c in d.get("controls", [])]
+    standards = list(d.get("standards", []))
+    if standards:
+        dropdowns = [c.id for c in controls if c.kind == "dropdown"]
+        if dropdowns:
+            raise ValueError(
+                f"topic {d.get('id', '?')!r} uses standards:{standards} but also "
+                f"has dropdown control(s) {dropdowns}; a standards topic may not "
+                f"have a competing tab row (see std-variant-axis spec)"
+            )
+        if len(set(standards)) != len(standards):
+            raise ValueError(
+                f"topic {d.get('id', '?')!r} has duplicate standards {standards}; "
+                f"each standard must appear at most once (it becomes one tab)"
+            )
     return TopicTemplate(
         id=d["id"],
         name=d["name"],
         template=d["template"],
-        controls=[_control(c) for c in d.get("controls", [])],
+        controls=controls,
         explanation=d["explanation"],
         group=d["group"],
         target_var=d.get("target_var", "x"),
@@ -50,6 +65,7 @@ def _topic(d: dict) -> TopicTemplate:
         doc_url=d.get("doc_url", ""),
         cases=[_case(c) for c in cases] if cases else None,
         extra_compile_flags=list(d.get("extra_compile_flags", [])),
+        standards=standards,
     )
 
 

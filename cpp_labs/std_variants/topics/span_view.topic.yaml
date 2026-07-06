@@ -1,0 +1,30 @@
+id: span_view
+name: "std::span"
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/container/span
+standards: [17, 20]
+explanation: >-
+  std::span<T> is a lightweight, non-owning view over a contiguous sequence
+  (an array, a std::vector, a C buffer) — it carries a pointer and a length but
+  owns nothing. It is a C++20 LIBRARY feature: under -std=c++17 the <span>
+  header provides no std::span, so the SAME source fails to compile there and
+  compiles at C++20. A span lets one function accept any contiguous block
+  without a separate pointer+size pair.
+template: |
+  #include <iostream>
+  #include <span>
+  // std::span is a non-owning view (pointer + length) over contiguous data —
+  // a C++20 feature. Under -std=c++17 the <span> header has no std::span.
+  int sum(std::span<const int> xs) {
+      int total = 0;
+      for (int x : xs) {
+          total += x;
+      }
+      return total;
+  }
+  int main() {
+      int data[] = {1, 2, 3, 4};
+      // the array converts to a span automatically — no explicit size passed
+      std::cout << "sum = " << sum(data) << "\n";
+  }

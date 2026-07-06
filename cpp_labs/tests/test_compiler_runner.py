@@ -1,6 +1,13 @@
 """Tests for cpp_labs.compiler_runner."""
+import shutil
+
 import pytest
-from cpp_labs.compiler_runner import RunResult, build_compile_command, parse_ptrdata
+from cpp_labs.compiler_runner import (
+    RunResult,
+    build_compile_command,
+    compile_only,
+    parse_ptrdata,
+)
 
 
 def test_parse_ptrdata_raw():
@@ -90,3 +97,33 @@ def test_build_compile_command_no_extra_flags():
     cmd = build_compile_command(source)
     assert "g++" in cmd
     assert "-std=c++20" in cmd
+
+
+class TestStdParam:
+    def test_default_std_is_cpp20(self):
+        # build_compile_command bakes the command string without running g++.
+        cmd = build_compile_command("int main(){}")
+        assert "-std=c++20" in cmd
+
+    def test_explicit_std_flag_in_command(self):
+        cmd = build_compile_command("int main(){}", std="c++11")
+        assert "-std=c++11" in cmd
+        assert "-std=c++20" not in cmd
+
+    @pytest.mark.skipif(shutil.which("g++") is None, reason="needs g++")
+    def test_cpp17_feature_fails_under_cpp11(self):
+        # std::optional is a C++17 library feature; Apple clang's c++11 mode
+        # does not provide <optional>, so this must produce a compile error.
+        src = (
+            "#include <optional>\n"
+            "int main(){ std::optional<int> x = 5; (void)x; }\n"
+        )
+        assert compile_only(src, std="c++11").status == "compile-failed"
+
+    @pytest.mark.skipif(shutil.which("g++") is None, reason="needs g++")
+    def test_cpp17_feature_ok_under_cpp17(self):
+        src = (
+            "#include <optional>\n"
+            "int main(){ std::optional<int> x = 5; (void)x; }\n"
+        )
+        assert compile_only(src, std="c++17").status == "compile-ok"

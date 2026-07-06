@@ -1,0 +1,27 @@
+id: concepts
+name: "concepts / requires"
+group: "Standards"
+has_ptrdata: false
+doc_url: https://en.cppreference.com/w/cpp/language/constraints
+standards: [17, 20]
+explanation: >-
+  A concept names a compile-time requirement on a type, and a constrained
+  template (template <Number T>) accepts only types that satisfy it — readable
+  constraints in place of SFINAE. concept and the constrained syntax are C++20
+  LANGUAGE features: under -std=c++17 the concept keyword does not exist, so the
+  SAME source fails to compile at C++17 and compiles at C++20.
+template: |
+  #include <iostream>
+  #include <type_traits>
+  // a concept is a named, compile-time requirement on a type — C++20.
+  // Under -std=c++17 the 'concept' keyword does not exist.
+  template <class T>
+  concept Number = std::is_arithmetic_v<T>;
+  // 'twice' accepts only types that satisfy Number
+  template <Number T>
+  T twice(T x) {
+      return x + x;
+  }
+  int main() {
+      std::cout << "twice(21) = " << twice(21) << "\n";
+  }
