@@ -46,16 +46,30 @@ tests pass.
    the YAML, builds, and verifies. Optimized for the established "user drafts, agent
    polishes" flow.
 
-3. **Diagram triage — three cases, skill suggests when the author doesn't.**
-   - **Case 1 — pointer/memory subject** → maps to one of the 6 existing PTRDATA
-     renderers (`raw`/`null`/`ref`/`unique`/`shared`/`weak`). Skill picks the `type=`
-     and emits the `PTRDATA:` line. Works today.
-   - **Case 2 — other structural subject** (linked list, graph, tree, stack frames) →
-     no existing renderer. **If the author provides an image, the skill redraws it as a
-     hand-authored SVG** in the existing vertical-diagram style (wrapped via
-     `_wrap_svg`) — the manual seed of the future diagram-generation sub-skill.
-     Otherwise fall back to **`diagram: false`** (concept prose fills the right column).
-   - **Case 3 — no natural diagram** → `diagram: false`.
+3. **Diagram triage — a general question, keyed on renderer availability, NOT on
+   pointers.** The organizing question is pedagogical: *does this subject have a
+   spatial/structural mental model worth drawing?* Pointers are **not** privileged —
+   they are simply the only family for which a renderer happens to exist today. The three
+   cases are keyed on whether a renderer already exists, and the skill suggests a diagram
+   when the author doesn't:
+   - **Case 1 — a diagram helps AND a built-in renderer already fits.** The built-in
+     inventory is currently narrow: the 6 memory renderers (`raw`/`null`/`ref`/`unique`/
+     `shared`/`weak`), so in practice only pointer/reference/smart-pointer topics land
+     here. Skill picks the `type=` and emits the `PTRDATA:` line. Works today.
+   - **Case 2 — a diagram helps but no renderer exists yet.** This is the *common* case
+     for the rest of a C++ course: linked lists, graphs, trees, call/stack frames, array
+     & vector memory layout, class composition, iterator ranges, and more. The skill
+     suggests the diagram; if the author provides an image (or the agent can sketch one),
+     the skill **redraws it as a hand-authored SVG** in the vertical-diagram style
+     (wrapped via `_wrap_svg`) — the manual seed of the future diagram-generation
+     sub-skill — otherwise it falls back to **`diagram: false`** (concept prose fills the
+     right column).
+   - **Case 3 — no diagram helps** → `diagram: false`.
+
+   The memory-diagram bias in Case 1 is an artifact of the current engine (those are the
+   only renderers built to date), **not** a pedagogical stance. Most course subjects that
+   want a diagram fall in Case 2 today; growing the built-in inventory beyond memory is
+   exactly the `diagram-generation` sub-skill's job.
 
 4. **Case-2 engine support deferred.**
    Injecting a hand-authored/static custom SVG into the diagram column may need a small
