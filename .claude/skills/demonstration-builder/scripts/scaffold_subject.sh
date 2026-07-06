@@ -6,8 +6,14 @@
 # sync) is deterministic, repetitive, and easy to get subtly wrong by hand. Running
 # one tested command instead removes that whole class of path/name mistakes.
 #
-# Usage (run from anywhere inside the repo):
+# Usage (run from the target project root, or pass the root explicitly):
 #   .claude/skills/demonstration-builder/scripts/scaffold_subject.sh <subject>
+#   .claude/skills/demonstration-builder/scripts/scaffold_subject.sh <subject> /path/to/project
+#   PROJECT_ROOT=/path/to/project  scaffold_subject.sh <subject>
+#
+# The project root is $PWD by default (NOT derived from the skill's own location, so
+# this works whether the skill is project-local or installed globally). The engine
+# must already be installed there — run install_engine.sh first.
 #
 # Produces an immediately buildable, immediately green minimal page with ONE example
 # (`<subject>_ex1`, printing `x = 42` under int/double tabs). Verify right away with:
@@ -20,7 +26,7 @@ set -euo pipefail
 
 SUBJECT="${1:-}"
 if [ -z "$SUBJECT" ]; then
-  echo "usage: scaffold_subject.sh <subject>" >&2
+  echo "usage: scaffold_subject.sh <subject> [project_root]" >&2
   exit 2
 fi
 # Keep ids/paths sane: letters, digits, underscore only.
@@ -31,8 +37,16 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"          # .../demonstration-builder
-ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"           # repo root (.claude/skills/<skill>/../../..)
 TEMPLATES="$SKILL_DIR/templates"
+
+# Project root = explicit 2nd arg > PROJECT_ROOT env > current directory.
+ROOT="${2:-${PROJECT_ROOT:-$PWD}}"
+ROOT="$(cd "$ROOT" && pwd)"
+if [ ! -d "$ROOT/cpp_labs" ] || [ ! -f "$ROOT/build_labs.sh" ]; then
+  echo "engine not installed in $ROOT — run install_engine.sh first:" >&2
+  echo "  $SCRIPT_DIR/install_engine.sh $ROOT" >&2
+  exit 1
+fi
 DEST="$ROOT/cpp_labs/$SUBJECT"
 EX="${SUBJECT}_ex1"                                 # collision-free example id
 

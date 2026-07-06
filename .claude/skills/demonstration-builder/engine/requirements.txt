@@ -1,0 +1,5 @@
+# Runtime dependency for the demonstration-builder engine.
+PyYAML>=6.0
+
+# For running the scaffolded per-subject tests:
+pytest>=7.0
