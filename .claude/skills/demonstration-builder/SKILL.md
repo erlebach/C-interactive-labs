@@ -71,10 +71,10 @@ optional. Set `diagram: false` on examples where prose + code is clearer.
 Copy the `templates/` skeletons and fill them:
 
 ```
-cpp_labs/<subject>/topics/          # one *.topic.yaml per example
-cpp_labs/<subject>/demos/           # one *.demo.yaml (wires topics → page)
-cpp_labs/<subject>/layouts/         # one *.rail.yaml (sets nav style + demo list)
-cpp_labs/tests/test_<subject>.py    # copy templates/test_subject.py, update paths
+cpp_labs/<subject>/topics/                  # one *.topic.yaml per example
+cpp_labs/<subject>/demos/                   # one *.demo.yaml (wires topics → page)
+cpp_labs/<subject>/layouts/                 # one *.rail.yaml (sets nav style + demo list)
+cpp_labs/<subject>/tests/test_<subject>.py  # copy templates/test_subject.py, update paths
 ```
 
 Apply the C++ style guardrails (see **Guardrails** below) while filling placeholders.
@@ -86,8 +86,8 @@ The worked exemplar at `cpp_labs/template_subject/` shows a complete 2-example +
 Follow `reference/CHECKLIST.md` for the exact commands. The key loop is:
 
 ```bash
-python -m cpp_labs.build_html <layout-yaml>   # bake to dist_labs/
-pytest cpp_labs/tests/test_<subject>.py -q    # green = content correct
+./build_labs.sh <subject>                              # bake to dist_labs/ (real g++)
+pytest cpp_labs/<subject>/tests/test_<subject>.py -q   # green = content correct
 ```
 
 Report the REAL baked stdout/stderr — do not summarise or paraphrase compiler output.
@@ -104,7 +104,8 @@ the author for a content review.
 
 `cpp_labs/template_subject/` is a complete worked example (2 examples + 1 gotcha,
 `diagram: false`). Open it and copy its shape when starting a new subject. The
-`templates/` directory contains the raw copy-me skeletons with `TODO` placeholders.
+`templates/` directory contains the raw copy-me skeletons with fill-in markers
+(`my_topic`, `Human name`, `my_subject`) to replace.
 
 ---
 
