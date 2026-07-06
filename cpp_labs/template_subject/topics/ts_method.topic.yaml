@@ -1,0 +1,24 @@
+id: ts_method
+name: "A small class"
+group: Examples
+doc_url: https://en.cppreference.com/w/cpp/language/classes
+explanation: >-
+  A class bundles data with the functions that act on it. Counter keeps a private
+  count and exposes tick() and value(). This example has no controls, so it renders
+  as a single variant.
+template: |
+  #include <iostream>
+  // A small class with one accessor.
+  class Counter {
+      // running count, starts at zero
+      int n_ = 0;
+  public:
+      void tick() { ++n_; }
+      int value() const { return n_; }
+  };
+  int main() {
+      Counter c;
+      c.tick();
+      c.tick();
+      std::cout << "count = " << c.value() << "\n";
+  }

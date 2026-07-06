@@ -1,0 +1,5 @@
+title: "Value types"
+language: cpp
+bake: { v: ts_value }
+blocks:
+  - topic: { id: v, source: v, diagram: false, concept: "${v.explanation}" }
