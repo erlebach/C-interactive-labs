@@ -1,0 +1,124 @@
+# Design: `demonstration-builder` skill
+
+**Date:** 2026-07-05
+**Status:** approved (brainstorming complete; awaiting implementation plan)
+**Branch:** `skill/demonstration-builder`
+
+## Problem
+
+Building one C++ teaching page ("demonstration") in `cpp_labs/` follows a rich,
+recurring pattern — topic/demo/layout/glossary YAML shapes, the `<<placeholder>>`
+substitution rules, `controls`/`cases`, the `PTRDATA:` memory-diagram convention,
+locked C++ style, diagram gating, and a fixed family of tests. That pattern is
+currently captured only as static prose in `cpp_labs/SKILL_PREPARATION.md`, so each
+new subject re-discovers it by hand. We want that knowledge to become an **executable,
+triggerable skill** so authoring a new demonstration is a guided, repeatable workflow.
+
+## Goal
+
+A **project-local skill** that, when invoked, interactively guides the agent + author
+to build one new `cpp_labs` demonstration from the locked pattern, then builds and
+verifies it with the real g++-at-build-time engine. The first concrete deliverable is
+to **use the skill to produce one template demonstration** that builds clean and whose
+tests pass.
+
+## Non-goals (v1)
+
+- **Not** a generative diagram engine for new SVG families (linked lists, graphs,
+  trees). That is a separate, future **`diagram-generation` sub-skill**; this skill
+  documents the seam where it will attach.
+- **Not** a course-assembly skill (an index page stitching many demonstrations
+  together). That is the layer *above* this one; noted as future work.
+- **Not** an engine copy or engine refactor. v1 references the in-repo `cpp_labs/`
+  engine as the single source of truth.
+
+## Decisions (from brainstorming)
+
+1. **Engine relationship — reference in-repo (start), bundle later.**
+   v1's skill calls the existing `cpp_labs/` engine where it already lives; the skill
+   is only usable inside this repo. Once it works, a later revision may vendor a
+   self-contained copy under the skill dir for portability to other course repos.
+
+2. **Workflow — interactive author-guide with proactive suggestions.**
+   Invoking the skill drives a short dialogue: the author states the subject and may
+   paste example code and/or offer images; the skill *proposes* the example set,
+   gotchas, and diagram (offering suggestions when the author doesn't), then generates
+   the YAML, builds, and verifies. Optimized for the established "user drafts, agent
+   polishes" flow.
+
+3. **Diagram triage — three cases, skill suggests when the author doesn't.**
+   - **Case 1 — pointer/memory subject** → maps to one of the 6 existing PTRDATA
+     renderers (`raw`/`null`/`ref`/`unique`/`shared`/`weak`). Skill picks the `type=`
+     and emits the `PTRDATA:` line. Works today.
+   - **Case 2 — other structural subject** (linked list, graph, tree, stack frames) →
+     no existing renderer. **If the author provides an image, the skill redraws it as a
+     hand-authored SVG** in the existing vertical-diagram style (wrapped via
+     `_wrap_svg`) — the manual seed of the future diagram-generation sub-skill.
+     Otherwise fall back to **`diagram: false`** (concept prose fills the right column).
+   - **Case 3 — no natural diagram** → `diagram: false`.
+
+4. **Case-2 engine support deferred.**
+   Injecting a hand-authored/static custom SVG into the diagram column may need a small
+   new engine block. Since the v1 deliverable is `diagram:false`, this path is
+   **documented, not built** — deferred until a real case-2 subject needs it. Keeps v1
+   pure-authoring with zero engine change.
+
+5. **First deliverable — a generic reference template.**
+   Run the skill to produce `cpp_labs/template_subject/`: ~2 examples + 1 gotcha + a
+   concept, `diagram: false`, full tests. It is the honest proof the generation path
+   works, and doubles as the copy-me exemplar the skill points authors to.
+
+## Skill structure
+
+```
+.claude/skills/demonstration-builder/
+  SKILL.md                 # lean: trigger + the interactive workflow
+  reference/
+    PATTERN.md             # distilled SKILL_PREPARATION.md — YAML shapes, placeholders,
+                           #   controls/cases, PTRDATA, locked C++ style, page/layout wiring
+    DIAGRAMS.md            # the 3-case diagram decision + 6-renderer catalog + case-2 seam
+    CHECKLIST.md           # the build + verify checklist
+  templates/
+    topic.topic.yaml       # annotated skeletons the agent copies & fills
+    demo.demo.yaml
+    layout.rail.yaml
+    test_subject.py
+```
+
+`SKILL.md` stays short; the heavy reference under `reference/` is loaded on demand
+(progressive disclosure). The templates are literal starting files the workflow copies
+into `cpp_labs/<subject>/` and fills.
+
+## Workflow (what `SKILL.md` drives)
+
+1. **Elicit the subject** — name, one-line goal, the C++ concepts to teach. Author may
+   paste example code and/or offer images.
+2. **Propose the example set** — skill suggests 2–4 examples + **≥1 gotcha** (a
+   deliberate compile or runtime failure), author confirms/adjusts.
+3. **Diagram triage** — the 3-case decision above; skill suggests whether a diagram
+   helps and what kind.
+4. **Generate** `topics/ demos/ layouts/ tests/` YAML into `cpp_labs/<subject>/` from
+   the templates, in the locked C++ style (`class` not `struct`; comments above code;
+   long `<<` chains broken and aligned).
+5. **Build + verify** — `./build_labs.sh <subject>`, then
+   `pytest cpp_labs/<subject>/tests/ -q`; report the *real* baked output.
+6. **Iterate** until the build is clean and tests are green.
+
+## Testing
+
+The generated `template_subject/tests/` follows the §9 families of the prep guide:
+self-contained (`<!DOCTYPE html>`, no external `src`/`href`); exact baked stdout
+(byte-for-byte); the WCAG diagram-gating invariant `count("<svg") == count('role="img"')`;
+the gotcha surfaces a real compiler-error box (`out--err`); DOM id uniqueness.
+
+**The skill is validated when the deliverable `cpp_labs/template_subject/` builds clean
+and its tests pass.**
+
+## Future work (documented seams)
+
+- **`diagram-generation` sub-skill** — turns an author concept/image into a new SVG
+  renderer family; `demonstration-builder` composes it (DIAGRAMS.md marks the seam).
+- **Course-assembly skill** — stitches many demonstration HTMLs into an index/linked
+  course.
+- **Engine bundling (option 2)** — vendor a self-contained engine copy under the skill
+  for portability once v1 is proven.
