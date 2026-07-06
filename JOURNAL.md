@@ -2,6 +2,26 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-06 07:14 — demonstration-builder skill-creator polish + failed description optimizer
+
+Post-build best-practice pass on the `demonstration-builder` skill (via `skill-creator`). **Fixed two
+real correctness bugs in `SKILL.md`** (`42b8f53`): Step 5's build command was the non-runnable
+`python -m cpp_labs.build_html` (→ `./build_labs.sh <subject>`), and Step 4's test path was
+`cpp_labs/tests/` instead of the subject-local `cpp_labs/<subject>/tests/` (both contradicted the
+skill's own `CHECKLIST.md` and the `templates/test_subject.py` path math). **Bundled
+`scripts/scaffold_subject.sh`** (`a190853`) — deterministic scaffolding of a new subject that produces a
+consistent, immediately buildable+green minimal page (`<subject>_ex1` → `x = 42`), refuses to clobber;
+verified end-to-end on a throwaway (`built 1, failed 0`, 4 tests pass, guard refuses). Also removed a
+stray untracked `demonstration-builder_bak/` duplicate. **The skill-creator description optimizer
+(`run_loop.py`) FAILED and was killed:** it measured **recall=0% on every description/iteration** (the
+skill never triggered under the `claude -p` eval harness → degenerate 50% accuracy everywhere, nothing
+distinguishable), after ~6.5 h for 4 iterations. **No description change applied** — the committed
+`SKILL.md` keeps its original hand-written pushy description. Lesson: the automated
+triggering-optimizer's signal is broken here; improve the description as a reviewed manual edit (the one
+good idea from the run: add an explicit "Do NOT use for engine edits / build-script fixes / engine unit
+tests / diff review / general C++ Qs" negative-scope clause). Handoff:
+`handoffs/HANDOFF_2026-07-06_07h14mEST.md`. Next: finish the branch.
+
 ## 2026-07-06 00:18 — demonstration-builder skill + template_subject exemplar
 
 Built `.claude/skills/demonstration-builder/`: lean `SKILL.md` (pushy trigger + 6-step authoring
