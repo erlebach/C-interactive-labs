@@ -68,18 +68,27 @@ optional. Set `diagram: false` on examples where prose + code is clearer.
 
 ### Step 4 — Generate the files
 
-Copy the `templates/` skeletons and fill them:
+Start from a consistent, buildable skeleton — don't hand-create the paths (that is
+where id/filename references drift out of sync):
 
-```
-cpp_labs/<subject>/topics/                  # one *.topic.yaml per example
-cpp_labs/<subject>/demos/                   # one *.demo.yaml (wires topics → page)
-cpp_labs/<subject>/layouts/                 # one *.rail.yaml (sets nav style + demo list)
-cpp_labs/<subject>/tests/test_<subject>.py  # copy templates/test_subject.py, update paths
+```bash
+.claude/skills/demonstration-builder/scripts/scaffold_subject.sh <subject>
 ```
 
-Apply the C++ style guardrails (see **Guardrails** below) while filling placeholders.
-The worked exemplar at `cpp_labs/template_subject/` shows a complete 2-example +
-1-gotcha set with `diagram: false` — copy its shape.
+This creates the package below with ONE working example (`<subject>_ex1`, printing
+`x = 42`) that builds and tests green immediately — a known-good baseline to grow from:
+
+```
+cpp_labs/<subject>/topics/                       # one *.topic.yaml per example
+cpp_labs/<subject>/demos/                         # one *.demo.yaml (wires topics → page)
+cpp_labs/<subject>/layouts/<subject>.rail.yaml    # nav style + demo list
+cpp_labs/<subject>/tests/test_<subject>.py        # exact-baked-stdout assertions
+```
+
+Then grow it: duplicate the example topic/demo per example, add at least one gotcha,
+and list every demo in the layout. Apply the C++ style guardrails (see **Guardrails**
+below) while filling placeholders. The worked exemplar at `cpp_labs/template_subject/`
+shows a complete 2-example + 1-gotcha set with `diagram: false` — copy its shape.
 
 ### Step 5 — Build and verify
 
@@ -130,5 +139,6 @@ These rules exist for good reasons — don't skip them.
 | `reference/PATTERN.md` | Full YAML anatomy of topic/demo/layout files + test families |
 | `reference/DIAGRAMS.md` | Diagram triage guide + zero-JS interaction layer options |
 | `reference/CHECKLIST.md` | Build/verify commands + ordered pre-commit checklist |
+| `scripts/scaffold_subject.sh` | Create a consistent, buildable `<subject>` skeleton to grow from |
 | `templates/` | Copy-me skeletons (`topic.topic.yaml`, `demo.demo.yaml`, `layout.rail.yaml`, `test_subject.py`) |
 | `cpp_labs/template_subject/` | Worked exemplar (2 examples + 1 gotcha, diagram:false) |
