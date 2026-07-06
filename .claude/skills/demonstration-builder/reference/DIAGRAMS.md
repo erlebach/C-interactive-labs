@@ -102,13 +102,15 @@ Missing keys degrade to `"?"` and never raise. An unrecognized `type=` hits `_sv
 
 ### Family B — stackframe renderers
 
-Three renderers for call-stack and memory-layout subjects.
+Two renderers for call-stack and memory-layout subjects.
 
 | `type=` | Function | Purpose |
 |---|---|---|
 | `frames` | `_svg_frames` | Call-stack frame sequence snapshot |
-| `frames_anatomy` | `_svg_frames_anatomy` | Detailed per-frame anatomy (variables, return address, etc.) |
 | `memmap` | `_svg_memmap` | Process memory map (stack / heap / globals regions) |
+
+Note: `_svg_frames_anatomy` is not a PTRDATA type — it is rendered indirectly by the
+`frames_anatomy_details` and `stepped_frames` components (see the interaction layer below).
 
 Reference: `html_renderer.py::svg_renderer`, `_stack_svg`.
 
@@ -140,8 +142,10 @@ printf("PTRDATA: type=ref ref_addr=%p target_addr=%p target_val=%d\n",
 printf("PTRDATA: type=null ptr_addr=%p\n", (void*)ptr);
 ```
 
-No PTRDATA line → `ptrdata=None` → `svg_renderer` returns empty string → right cell
-is empty (the code column width is preserved; the cell is never replaced with a placeholder).
+No PTRDATA line → `ptrdata=None` → `_demo_variant_body` skips the diagram
+(`diagram_html = memory_diagram(...) if pd else ""`) → the right cell is empty.
+(`svg_renderer` is not called in this path; called directly with `None` it would return
+a 'no diagram' placeholder SVG, not an empty string.)
 
 See `PATTERN.md §6` for the full PTRDATA key table and §7 for diagram gating rules.
 
