@@ -21,3 +21,11 @@ def test_reference_files_present():
     for f in ("PATTERN.md", "DIAGRAMS.md", "CHECKLIST.md"):
         assert (SKILL / "reference" / f).read_text(encoding="utf-8").strip(), \
             f"reference/{f} is missing or empty"
+
+
+def test_skill_md_frontmatter():
+    text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    assert text.startswith("---"), "SKILL.md must start with YAML frontmatter"
+    fm = yaml.safe_load(text.split("---", 2)[1])
+    assert fm["name"] == "demonstration-builder"
+    assert "demonstration" in fm["description"].lower()
