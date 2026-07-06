@@ -1,0 +1,40 @@
+# A topic = one C++ template + metadata. Required: id, name, template, explanation, group.
+# Copy this file to cpp_labs/<subject>/topics/<id>.topic.yaml and edit.
+# Use `class` (not struct); comments on their OWN line above the code; break long
+# `<<` stream chains aligned. Omit <<HARNESS>> unless you want the raw-bytes grid.
+id: my_topic                       # unique; matches filename <id>.topic.yaml
+name: "Human name"                 # tab / section heading
+group: Examples                    # category label (Examples, Gotchas, ...)
+doc_url: https://en.cppreference.com/w/cpp/language/types
+explanation: >-
+  One-paragraph concept: what this example should impart. Surfaced in the right
+  column via ${<bake-key>.explanation}.
+template: |
+  #include <iostream>
+  int main() {
+      // describe the line above it
+      <<type>> x = <<value>>;
+      std::cout << "x = " << x << "\n";
+  }
+# OPTIONAL — a dropdown control makes one variant tab per option:
+controls:
+  - id: type
+    label: Type
+    kind: dropdown              # dropdown | text | checkbox
+    options: [int, double]
+    default: int
+    placeholder: <<type>>
+  - id: value
+    label: Value
+    kind: text
+    default: "42"
+    placeholder: <<value>>
+# OPTIONAL — a Correct/Mistake (or matrix) gotcha via independently-compiled cases:
+#   Each case fills placeholders no control owns. An empty/wrong fragment that fails
+#   to compile surfaces as a real red error box. Add `sanitize: true` (top level) for
+#   a runtime-fault gotcha caught by AddressSanitizer instead.
+# cases:
+#   - label: "Correct: ..."
+#     subs: { "<<slot>>": "..." }
+#   - label: "Mistake: ...  (compile error)"
+#     subs: { "<<slot>>": "" }

@@ -1,0 +1,14 @@
+# A layout assembles demos with a nav style. Copy to
+# cpp_labs/<subject>/layouts/<subject>.rail.yaml. style: left_rail | top_tabs | stacked.
+title: "My Subject — one-line goal"
+style: left_rail
+header:
+  - heading: { text: "My Subject" }
+sidebar:
+  # Only `concept` and `glossary` are allowed in the sidebar.
+  - concept:
+      id: obj
+      text: >-
+        The demonstration-level Main Takeaway: what the whole subject teaches.
+demos:
+  - ../demos/my_topic.demo.yaml

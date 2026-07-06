@@ -1,0 +1,5 @@
+title: "A small class"
+language: cpp
+bake: { m: ts_method }
+blocks:
+  - topic: { id: m, source: m, diagram: false, concept: "${m.explanation}" }

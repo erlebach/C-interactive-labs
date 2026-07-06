@@ -1,0 +1,27 @@
+id: ts_value
+name: "Value types"
+group: Examples
+doc_url: https://en.cppreference.com/w/cpp/language/types
+explanation: >-
+  A variable has a type chosen at declaration. Switch the Type tab to compile the
+  SAME program as int and as double. This example shows the variant-tabs mechanism:
+  one dropdown control produces one tab per option.
+template: |
+  #include <iostream>
+  int main() {
+      // a value of the chosen type
+      <<type>> x = <<value>>;
+      std::cout << "x = " << x << "\n";
+  }
+controls:
+  - id: type
+    label: Type
+    kind: dropdown
+    options: [int, double]
+    default: int
+    placeholder: <<type>>
+  - id: value
+    label: Value
+    kind: text
+    default: "42"
+    placeholder: <<value>>

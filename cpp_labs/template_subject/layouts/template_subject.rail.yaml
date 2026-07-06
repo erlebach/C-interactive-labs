@@ -1,0 +1,15 @@
+title: "Template Subject — a minimal demonstration"
+style: left_rail
+header:
+  - heading: { text: "Template Subject" }
+sidebar:
+  - concept:
+      id: obj
+      text: >-
+        A minimal, generic demonstration used as the copy-me template for authoring
+        new cpp_labs subjects. It has two examples and one gotcha, and no memory
+        diagram (diagram:false throughout).
+demos:
+  - ../demos/ts_value.demo.yaml
+  - ../demos/ts_method.demo.yaml
+  - ../demos/ts_gotcha.demo.yaml

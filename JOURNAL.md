@@ -2,6 +2,51 @@
 
 Chronological log of features, bug fixes, and architectural decisions.
 
+## 2026-07-06 07:14 — demonstration-builder skill-creator polish + failed description optimizer
+
+Post-build best-practice pass on the `demonstration-builder` skill (via `skill-creator`). **Fixed two
+real correctness bugs in `SKILL.md`** (`42b8f53`): Step 5's build command was the non-runnable
+`python -m cpp_labs.build_html` (→ `./build_labs.sh <subject>`), and Step 4's test path was
+`cpp_labs/tests/` instead of the subject-local `cpp_labs/<subject>/tests/` (both contradicted the
+skill's own `CHECKLIST.md` and the `templates/test_subject.py` path math). **Bundled
+`scripts/scaffold_subject.sh`** (`a190853`) — deterministic scaffolding of a new subject that produces a
+consistent, immediately buildable+green minimal page (`<subject>_ex1` → `x = 42`), refuses to clobber;
+verified end-to-end on a throwaway (`built 1, failed 0`, 4 tests pass, guard refuses). Also removed a
+stray untracked `demonstration-builder_bak/` duplicate. **The skill-creator description optimizer
+(`run_loop.py`) FAILED and was killed:** it measured **recall=0% on every description/iteration** (the
+skill never triggered under the `claude -p` eval harness → degenerate 50% accuracy everywhere, nothing
+distinguishable), after ~6.5 h for 4 iterations. **No description change applied** — the committed
+`SKILL.md` keeps its original hand-written pushy description. Lesson: the automated
+triggering-optimizer's signal is broken here; improve the description as a reviewed manual edit (the one
+good idea from the run: add an explicit "Do NOT use for engine edits / build-script fixes / engine unit
+tests / diff review / general C++ Qs" negative-scope clause). Handoff:
+`handoffs/HANDOFF_2026-07-06_07h14mEST.md`. Next: finish the branch.
+
+## 2026-07-06 00:18 — demonstration-builder skill + template_subject exemplar
+
+Built `.claude/skills/demonstration-builder/`: lean `SKILL.md` (pushy trigger + 6-step authoring
+workflow), three reference docs (`PATTERN.md` = YAML anatomy + test families; `DIAGRAMS.md` = renderer
+triage + two renderer families + zero-JS interaction layer; `CHECKLIST.md` = ordered build/verify
+commands), and copy-me `templates/` skeletons. Zero engine code change — skill references the existing
+`cpp_labs/` engine. Validated by authoring the worked exemplar `cpp_labs/template_subject/` (examples
+`ts_value` dropdown-variants + `ts_method` plain class; gotcha `ts_gotcha` Correct/Mistake pair; all
+`diagram: false`; TDD against exact baked g++ stdout). Guard test
+`cpp_labs/tests/test_demonstration_skill.py` checks skeletons parse, reference files present, frontmatter
+valid. Deferred: case-2 SVG-redraw engine block, interactive-diagram template components, engine bundling,
+skill-creator eval loop. Verification: **built 10, failed 0**; targeted suite **9 passed**; full engine
+suite **391 passed**; interface-catalog **4 passed**. Spec/plan: `docs/superpowers/specs/` and
+`docs/superpowers/plans/` dated 2026-07-05.
+
+### Details
+
+- Skill structure: `SKILL.md` + `reference/{PATTERN,DIAGRAMS,CHECKLIST}.md` + `templates/{topic.yaml,
+  test_topic.py, layout.rail.yaml}`. Authoring intent: user drafts YAML, agent polishes; no Python touch.
+- `ts_value`: 3 dropdown variants (stack/heap/init) showing value-category mechanics.
+- `ts_method`: single-variant class with member function, plain concept aside.
+- `ts_gotcha`: compile-error gotcha using Correct/Mistake `sub_cases` pattern.
+- Spec: `docs/superpowers/specs/2026-07-05-demonstration-builder-skill-design.md`
+- Plan: `docs/superpowers/plans/2026-07-05-demonstration-builder-skill.md`
+
 ## 2026-07-05 20:43 — C++ standard variant axis + std_variants subject (PR opened)
 
 Built the long-deferred **per-C++-standard axis** (brainstorm → spec → plan → subagent-driven, 13
