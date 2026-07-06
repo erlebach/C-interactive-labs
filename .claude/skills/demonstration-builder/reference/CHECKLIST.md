@@ -4,6 +4,22 @@ Distilled from `cpp_labs/SKILL_PREPARATION.md` §11–§12.
 
 ---
 
+## Step 0 — Install the engine (once per project)
+
+The engine ships **inside this skill** under `engine/`. Before the first build in a
+project that has no `cpp_labs/` yet, install it (idempotent; never touches subject
+folders):
+
+```bash
+<skill-dir>/scripts/install_engine.sh          # into $PWD (project root)
+pip install -r <skill-dir>/engine/requirements.txt   # PyYAML (+ pytest for tests)
+```
+
+All commands below run from the **project root** (the dir where `build_labs.sh` and
+`cpp_labs/` now live).
+
+---
+
 ## Build and verify commands
 
 ```bash

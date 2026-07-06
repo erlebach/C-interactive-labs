@@ -35,10 +35,38 @@ layers and how they compose.
 
 ---
 
+## Self-contained engine
+
+This skill **carries its own copy** of the baking engine under `engine/` (the shared
+`cpp_labs` Python package + `build_labs.sh` + `requirements.txt`). It does not depend
+on any pre-existing `cpp_labs/` in the project, so it works in **any** folder.
+
+The engine discovers subjects relative to its own physical location and `build_labs.sh`
+runs from the project root, so the engine must live as a `cpp_labs/` package **at the
+target project root**. Step 0 installs it there.
+
+Requirements: Python 3.10+, a C++ compiler on `PATH` (`g++`/`clang++`), and PyYAML
+(`pip install -r engine/requirements.txt`).
+
 ## The interactive workflow
 
-Work through these six steps in order. Offer suggestions at each gate — the author
+Work through these steps in order. Offer suggestions at each gate — the author
 should never face a blank page.
+
+### Step 0 — Install the engine (once per project)
+
+If the target project has no `cpp_labs/` engine yet (no `build_labs.sh` at its root),
+install the bundled engine into it. Safe to re-run — it merges engine files and never
+touches existing subject folders:
+
+```bash
+<skill-dir>/scripts/install_engine.sh          # installs into $PWD (the project root)
+```
+
+`<skill-dir>` is wherever this skill lives — e.g. `.claude/skills/demonstration-builder`
+(project-local) or `~/.claude/skills/demonstration-builder` (global). All scripts below
+target the **current directory** as the project root (override with a trailing path arg
+or `PROJECT_ROOT=`), so run them from the project you are authoring in.
 
 ### Step 1 — Elicit
 
@@ -72,7 +100,7 @@ Start from a consistent, buildable skeleton — don't hand-create the paths (tha
 where id/filename references drift out of sync):
 
 ```bash
-.claude/skills/demonstration-builder/scripts/scaffold_subject.sh <subject>
+<skill-dir>/scripts/scaffold_subject.sh <subject>    # writes into $PWD/cpp_labs/<subject>
 ```
 
 This creates the package below with ONE working example (`<subject>_ex1`, printing
@@ -128,7 +156,7 @@ These rules exist for good reasons — don't skip them.
 | Comments on their own line above the code they describe | Trailing end-of-line comments are easy to miss; above-the-line comments read as natural prose. Tests assert byte-identical stdout — trailing comments can shift column widths. |
 | Break long `<<` chains at `<<` boundaries, aligned | Long stream statements on one line are unreadable at course font sizes. Rule: break when 3+ `<<` or >~55 chars; align continuation lines under the first `<<`. |
 | Never commit `dist_labs/` | It is gitignored — the baked HTML is always regenerated from YAML. Committing it creates merge conflicts and bloats the repo. |
-| Do NOT modify engine code | v1 of this skill works purely with YAML content. Engine changes (`cpp_labs/` Python) require their own TDD cycle and are out of scope here. |
+| Do NOT modify engine code | Authoring is purely YAML content. The bundled `engine/cpp_labs/` Python is a vendored copy — editing it here diverges from upstream. Engine changes belong in the source repo with their own TDD cycle. |
 
 ---
 
@@ -136,9 +164,13 @@ These rules exist for good reasons — don't skip them.
 
 | Doc | What it covers |
 |---|---|
+| `INSTALL.md` | Plain-language setup guide (prerequisites, install, first build) |
 | `reference/PATTERN.md` | Full YAML anatomy of topic/demo/layout files + test families |
 | `reference/DIAGRAMS.md` | Diagram triage guide + zero-JS interaction layer options |
 | `reference/CHECKLIST.md` | Build/verify commands + ordered pre-commit checklist |
+| `engine/` | Vendored baking engine: `cpp_labs/` package + `build_labs.sh` + `requirements.txt` |
+| `scripts/install_engine.sh` | Install the bundled engine into a target project (Step 0) |
+| `scripts/sync_engine.sh` | Maintainer-only: re-vendor `engine/` from a live source engine |
 | `scripts/scaffold_subject.sh` | Create a consistent, buildable `<subject>` skeleton to grow from |
 | `templates/` | Copy-me skeletons (`topic.topic.yaml`, `demo.demo.yaml`, `layout.rail.yaml`, `test_subject.py`) |
-| `cpp_labs/template_subject/` | Worked exemplar (2 examples + 1 gotcha, diagram:false) |
+| `cpp_labs/template_subject/` | Worked exemplar (2 examples + 1 gotcha, diagram:false) — in the source repo |
